@@ -398,7 +398,7 @@ const AllDietitiansPage = () => {
               </div>
 
               {/* Results Grid */}
-              <div className="h-[1700px] overflow-y-auto">
+              <div className="h-425 overflow-y-auto">
                 <div className="space-y-6">
                   {filteredDietitians.length > 0 ? (
                     filteredDietitians.map((dietitian) => (

@@ -7,6 +7,7 @@ import AdminLayout from './Routes/AdminRoutes.jsx';
 import OrganizationLayout from './Routes/OrganizationRoutes.jsx';
 import CorporateLayout from './Routes/CorporateRoutes.jsx';
 import DietitianLayout from './Routes/DietitianRoutes.jsx';
+import RoleNotFound from './pages/RoleNotFound.jsx';
 
 export default function Layout() {
   return (
@@ -39,7 +40,7 @@ export default function Layout() {
               <DietitianLayout />
             </ProtectedProvider>
           } />
-          <Route path="*" element={<div>Role Not Found</div>} />
+          <Route path="*" element={<RoleNotFound />} />
         </Routes>
       </main>
     </div>

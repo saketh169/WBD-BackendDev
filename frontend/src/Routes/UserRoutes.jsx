@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '../contexts/AuthContext';
+import NotFoundPage from '../pages/NotFoundPage';
 
 import UserHome from '../pages/HomePages/UserHome';
 import UserSchedule from '../pages/Schedules/UserSchedule';
@@ -143,7 +144,7 @@ export default function UserRoutes() {
         />
         
         {/* Fallback Route */}
-        <Route path="*" element={<Navigate to="home" replace />} />
+        <Route path="*" element={<NotFoundPage role="user" />} />
       </Routes>
     </div>
     </AuthProvider>

@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '../contexts/AuthContext';
 import { VerifyProvider } from '../contexts/VerifyContext';
+import NotFoundPage from '../pages/NotFoundPage';
 
 import OrganizationHome from '../pages/HomePages/OrganizationHome';
 import OrganizationDashboard from '../pages/Dashboards/Organization';
@@ -50,7 +51,7 @@ export default function OrganizationRoutes() {
           <Route path="blogs" element={<Blog/>} />
           <Route path="blog/:id" element={<BlogPost />} />
 
-          <Route path="*" element={<Navigate to="home" replace />} />
+          <Route path="*" element={<NotFoundPage role="organization" />} />
         </Routes>
       </div>
     </AuthProvider>

@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '../contexts/AuthContext';
+import NotFoundPage from '../pages/NotFoundPage';
 
 import AdminHome from '../pages/HomePages/AdminHome';
 import AdminDashboard from '../pages/Dashboards/Admin';
@@ -33,7 +34,7 @@ export default function AdminRoutes() {
           <Route path="edit-profile" element={<EditProfile />} />
 
           
-          <Route path="*" element={<Navigate to="home" replace />} />
+          <Route path="*" element={<NotFoundPage role="admin" />} />
         </Routes>
       </div>
     </AuthProvider>

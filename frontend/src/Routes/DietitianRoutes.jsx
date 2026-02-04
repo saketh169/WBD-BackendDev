@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { VerifyProvider } from '../contexts/VerifyContext';
 import { AuthProvider } from '../contexts/AuthContext';
+import NotFoundPage from '../pages/NotFoundPage';
 
 import DietitianHome from '../pages/HomePages/DietitianHome';
 import DietitianDashboard from '../pages/Dashboards/Dietitian';
@@ -77,6 +78,8 @@ export default function DietitianRoutes() {
          {/* Lab Reports Route */}
          <Route path="lab-reports" element={<DietitianLabReportViewer />} />
          <Route path="lab-reports/:clientId" element={<DietitianLabReportViewer />} />
+         
+         <Route path="*" element={<NotFoundPage role="dietitian" />} />
       </Routes>
     </div>
     </AuthProvider>

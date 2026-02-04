@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '../contexts/AuthContext';
 import { VerifyProvider } from '../contexts/VerifyContext';
+import NotFoundPage from '../pages/NotFoundPage';
 
 import CorporateHome from '../pages/HomePages/CorporateHome';
 import CorporateDashboard from '../pages/Dashboards/CorporatePartner';
@@ -49,7 +50,7 @@ export default function CorporateRoutes() {
            <Route path="contact-us" element={<Contact/>} />
         
           
-          <Route path="*" element={<Navigate to="home" replace />} />
+          <Route path="*" element={<NotFoundPage role="corporatepartner" />} />
         </Routes>
       </div>
     </AuthProvider>

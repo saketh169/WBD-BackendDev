@@ -96,6 +96,14 @@ app.use('/api/settings', settingsRoutes);
 // Notification routes mounted at '/api/analytics'
 app.use('/api/analytics', notificationRoutes);
 
+// Health check endpoint for frontend error handling
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'ok',
+    message: 'Server is healthy',
+    timestamp: new Date().toISOString()
+  });
+});
 
 // Simple test route (kept from your original code)
 app.get('/', (req, res) => {
