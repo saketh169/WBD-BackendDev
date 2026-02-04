@@ -6,7 +6,7 @@ This project consists of a backend and frontend setup. The backend is a Node.js-
 
 ### Prerequisites
 - Node.js (v14 or higher)
-- npm or yarn 
+- npm or yarn
 - MongoDB (running locally or MongoDB Atlas connection)
 
 ### Backend Setup
@@ -29,7 +29,7 @@ This project consists of a backend and frontend setup. The backend is a Node.js-
    ```bash
    nodemon src/server.js
    ```
-   
+
    The backend server will start on `http://localhost:5000`
 
 ### Frontend Setup
@@ -48,7 +48,7 @@ This project consists of a backend and frontend setup. The backend is a Node.js-
    ```bash
    npm run dev
    ```
-   
+
    The frontend will start on `http://localhost:5173`
 
 ### Running Both Servers
@@ -103,4 +103,3 @@ This project consists of a backend and frontend setup:
   - **`eslint.config.js`**: Linting configuration.
   - **`index.html`**: Main HTML file.
   - **`package-lock.json` and `package.json`**: Manage frontend dependencies.
-
