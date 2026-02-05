@@ -20,6 +20,10 @@ const analyticsRoutes = require('./routes/analyticsRoutes');
 const settingsRoutes = require('./routes/settingsRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 
+// Middleware imports
+const { helmetMiddleware, rateLimiter, sanitizeInput } = require('./middlewares/securityMiddleware');
+const { requestLogger, errorLogger } = require('./middlewares/loggerMiddleware');
+const { errorHandler, notFoundHandler } = require('./middlewares/errorMiddleware');
 
 // Load environment variables from .env file in utils folder
 require('dotenv').config({ path: require('path').join(__dirname, 'utils', '.env') });
@@ -31,12 +35,22 @@ const PORT = process.env.PORT || 5000;
 // Connect to the database
 connectDB(); 
 
+// Security middlewares
+app.use(helmetMiddleware);
+app.use(rateLimiter);
+
+// Request logger
+app.use(requestLogger);
+
 // Enable CORS
 app.use(cors());
 
 // Parse incoming JSON requests with increased limits for image uploads
 app.use(express.json({ limit: '10mb' })); 
 app.use(express.urlencoded({ limit: '10mb', extended: true })); 
+
+// Sanitize input for XSS protection
+app.use(sanitizeInput);
 
 // Serve static files from uploads directory
 app.use('/uploads', express.static('uploads'));
@@ -109,6 +123,15 @@ app.get('/api/health', (req, res) => {
 app.get('/', (req, res) => {
   res.json({ message: 'Nutri Connect Server is Currently Live!' });
 });
+
+// 404 handler (must be after all routes)
+app.use(notFoundHandler);
+
+// Error logger
+app.use(errorLogger);
+
+// Global error handler (must be last)
+app.use(errorHandler);
 
 // Start server
 app.listen(PORT, () => {

@@ -13,10 +13,6 @@ const {
 } = require('../middlewares/cloudinaryMiddleware');
 const { checkBlogLimit } = require('../middlewares/subscriptionMiddleware');
 
-// ----------------------------------------------------------------------
-// PUBLIC ROUTES (No authentication required or optional)
-// ----------------------------------------------------------------------
-
 // Get all blog categories
 router.get('/categories', blogController.getCategories);
 
@@ -25,10 +21,6 @@ router.get('/', optionalAuth, blogController.getAllBlogs);
 
 // Get single blog by ID - Optional auth to check likes
 router.get('/:id', optionalAuth, blogController.getBlogById);
-
-// ----------------------------------------------------------------------
-// PROTECTED ROUTES (Authentication required)
-// ----------------------------------------------------------------------
 
 // Create new blog post (only users and dietitians with subscription check)
 router.post(
@@ -67,10 +59,6 @@ router.delete('/:id/comments/:commentId', verifyBlogAuth, blogController.deleteC
 
 // Report blog post
 router.post('/:id/report', verifyBlogAuth, blogController.reportBlog);
-
-// ----------------------------------------------------------------------
-// ORGANIZATION MODERATION ROUTES
-// ----------------------------------------------------------------------
 
 // Get reported blogs (organization only)
 router.get('/moderation/reported', verifyBlogAuth, isOrganization, blogController.getReportedBlogs);

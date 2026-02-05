@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-
-// --- Configuration and Data (Replicated from HTML) ---
 const FIELD_MAP = {
   resume: {
     name: 'Resume',
@@ -72,8 +70,6 @@ const STATUS_ICONS = {
   Pending: 'hourglass-half',
   'Not Uploaded': 'minus-circle'
 }
-
-// --- Mock Data Setup ---
 const mockDietitiansData = [
   {
     _id: 'd001',
@@ -133,9 +129,6 @@ const mockDietitiansData = [
 
 // --- Utility Components (Simplified Notifications & Modals) ---
 // Removed as they are now inlined in the JSX
-
-// --- Main React Component ---
-
 const DietitianVerify = () => {
   const navigate = useNavigate();
   const [dietitians, setDietitians] = useState([])
@@ -147,9 +140,6 @@ const DietitianVerify = () => {
     onConfirm: () => {}
   })
   const [fileViewer, setFileViewer] = useState({ active: false, file: null })
-
-  // --- State Handlers ---
-
   const handleNotify = (
     message,
     type = 'info',
@@ -163,9 +153,6 @@ const DietitianVerify = () => {
   const closeFileViewer = () => setFileViewer({ active: false, file: null })
   const toggleDocumentDetails = rowId =>
     setExpandedRow(expandedRow === rowId ? null : rowId)
-
-  // --- API Handlers ---
-
   const fetchDietitians = useCallback(async () => {
     try {
       const response = await axios.get('/api/verify/dietitians', {
@@ -319,9 +306,6 @@ const DietitianVerify = () => {
       handleNotify('File is not uploaded or data is missing.', 'warning');
     }
   }
-
-  // --- JSX Rendering Functions ---
-
   return (
     <div className='min-h-screen bg-linear-to-br from-slate-50 via-emerald-50 to-teal-50 pb-12 px-4 sm:px-6 lg:px-8'>
       <div className='w-full max-w-7xl mx-auto'>
@@ -814,3 +798,4 @@ const DietitianVerify = () => {
 }
 
 export default DietitianVerify
+

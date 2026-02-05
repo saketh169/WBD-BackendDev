@@ -8,14 +8,12 @@ const { authenticateJWT } = require('../middlewares/authMiddleware');
  * Base path: /api/analytics
  */
 
-// --- USER DASHBOARD DATA ---
 // GET /api/analytics/user/:userId
 router.get('/user/:userId', authenticateJWT, notificationController.getUserDashboardData);
 
 // GET /api/analytics/user/:userId/activities
 router.get('/user/:userId/activities', authenticateJWT, notificationController.getUserAllActivities);
 
-// --- DIETITIAN DASHBOARD DATA ---
 // GET /api/analytics/dietitian/:dietitianId
 router.get('/dietitian/:dietitianId', authenticateJWT, notificationController.getDietitianDashboardData);
 

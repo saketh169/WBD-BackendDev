@@ -1,75 +1,145 @@
-# React + Vite
+# Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This is the frontend application for the WBD project, built with React and Vite. It provides the user interface for the web application with a modern, responsive design using TailwindCSS.
 
-Currently, two official plugins are available:
+## Prerequisites
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- Node.js (v14 or higher)
+- npm or yarn
+- Backend server running on `http://localhost:5000`
 
-## Expanding the ESLint configuration
+## Installation
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+1. Navigate to the frontend directory:
+   ```bash
+   cd frontend
+   ```
 
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-## Remember Few Points
-   ===================
+3. Configure environment variables:
+   - Copy `.env.example` to `.env`
+   - Update any required environment variables (e.g., API endpoints)
 
-- 1) make sure the routes be seperated for each user like : user/homepage , admin/homepage ...
-- 2) make sure to implement all additional features mentioned to add in  the End Review
-- 3) Ensure the Workflow is working and dynamic updates are working correctly
-- 4) Ensure to have git commits from the very beginning and ensure to reuse the reusable components properly in React JS
-- 5) Implement to implement all Features without missing any Feature .
-- 6) Ensure both client sie and server side routing and use use JWS tokens Properly
+## Running the Frontend
 
+Start the development server:
+```bash
+npm run dev
+```
 
-Below is a concise point-by-point description and explanation of the proposed features. Each feature includes a name, explanation, and the purpose/use of the feature, focusing on integration with your existing system.
+The frontend will start on `http://localhost:5173` and proxy API requests to the backend at `http://localhost:5000`.
 
----
+## Build for Production
 
-### 1. Corporate Portal
-**Description**: A dedicated platform for corporate partners to manage wellness programs for large user groups.  
-**Explanation**: Enables corporate partners to offer bulk subscriptions, group consultations, and anonymized health metric tracking in a dedicated space. It simplifies employee wellness management and integrates with existing verification and payment systems.  
-**Use**: Attracts B2B clients, enhances employee health engagement, and provides a scalable solution for large organizations.
+Build the application:
+```bash
+npm run build
+```
 
----
+This creates an optimized production build in the `dist/` directory.
 
-### 2. Hidden Admin Role
-**Description**: Hides admin role selection in signup/login forms, accessible only via a secure route.  
-**Explanation**: Prevents unauthorized admin access by restricting role selection to a protected route with authentication. It leverages existing signup/login logic for quick implementation.  
-**Use**: Enhances security and ensures only authorized users can access admin functions.
+## Additional Scripts
 
----
+- `npm run dev`: Start the development server with hot reload
+- `npm run build`: Build the application for production
+- `npm run preview`: Preview the production build locally
+- `npm run lint`: Run ESLint for code linting
 
-### 3. Dietitian Slot Blocking
-**Description**: Allows dietitians to block time slots on their schedule via a sidebar.  
-**Explanation**: Dietitians can mark slots as unavailable to prevent user bookings, integrating with the existing booking system. A simple UI addition enables slot management.  
-**Use**: Improves dietitian control over schedules, ensuring work-life balance.
+## 3rd Party Libraries
 
----
+### UI & Styling
+- **TailwindCSS** - Utility-first CSS framework for rapid UI development
+- **react-icons** - Popular icon library for React
+- **lucide-react** - Clean, minimal icon set for React
+- **@tinymce/tinymce-react** - Rich text editor component
 
-### 4. Email Notifications
-**Description**: Sends automated email alerts for bookings, updates, or milestones.  
-**Explanation**: Uses existing Nodemailer setup to notify users about key events, with user-controlled preferences. Minimal UI changes add notification toggles.  
-**Use**: Boosts user engagement by keeping them informed of progress and updates.
+### State Management & Forms
+- **@reduxjs/toolkit** - Redux state management library
+- **react-redux** - React bindings for Redux
+- **react-hook-form** - Performant form validation library
+- **formik** - Form management library
+- **@hookform/resolvers** - Validation resolvers for react-hook-form
+- **yup** - Schema validation library
 
----
+### Routing
+- **react-router** - Declarative routing for React
+- **react-router-dom** - DOM bindings for React Router
 
-### 5. Progress PDF Export
-**Description**: Exports user progress data as a PDF report.  
-**Explanation**: Users can download health metrics (e.g., weight, water intake) as PDFs using a lightweight library, integrating with progress tracking. A button triggers the export.  
-**Use**: Enables users to share progress with doctors, enhancing accountability.
+### Data & API
+- **axios** - Promise-based HTTP client
+- **jwt-decode** - JWT decoding utility
 
----
+### Data Visualization & UI Components
+- **recharts** - Composable charting library for React
+- **chart.js** - JavaScript charting library
+- **moment** - Date and time library
+- **react-toastify** - Notification toasts for React
+- **react-textarea-autosize** - Auto-resizing textarea component
 
-### 6. Doctor Report Sending
-**Description**: Dietitians send medical reports/photos to users.  
-**Explanation**: Builds on existing file upload systems to allow dietitians to share reports via email or dashboard. A simple UI form enables file sending.  
-**Use**: Facilitates communication of dietary recommendations during consultations.
+### Build & Development
+- **vite** - Next generation frontend build tool
+- **@vitejs/plugin-react** - React plugin for Vite
+- **eslint** - JavaScript linting utility
+- **prettier** - Code formatter
 
----
+## Folder Structure
 
-### 7. Chat Blocking Post-Session
-**Description**: Blocks user-dietitian chat 4 days after session completion.  
-**Explanation**: Automatically disables chat access after 4 days, using existing session tracking. Ensures dietitians focus on active users.  
-**Use**: Improves system efficiency and prioritizes active consultations.
+This project frontend consists of the following structure:
+
+- **`frontend/`**: Root directory for the frontend.
+  - **`.env`**: Environment variables file.
+  - **`.env.example`**: Example environment variables file.
+  - **`.gitignore`**: Files/folders to exclude from version control.
+  - **`eslint.config.js`**: ESLint configuration for linting.
+  - **`index.css`**: Main CSS file.
+  - **`index.html`**: Main HTML file.
+  - **`node_modules/`**: Contains frontend dependencies.
+  - **`package-lock.json`**: Locks dependency versions.
+  - **`package.json`**: Manages dependencies and scripts.
+  - **`public/`**: Holds static files.
+  - **`README.md`**: Frontend documentation.
+  - **`src/`**: Contains React source code.
+    - **`main.jsx`**: React application entry point.
+    - **`App.jsx`**: Main App component.
+    - **`Layout.jsx`**: Layout wrapper component.
+    - **`components/`**: Reusable React components.
+      - **`extras/`**: Extra utility components.
+      - **`Footer/`**: Footer component.
+      - **`Header/`**: Header component.
+      - **`Navbar/`**: Navigation bar component.
+      - **`Sidebar/`**: Sidebar navigation component.
+    - **`contexts/`**: React context providers for state management.
+    - **`hooks/`**: Custom React hooks.
+    - **`middleware/`**: Middleware functions.
+    - **`pages/`**: Page components.
+      - **`Activities/`**: Activities page.
+      - **`Admin/`**: Admin dashboard pages.
+      - **`Appointments/`**: Appointments management.
+      - **`Auth/`**: Authentication pages (Login, Register).
+      - **`Blog/`**: Blog pages.
+      - **`Chat/`**: Chat interface pages.
+      - **`ChatBot/`**: AI ChatBot page.
+      - **`Consultations/`**: Consultation booking pages.
+      - **`Corporate/`**: Corporate/Organization pages.
+      - **`Dashboards/`**: User and admin dashboards.
+      - **`Error/`**: Error pages (404, 500, etc.).
+      - **`HomePages/`**: Home landing pages.
+      - **`LabReports/`**: Lab reports page.
+      - **`MealPlans/`**: Meal plans and diet pages.
+      - **`Payments/`**: Payment processing pages.
+      - **`Schedules/`**: Scheduling pages.
+      - **`Status/`**: Status/Progress pages.
+      - **`Verify/`**: Email/Account verification pages.
+    - **`redux/`**: Redux store setup.
+      - **`slices/`**: Redux slice definitions.
+      - **`store.js`**: Redux store configuration.
+    - **`Routes/`**: Routing configuration.
+      - **`Routes.jsx`**: Route definitions.
+    - **`styles/`**: CSS and styling files.
+    - **`utils/`**: Utility functions and helpers.
+    
+  - **`vite.config.js`**: Vite build configuration.

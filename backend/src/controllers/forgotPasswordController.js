@@ -2,9 +2,6 @@ const bcrypt = require('bcryptjs');
 const { UserAuth } = require('../models/userModel');
 const otpService = require('../services/otpService');
 
-// ----------------------------------------------------------------------
-// FORGOT PASSWORD CONTROLLER
-// ----------------------------------------------------------------------
 
 exports.forgotPasswordController = async (req, res) => {
     const { role } = req.params;
@@ -49,9 +46,6 @@ exports.forgotPasswordController = async (req, res) => {
     }
 };
 
-// ----------------------------------------------------------------------
-// RESET PASSWORD CONTROLLER
-// ----------------------------------------------------------------------
 
 exports.resetPasswordController = async (req, res) => {
     const { role } = req.params;

@@ -3,8 +3,6 @@ const router = express.Router();
 const chatbotController = require('../controllers/chatbotController');
 const { checkChatbotLimit } = require('../middlewares/subscriptionMiddleware');
 
-// --- CHATBOT ROUTES ---
-
 // 1. Send Message Route: POST /api/chatbot/message (with subscription limit check)
 // Handles user messages and returns bot responses
 router.post('/message', checkChatbotLimit, chatbotController.sendMessage);

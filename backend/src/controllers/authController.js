@@ -8,7 +8,6 @@ require('dotenv').config();
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-for-development';
 const ADMIN_SIGNIN_KEY = process.env.ADMIN_SIGNIN_KEY || 'Nutri@2025'; 
 
-// --- Role Mapping ---
 const PROFILE_MODELS = {
     user: User,
     admin: Admin,
@@ -17,7 +16,6 @@ const PROFILE_MODELS = {
     corporatepartner: CorporatePartner,
 };
 
-// --- Helper Function for Global Conflict Check (Name, Phone, etc.) ---
 const checkGlobalConflict = async (field, value, errorMessage) => {
     const models = [User, Admin, Dietitian, Organization, CorporatePartner];
     
@@ -34,10 +32,6 @@ const checkGlobalConflict = async (field, value, errorMessage) => {
     }
     return null; 
 };
-
-// ----------------------------------------------------------------------
-// SIGNUP CONTROLLER
-// ----------------------------------------------------------------------
 
 exports.signupController = async (req, res) => {
     const role = req.params.role; 
@@ -154,10 +148,6 @@ exports.signupController = async (req, res) => {
     }
 };
 
-// ----------------------------------------------------------------------
-// SIGNIN CONTROLLER
-// ----------------------------------------------------------------------
-
 exports.signinController = async (req, res) => {
     const role = req.params.role; 
     const { email, password, licenseNumber, adminKey, rememberMe } = req.body; 
@@ -228,10 +218,6 @@ exports.signinController = async (req, res) => {
         res.status(500).json({ message: 'Internal Server Error during login.' });
     }
 };
-
-// ----------------------------------------------------------------------
-// DOCUMENT UPLOAD CONTROLLER
-// ----------------------------------------------------------------------
 
 exports.docUploadController = async (req, res) => {
     try {
@@ -353,10 +339,6 @@ exports.verifyTokenController = async (req, res) => {
         res.status(401).json({ message: error.name === 'TokenExpiredError' ? 'Expired' : 'Invalid' });
     }
 };
-
-// ----------------------------------------------------------------------
-// CHANGE PASSWORD CONTROLLER
-// ----------------------------------------------------------------------
 
 exports.changePasswordController = async (req, res) => {
     const { oldPassword, newPassword } = req.body;

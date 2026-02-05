@@ -14,9 +14,6 @@ const getAuthConfig = (role = 'user') => {
   const token = getAuthToken(role);
   return token ? { headers: { Authorization: `Bearer ${token}` } } : {};
 };
-
-// --- Async Thunks ---
-
 // Check booking limits before creating a booking
 export const checkBookingLimits = createAsyncThunk(
   'booking/checkBookingLimits',
@@ -338,8 +335,6 @@ export const fetchDietitianProfile = createAsyncThunk(
     }
   }
 );
-
-// --- Initial State ---
 const initialState = {
   // User bookings
   userBookings: [],
@@ -384,8 +379,6 @@ const initialState = {
   error: null,
   successMessage: null
 };
-
-// --- Slice ---
 const bookingSlice = createSlice({
   name: 'booking',
   initialState,
@@ -735,3 +728,4 @@ export const selectError = (state) => state.booking.error;
 export const selectSuccessMessage = (state) => state.booking.successMessage;
 
 export default bookingSlice.reducer;
+

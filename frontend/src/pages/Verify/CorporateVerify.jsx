@@ -11,8 +11,6 @@ function loadFontAwesome() {
 }
 // Run the script injection once when the component is defined
 loadFontAwesome()
-
-// --- Configuration and Data (Corporate Partners) ---
 const FIELD_MAP = {
   businessLicense: {
     name: 'Business License',
@@ -75,8 +73,6 @@ const STATUS_ICONS = {
   'Not Uploaded': 'minus-circle',
   'No Documents': 'minus-circle'
 }
-
-// --- Mock Data Setup (Corporate Partners) ---
 const mockCorporateData = [
   {
     _id: 'c101',
@@ -141,18 +137,12 @@ const PRIMARY_DARK = '#047857' // Emerald-700
 const SECONDARY_ACCENT = '#3B82F6' // Blue-500
 const ACCENT_LIGHT = '#ECFDF5' // Emerald-50
 const ACCENT_MEDIUM = '#D1FAE5' // Emerald-100
-
-
-// --- Main React Component (Renamed to App) ---
 const App = () => {
   const navigate = useNavigate();
   const [partners, setPartners] = useState([])
   const [expandedRow, setExpandedRow] = useState(null)
   const [notification, setNotification] = useState(null)
   const [fileViewer, setFileViewer] = useState({ active: false, file: null })
-
-  // --- State Handlers ---
-
   const handleNotify = (
     message,
     type = 'info',
@@ -321,9 +311,6 @@ const App = () => {
       handleNotify('File is not uploaded or data is missing.', 'warning');
     }
   };
-
-  // --- JSX Rendering Functions ---
-
   return (
     <div className='min-h-screen bg-linear-to-br from-slate-50 via-emerald-50 to-teal-50 pb-12 px-4 sm:px-6 lg:px-8'>
       <div className='w-full max-w-7xl mx-auto'>

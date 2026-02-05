@@ -3,9 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 // NOTE: Assumes Font Awesome CSS is imported globally.
-
-// --- Configuration and Data ---
-
 const FIELD_MAP = {
     resume: { name: 'Professional Resume', icon: 'fas fa-file-alt' },
     degreeCertificate: { name: 'Degree Certificate', icon: 'fas fa-graduation-cap' },
@@ -28,9 +25,6 @@ const colors = {
     'text-dark': 'text-gray-800',
     'text-light': 'text-gray-600',
 };
-
-// --- Utility Functions for Status Styling ---
-
 const getStatusClass = (status) => {
     switch (status) {
         case 'Verified': return 'bg-green-100 text-green-600 border border-green-300';
@@ -52,9 +46,6 @@ const getStatusIcon = (status) => {
         default: return 'fas fa-minus-circle';
     }
 };
-
-// --- Main Component ---
-
 const DietitianDocStatus = () => {
     // Only state needed for core functionality (data and loading)
     const navigate = useNavigate();

@@ -16,10 +16,7 @@ const getAuthorDetails = async (userId, role) => {
         return 'Unknown';
     }
 };
-
-// ----------------------------------------------------------------------
 // CREATE BLOG POST
-// ----------------------------------------------------------------------
 exports.createBlog = async (req, res) => {
     try {
         const { title, content, category, tags, excerpt } = req.body;
@@ -73,10 +70,7 @@ exports.createBlog = async (req, res) => {
         });
     }
 };
-
-// ----------------------------------------------------------------------
 // GET ALL BLOGS (with filters)
-// ----------------------------------------------------------------------
 exports.getAllBlogs = async (req, res) => {
     try {
         const { 
@@ -140,10 +134,7 @@ exports.getAllBlogs = async (req, res) => {
         });
     }
 };
-
-// ----------------------------------------------------------------------
 // GET SINGLE BLOG BY ID
-// ----------------------------------------------------------------------
 exports.getBlogById = async (req, res) => {
     try {
         const { id } = req.params;
@@ -188,10 +179,7 @@ exports.getBlogById = async (req, res) => {
         });
     }
 };
-
-// ----------------------------------------------------------------------
 // UPDATE BLOG POST
-// ----------------------------------------------------------------------
 exports.updateBlog = async (req, res) => {
     try {
         const { id } = req.params;
@@ -249,10 +237,7 @@ exports.updateBlog = async (req, res) => {
         });
     }
 };
-
-// ----------------------------------------------------------------------
 // DELETE BLOG POST
-// ----------------------------------------------------------------------
 exports.deleteBlog = async (req, res) => {
     try {
         const { id } = req.params;
@@ -293,10 +278,7 @@ exports.deleteBlog = async (req, res) => {
         });
     }
 };
-
-// ----------------------------------------------------------------------
 // LIKE/UNLIKE BLOG POST
-// ----------------------------------------------------------------------
 exports.toggleLike = async (req, res) => {
     try {
         const { id } = req.params;
@@ -348,10 +330,7 @@ exports.toggleLike = async (req, res) => {
         });
     }
 };
-
-// ----------------------------------------------------------------------
 // ADD COMMENT TO BLOG POST
-// ----------------------------------------------------------------------
 exports.addComment = async (req, res) => {
     try {
         const { id } = req.params;
@@ -399,10 +378,7 @@ exports.addComment = async (req, res) => {
         });
     }
 };
-
-// ----------------------------------------------------------------------
 // DELETE COMMENT
-// ----------------------------------------------------------------------
 exports.deleteComment = async (req, res) => {
     try {
         const { id, commentId } = req.params;
@@ -455,10 +431,7 @@ exports.deleteComment = async (req, res) => {
         });
     }
 };
-
-// ----------------------------------------------------------------------
 // REPORT BLOG POST
-// ----------------------------------------------------------------------
 exports.reportBlog = async (req, res) => {
     try {
         const { id } = req.params;
@@ -521,10 +494,7 @@ exports.reportBlog = async (req, res) => {
         });
     }
 };
-
-// ----------------------------------------------------------------------
 // GET REPORTED BLOGS (Organization Only)
-// ----------------------------------------------------------------------
 exports.getReportedBlogs = async (req, res) => {
     try {
         const { page = 1, limit = 10 } = req.query;
@@ -558,10 +528,7 @@ exports.getReportedBlogs = async (req, res) => {
         });
     }
 };
-
-// ----------------------------------------------------------------------
 // DISMISS REPORTS (Organization only)
-// ----------------------------------------------------------------------
 exports.dismissReports = async (req, res) => {
     try {
         const { id } = req.params;
@@ -603,10 +570,7 @@ exports.dismissReports = async (req, res) => {
         });
     }
 };
-
-// ----------------------------------------------------------------------
 // GET USER'S OWN BLOGS
-// ----------------------------------------------------------------------
 exports.getMyBlogs = async (req, res) => {
     try {
         const { userId } = req.user;
@@ -641,10 +605,7 @@ exports.getMyBlogs = async (req, res) => {
         });
     }
 };
-
-// ----------------------------------------------------------------------
 // GET BLOG CATEGORIES
-// ----------------------------------------------------------------------
 exports.getCategories = async (req, res) => {
     try {
         const categories = [
@@ -669,3 +630,4 @@ exports.getCategories = async (req, res) => {
         });
     }
 };
+

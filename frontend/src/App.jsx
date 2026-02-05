@@ -23,7 +23,6 @@ import DocUpload from './pages/Auth/DocUpload';
 import PrivacyPolicy from './components/extras/PrivacyPolicy';
 import TermsOfUse  from './components/extras/TermsOfUse';
 import ServerError from './pages/Error/ServerError';
-import Forbidden403 from './pages/Error/Forbidden403';
 import RateLimit429 from './pages/Error/RateLimit429';
 
 import Layout from './Layout';
@@ -89,7 +88,6 @@ const App = () => {
           <Routes>
             {/* Error Routes - NO Header/Footer to avoid auth issues */}
             <Route path="/server-error" element={<ServerError />} />
-            <Route path="/forbidden" element={<Forbidden403 />} />
             <Route path="/rate-limit" element={<RateLimit429 />} />
             
             {/* All other routes with normal layout */}

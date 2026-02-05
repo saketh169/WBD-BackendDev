@@ -6,10 +6,7 @@ const {
   sendBookingNotificationToDietitian,
 } = require("../services/bookingService");
 
-/**
- * Create a new booking
- * POST /api/bookings/create
- */
+// Create a new booking
 exports.createBooking = async (req, res) => {
   try {
     const {
