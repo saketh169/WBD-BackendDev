@@ -3,9 +3,6 @@ import { ChevronLeft, ChevronRight, Utensils, Users, X, Plus, Save, Trash2, Load
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import AuthContext from '../../contexts/AuthContext';
-
-// --- Utility Functions ---
-
 /**
  * Converts a Date object to a YYYY-MM-DD string key for planning.
  * @param {Date} date
@@ -24,9 +21,6 @@ const MOCK_CLIENTS = [
     { id: 'client2', name: 'Robert Lee', goal: 'Muscle Gain (3000 kcal)', recentPlan: 'High-Protein' },
     { id: 'client3', name: 'Maria Garcia', goal: 'Energy & Wellness (2000 kcal)', recentPlan: 'Mediterranean' },
 ];
-
-// --- Custom Icon Component (using Lucide icons) ---
-
 const Icon = ({ name, className = '' }) => {
     switch (name) {
         case 'ChevronLeft': return <ChevronLeft className={`text-lg ${className}`} />;
@@ -50,8 +44,6 @@ const Icon = ({ name, className = '' }) => {
         default: return <span className={className}>?</span>;
     }
 };
-
-// --- Day Cell Component (used in CalendarView) ---
 const DayCell = ({ day, date, plan, isCurrentMonth, isToday, isSelected, onSelectDay, onViewPlan, isDeleteMode }) => {
     const dateKey = dateToKey(date);
     const today = new Date();
@@ -355,7 +347,6 @@ const CalendarView = ({
 const DietitianAddPlanForm = () => {
     const navigate = useNavigate();
     const { user, token } = useContext(AuthContext);
-    // --- State Management ---
     const [view, setView] = useState('CLIENT_LIST'); // 'CLIENT_LIST' | 'CLIENT_DASHBOARD' | 'CREATE_PLAN' | 'ASSIGN_PLAN' | 'DELETE_PLAN'
     const [clients, setClients] = useState([]);
     const [loadingClients, setLoadingClients] = useState(true);
@@ -429,8 +420,6 @@ const DietitianAddPlanForm = () => {
     const [showPlanModal, setShowPlanModal] = useState(false);
     const [selectedPlanForModal, setSelectedPlanForModal] = useState(null);
     const [selectedDateForModal, setSelectedDateForModal] = useState('');
-
-    // --- Navigation Handlers ---
     const handleSelectClient = async (client) => {
         setSelectedClient(client);
         setLoading(true);
@@ -499,8 +488,6 @@ const DietitianAddPlanForm = () => {
             alert(error.response?.data?.message || error.message || 'Failed to delete meal plan');
         }
     };
-
-    // --- Calendar Handlers ---
     const changeMonth = (delta) => {
         setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() + delta, 1));
     };
@@ -607,8 +594,6 @@ const DietitianAddPlanForm = () => {
         setSelectedPlanForModal(null);
         setSelectedDateForModal('');
     };
-
-    // --- Plan Creation Handler ---
     const handleSavePlan = async (planFormState, mealEntries, setErrors, setMessage) => {
         if (!selectedClient) return;
 
@@ -671,9 +656,6 @@ const DietitianAddPlanForm = () => {
             setLoading(false);
         }
     };
-
-    // --- UI Components ---
-
     const ClientList = () => (
         <div className="min-h-screen bg-linear-to-br from-slate-50 via-emerald-50 to-teal-50 pb-12 px-4 sm:px-6 lg:px-8">
             <div className="w-full max-w-7xl mx-auto pt-4">

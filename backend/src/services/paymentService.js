@@ -54,7 +54,7 @@ class PaymentService {
       await payment.save();
 
       // Simulate payment processing delay (in real scenario, this would be payment gateway API call)
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       // Simulate 95% success rate (for testing purposes)
       const isSuccess = Math.random() > 0.05;

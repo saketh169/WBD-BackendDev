@@ -1,0 +1,284 @@
+================================================================================
+                      BUILT-IN LIBRARIES DOCUMENTATION
+                    NutriConnect WBD (Web-Based Diet) Project
+================================================================================
+
+This document lists all built-in/native libraries available in Node.js and 
+JavaScript that are used in the NutriConnect project.
+
+================================================================================
+NODE.JS BUILT-IN MODULES (Backend)
+================================================================================
+
+1. FS (File System)
+   - Purpose: Read, write, and manage files
+   - Used for: File operations, reading configuration files
+   - Methods: fs.readFile(), fs.writeFile(), fs.mkdir(), etc.
+
+2. PATH
+   - Purpose: Cross-platform file path utilities
+   - Used for: Constructing file paths, resolving paths
+   - Methods: path.join(), path.resolve(), path.dirname()
+
+3. OS (Operating System)
+   - Purpose: OS-related utility functions
+   - Used for: OS detection, CPU/memory information
+   - Methods: os.platform(), os.arch(), os.cpus()
+
+4. CRYPTO
+   - Purpose: Cryptographic functionality
+   - Used for: OTP generation, data encryption, hashing
+   - Methods: crypto.randomBytes(), crypto.createHash()
+
+5. HTTP
+   - Purpose: HTTP server and client functionality
+   - Used for: Creating HTTP servers (underlying Express)
+   - Methods: http.createServer(), http.request()
+
+6. HTTPS
+   - Purpose: HTTPS secure server and client
+   - Used for: Secure HTTP communications
+   - Methods: https.createServer(), https.request()
+
+7. EVENTS
+   - Purpose: EventEmitter for event-driven architecture
+   - Used for: Handling asynchronous events
+   - Methods: EventEmitter.on(), EventEmitter.emit()
+
+8. UTIL (Utilities)
+   - Purpose: General utility functions
+   - Used for: Debugging, formatting, type checking
+   - Methods: util.inspect(), util.promisify(), util.types.isPromise()
+
+9. STREAM
+   - Purpose: Streaming data in readable/writable chunks
+   - Used for: File uploads, large file handling, piping data
+   - Methods: fs.createReadStream(), fs.createWriteStream()
+
+10. BUFFER
+    - Purpose: Handle binary data
+    - Used for: Image processing, file uploads, encryption
+    - Methods: Buffer.from(), Buffer.concat(), buffer.toString()
+
+11. URL
+    - Purpose: URL parsing and utilities
+    - Used for: Parsing URLs, extracting query parameters
+    - Methods: new URL(), url.parse(), url.format()
+
+12. QUERYSTRING
+    - Purpose: Parse and stringify query strings
+    - Used for: URL query parameter handling
+    - Methods: querystring.parse(), querystring.stringify()
+
+13. NET
+    - Purpose: TCP socket server and client
+    - Used for: Low-level socket communication
+    - Methods: net.createServer(), net.createConnection()
+
+14. DGRAM
+    - Purpose: UDP datagram socket support
+    - Used for: Low-level UDP communication
+
+15. DNS
+    - Purpose: Domain name system lookups
+    - Used for: DNS resolution, domain validation
+    - Methods: dns.resolve(), dns.lookup()
+
+16. CHILD_PROCESS
+    - Purpose: Spawn and manage child processes
+    - Used for: Running system commands, spawning processes
+    - Methods: child_process.exec(), child_process.spawn()
+
+17. CLUSTER
+    - Purpose: Multi-core processing
+    - Used for: Load balancing across CPU cores
+    - Methods: cluster.fork(), cluster.isMaster
+
+18. ASSERT
+    - Purpose: Assert/test checking
+    - Used for: Assertion testing, debugging
+    - Methods: assert.strictEqual(), assert.throws()
+
+19. TIMERS
+    - Purpose: Global timing functions
+    - Used for: setTimeout, setInterval, setImmediate
+    - Methods: setTimeout(), setInterval(), clearTimeout()
+
+20. ZLIB
+    - Purpose: Compression and decompression
+    - Used for: Gzip, deflate compression
+    - Methods: zlib.gzip(), zlib.gunzip()
+
+21. PERF_HOOKS
+    - Purpose: Performance measurement
+    - Used for: Monitoring performance, timing code
+    - Methods: performance.now(), PerformanceObserver
+
+22. CONSOLE
+    - Purpose: Console output and logging
+    - Used for: Debugging, logging messages
+    - Methods: console.log(), console.error(), console.warn()
+
+================================================================================
+JAVASCRIPT BUILT-IN OBJECTS (Frontend & Backend)
+================================================================================
+
+1. MATH
+   - Purpose: Mathematical functions and constants
+   - Methods: Math.floor(), Math.ceil(), Math.random(), Math.max()
+
+2. DATE
+   - Purpose: Date and time handling
+   - Methods: new Date(), Date.now(), date.getTime()
+
+3. ARRAY
+   - Purpose: Array manipulation and iteration
+   - Methods: map(), filter(), reduce(), forEach(), push(), pop()
+
+4. STRING
+   - Purpose: String manipulation and processing
+   - Methods: slice(), substring(), split(), replace(), toUpperCase()
+
+5. OBJECT
+   - Purpose: Object manipulation and property handling
+   - Methods: Object.keys(), Object.values(), Object.assign()
+
+6. JSON
+   - Purpose: JSON parsing and stringification
+   - Methods: JSON.parse(), JSON.stringify()
+
+7. PROMISE
+   - Purpose: Asynchronous operation handling
+   - Methods: new Promise(), Promise.all(), Promise.resolve()
+
+8. SET
+   - Purpose: Unique value collection
+   - Methods: add(), delete(), has(), clear()
+
+9. MAP
+   - Purpose: Key-value pair collection
+   - Methods: set(), get(), delete(), has()
+
+10. WEAKMAP
+    - Purpose: Weak reference key-value pairs
+    - Used for: Internal data storage without memory leaks
+
+11. WEAKSET
+    - Purpose: Weak reference unique values
+    - Used for: Tracking objects without strong references
+
+12. SYMBOL
+    - Purpose: Unique identifier creation
+    - Methods: Symbol(), Symbol.for(), Symbol.keyFor()
+
+13. REGEXP
+    - Purpose: Regular expression pattern matching
+    - Methods: test(), exec(), match(), replace()
+
+14. ERROR
+    - Purpose: Error handling and custom errors
+    - Types: Error, TypeError, ReferenceError, SyntaxError
+
+15. FUNCTION
+    - Purpose: Function handling and manipulation
+    - Methods: call(), apply(), bind()
+
+16. NUMBER
+    - Purpose: Number utilities and constants
+    - Methods: Number.isInteger(), Number.parseFloat()
+
+17. BOOLEAN
+    - Purpose: Boolean value handling
+    - Methods: Boolean(), valueOf()
+
+18. PROXY
+    - Purpose: Intercept and customize object operations
+    - Used for: Validation, logging, tracking changes
+
+19. REFLECT
+    - Purpose: Metaprogramming operations
+    - Methods: Reflect.get(), Reflect.set(), Reflect.apply()
+
+20. INTL
+    - Purpose: Internationalization and localization
+    - Methods: new Intl.DateTimeFormat(), Intl.NumberFormat()
+
+================================================================================
+BROWSER BUILT-IN APIS (Frontend)
+================================================================================
+
+1. WINDOW
+   - Purpose: Global browser object
+   - Methods: window.alert(), window.fetch(), window.localStorage
+
+2. DOCUMENT
+   - Purpose: DOM manipulation
+   - Methods: document.getElementById(), document.querySelector()
+
+3. FETCH API
+   - Purpose: HTTP requests (modern alternative to XMLHttpRequest)
+   - Methods: fetch(), response.json(), response.text()
+
+4. LOCAL STORAGE
+   - Purpose: Client-side data persistence
+   - Methods: localStorage.setItem(), localStorage.getItem()
+
+5. SESSION STORAGE
+   - Purpose: Temporary client-side storage
+   - Methods: sessionStorage.setItem(), sessionStorage.getItem()
+
+6. LOCATION
+   - Purpose: URL and navigation handling
+   - Properties: location.href, location.pathname
+
+7. HISTORY
+   - Purpose: Browser history manipulation
+   - Methods: history.back(), history.forward(), history.go()
+
+8. TIMEOUT & INTERVAL
+   - Purpose: Delayed execution
+   - Methods: setTimeout(), setInterval(), clearTimeout()
+
+9. CONSOLE
+   - Purpose: Browser console debugging
+   - Methods: console.log(), console.warn(), console.error()
+
+10. GEOLOCATION
+    - Purpose: User location access
+    - Methods: navigator.geolocation.getCurrentPosition()
+
+11. NOTIFICATION API
+    - Purpose: Display notifications
+    - Methods: new Notification()
+
+12. WEB WORKER
+    - Purpose: Background threading
+    - Methods: new Worker()
+
+================================================================================
+USAGE SUMMARY
+================================================================================
+
+BACKEND (Node.js Built-ins):
+- fs, path, os, crypto, http, https, events, util, stream, buffer
+- Used for: File operations, security, networking, data handling
+
+FRONTEND (JavaScript Built-ins):
+- Math, Date, Array, String, Object, JSON, Promise, Map, Set
+- Used for: Data manipulation, calculations, asynchronous operations
+
+BROWSER APIs (Frontend):
+- fetch, localStorage, sessionStorage, console, window, document
+- Used for: API calls, data storage, DOM manipulation, debugging
+
+================================================================================
+VERSION NOTES
+================================================================================
+
+- All built-in libraries available in Node.js v20+
+- All JavaScript built-ins compatible with ES6+ standard
+- No external installation required - part of core language/runtime
+- Always available without npm/package manager
+- Well-documented in official Node.js and MDN documentation
+
+================================================================================

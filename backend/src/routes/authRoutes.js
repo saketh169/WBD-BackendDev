@@ -2,8 +2,7 @@ const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
 const forgotPasswordController = require('../controllers/forgotPasswordController');
-// const twoFAController = require('../controllers/twoFAController'); // 2FA DISABLED
-const  upload  = require('../middlewares/uploadMiddleware');
+const upload = require('../middlewares/uploadMiddleware');
 
 /**
  * Middleware utility to explicitly set req.params.role based on the route path.
@@ -13,7 +12,6 @@ const injectRole = (role) => (req, res, next) => {
     next();
 };
 
-// --- SIGNUP ROUTES ---
 // 1. User Signup Route: POST /api/signup/user
 router.post('/signup/user', 
     injectRole('user'), 
@@ -44,7 +42,6 @@ router.post('/signup/corporatepartner',
     authController.signupController
 );
 
-// --- SIGNIN ROUTES ---
 // 6. User Signin Route: POST /api/signin/user
 router.post('/signin/user', 
     injectRole('user'), 
@@ -75,7 +72,6 @@ router.post('/signin/corporatepartner',
     authController.signinController
 );
 
-// --- DOCUMENT UPLOAD ROUTES ---
 // 11. Dietitian Document Upload: POST /api/documents/upload/dietitian
 router.post('/documents/upload/dietitian',
     injectRole('dietitian'),

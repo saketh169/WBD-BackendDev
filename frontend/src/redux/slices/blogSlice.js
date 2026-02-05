@@ -13,9 +13,6 @@ const getAuthConfig = (role) => {
   const token = getAuthToken(role);
   return token ? { headers: { Authorization: `Bearer ${token}` } } : {};
 };
-
-// --- Async Thunks ---
-
 // Fetch all blogs with filters
 export const fetchBlogs = createAsyncThunk(
   'blog/fetchBlogs',
@@ -326,8 +323,6 @@ export const dismissReports = createAsyncThunk(
     }
   }
 );
-
-// --- Initial State ---
 const initialState = {
   // Blog list state
   blogs: [],
@@ -364,8 +359,6 @@ const initialState = {
   error: null,
   successMessage: null
 };
-
-// --- Slice ---
 const blogSlice = createSlice({
   name: 'blog',
   initialState,
@@ -622,3 +615,4 @@ export const selectError = (state) => state.blog.error;
 export const selectSuccessMessage = (state) => state.blog.successMessage;
 
 export default blogSlice.reducer;
+

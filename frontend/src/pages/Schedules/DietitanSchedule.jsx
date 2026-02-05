@@ -1,17 +1,12 @@
 import React, { useState, useMemo, useEffect, useContext, useCallback } from 'react';
 import AuthContext from '../../contexts/AuthContext';
 import axios from 'axios';
-
-// --- Theme Colors ---
 const PRIMARY_GREEN = '#10B981'; // Emerald-500 - More vibrant green
 const DARK_GREEN = '#059669'; // Emerald-600 - Darker green
 const ACCENT_GREEN = '#34D399'; // Emerald-400 - Light green
 const WARNING_COLOR = '#86EFAC'; // Emerald-300 - Very light green
 const CARD_FOLLOWUP_COLOR = '#EF4444'; // Red-500 for follow-ups
 const TEAL_DARK = '#0F766E'; // Teal-700 for text
-
-// --- Helper Functions (Re-used) ---
-
 /**
  * Generates the next 7 days starting from today.
  */
@@ -458,7 +453,7 @@ const DietitianSchedule = () => {
             
             <div className="flex flex-1 w-full p-4">
                 {/* Sidebar - Day List (No Change) */}
-                <aside className="sidebar sticky w-[280px] bg-white shadow-xl h-[calc(100vh-120px)] overflow-y-auto p-4 mt-0 border-r-2 border-emerald-200 rounded-tr-2xl rounded-br-2xl">
+                <aside className="sidebar sticky w-70 bg-white shadow-xl h-[calc(100vh-120px)] overflow-y-auto p-4 mt-0 border-r-2 border-emerald-200 rounded-tr-2xl rounded-br-2xl">
                     <div className="flex items-center gap-3 mb-4">
                         <div className="w-10 h-10 bg-linear-to-r from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center">
                             <i className="fas fa-calendar-days text-white text-lg"></i>

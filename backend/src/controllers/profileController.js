@@ -555,9 +555,6 @@ async function getCorporatePartnerDetails(req, res) {
     return getUserDetailsGeneric(req, res);
 }
 
-// ----------------------------------------------------------------------
-// UPDATE PROFILE CONTROLLER
-// ----------------------------------------------------------------------
 
 async function updateUserProfile(req, res) {
     try {

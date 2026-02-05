@@ -109,7 +109,7 @@ const PaymentNotificationModal = ({
       setUpiVerified(true);
       setIsProcessing(false);
       alert(`UPI ID ${upiId} verified successfully!`);
-    }, 1500);
+    }, 2000);
   };
 
   const handleVerifyNetbanking = () => {
@@ -201,15 +201,15 @@ const PaymentNotificationModal = ({
 
     setIsProcessing(true);
     try {
-      // Get userId from localStorage (primary source)
-      const userIdFromStorage = localStorage.getItem('userId');
+      // Use userId from AuthContext - this is the correct userId for bookings
+      const userId = user?.id;
 
       // Generate payment ID
       const paymentId = "PAY_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9);
 
       // Prepare booking data - ENSURE ALL REQUIRED FIELDS ARE PRESENT
       const bookingData = {
-        userId: paymentDetails?.userId || userIdFromStorage || user?.id,
+        userId: paymentDetails?.userId || userId,
         username: paymentDetails?.userName || user?.name,
         email: email,
         userPhone: paymentDetails?.userPhone || user?.phone || '',

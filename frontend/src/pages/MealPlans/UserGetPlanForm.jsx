@@ -3,9 +3,6 @@ import { ChevronLeft, ChevronRight, Utensils, Calendar, Search, Flame, Clock, Us
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import AuthContext from '../../contexts/AuthContext';
-
-// --- Utility Functions ---
-
 /**
  * Converts a Date object to a YYYY-MM-DD string key for planning.
  * @param {Date} date
@@ -132,9 +129,6 @@ const MOCK_USER_PLANS = {
         assignedDate: '2025-11-01'
     }
 };
-
-// --- Custom Icon Component (using Lucide icons) ---
-
 const Icon = ({ name, className = '' }) => {
     switch (name) {
         case 'ChevronLeft': return <ChevronLeft className={`text-lg ${className}`} />;
@@ -149,8 +143,6 @@ const Icon = ({ name, className = '' }) => {
         default: return <span className={className}>?</span>;
     }
 };
-
-// --- Day Cell Component (for User View) ---
 const DayCell = ({ day, date, plan, isCurrentMonth, isToday, onViewPlan }) => {
     const dateKey = dateToKey(date);
     const today = new Date();
@@ -215,8 +207,6 @@ const DayCell = ({ day, date, plan, isCurrentMonth, isToday, onViewPlan }) => {
         </div>
     );
 };
-
-// --- Calendar View Component (for User) ---
 const CalendarView = ({
     currentDate,
     plans,
@@ -320,8 +310,6 @@ const CalendarView = ({
         </div>
     );
 };
-
-// --- Plan Detail Modal Component ---
 const PlanDetailModal = ({ plan, onClose, date }) => {
     if (!plan) return null;
 
@@ -419,8 +407,6 @@ const PlanDetailModal = ({ plan, onClose, date }) => {
 const UserGetPlanForm = () => {
     const navigate = useNavigate();
     const { user, token } = useContext(AuthContext);
-    
-    // --- State Management ---
     const [plans, setPlans] = useState({});
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -479,8 +465,6 @@ const UserGetPlanForm = () => {
 
         fetchMealPlans();
     }, [user?.id, token]);
-
-    // --- Navigation Handlers ---
     const changeMonth = (delta) => {
         setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() + delta, 1));
     };
@@ -496,9 +480,6 @@ const UserGetPlanForm = () => {
         setSelectedPlan(null);
         setSelectedDate('');
     };
-
-    // --- UI Components ---
-
     return (
         <div className="min-h-screen bg-linear-to-br from-green-50 via-emerald-50 to-teal-50 pb-12 px-4 sm:px-6 lg:px-8">
             <div className="w-full max-w-7xl mx-auto pt-4">
@@ -645,3 +626,4 @@ const UserGetPlanForm = () => {
 };
 
 export default UserGetPlanForm;
+

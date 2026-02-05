@@ -85,16 +85,7 @@ export const setupAxiosInterceptors = (setAppError, markServerRecovered, navigat
         }
       }
 
-      // Check for 403 Forbidden errors
-      if (error.response && error.response.status === 403) {
-        console.log('🚫 403 FORBIDDEN ERROR DETECTED');
-        if (navigate) {
-          navigate('/forbidden');
-        } else {
-          window.location.href = '/forbidden';
-        }
-        return Promise.reject(error);
-      }
+
 
       // Check for 429 Too Many Requests (Rate Limiting)
       if (error.response && error.response.status === 429) {

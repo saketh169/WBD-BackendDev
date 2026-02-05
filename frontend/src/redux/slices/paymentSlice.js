@@ -14,9 +14,6 @@ const getAuthConfig = (role = 'user') => {
   const token = getAuthToken(role);
   return token ? { headers: { Authorization: `Bearer ${token}` } } : {};
 };
-
-// --- Async Thunks ---
-
 // Fetch pricing plans from settings
 export const fetchPricingPlans = createAsyncThunk(
   'payment/fetchPricingPlans',
@@ -294,8 +291,6 @@ export const cancelSubscription = createAsyncThunk(
     }
   }
 );
-
-// --- Initial State ---
 const initialState = {
   // Pricing plans
   plans: [],
@@ -329,8 +324,6 @@ const initialState = {
   error: null,
   successMessage: null
 };
-
-// --- Slice ---
 const paymentSlice = createSlice({
   name: 'payment',
   initialState,
@@ -531,3 +524,4 @@ export const selectError = (state) => state.payment.error;
 export const selectSuccessMessage = (state) => state.payment.successMessage;
 
 export default paymentSlice.reducer;
+

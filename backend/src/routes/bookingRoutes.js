@@ -9,7 +9,6 @@ const Booking = require("../models/bookingModel");
  * Base path: /api/bookings
  */
 
-// --- CHECK SUBSCRIPTION LIMITS (before creating booking) ---
 // POST /api/bookings/check-limits
 router.post("/check-limits", async (req, res) => {
   try {
@@ -97,11 +96,9 @@ router.post("/check-limits", async (req, res) => {
   }
 });
 
-// --- CREATE BOOKING ---
 // POST /api/bookings/create (with subscription limit check)
 router.post("/create", checkBookingLimit, bookingController.createBooking);
 
-// --- GET BOOKINGS ---
 // GET /api/bookings/user/:userId
 router.get("/user/:userId", bookingController.getUserBookings);
 
@@ -120,15 +117,12 @@ router.get(
 // GET /api/bookings/:bookingId
 router.get("/:bookingId", bookingController.getBookingById);
 
-// --- UPDATE BOOKING STATUS ---
 // PATCH /api/bookings/:bookingId/status
 router.patch("/:bookingId/status", bookingController.updateBookingStatus);
 
-// --- CANCEL BOOKING ---
 // DELETE /api/bookings/:bookingId
 router.delete("/:bookingId", bookingController.cancelBooking);
 
-// --- RESCHEDULE BOOKING ---
 // PATCH /api/bookings/:bookingId/reschedule
 router.patch("/:bookingId/reschedule", bookingController.rescheduleBooking);
 

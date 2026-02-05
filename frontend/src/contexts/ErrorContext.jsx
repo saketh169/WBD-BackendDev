@@ -5,10 +5,48 @@ const ErrorContext = createContext();
 
 // Error Provider Component
 export const ErrorProvider = ({ children }) => {
-  const [error, setError] = useState(null);
-  const [isServerDown, setIsServerDown] = useState(false);
+  // Initialize error from localStorage to persist across page refreshes
+  const [error, setError] = useState(() => {
+    try {
+      const stored = localStorage.getItem('appError');
+      return stored ? JSON.parse(stored) : null;
+    } catch (e) {
+      return null;
+    }
+  });
+  // Initialize from localStorage to persist across page refreshes
+  const [isServerDown, setIsServerDown] = useState(() => {
+    try {
+      const stored = localStorage.getItem('isServerDown');
+      return stored === 'true';
+    } catch (e) {
+      return false;
+    }
+  });
   const [retryCount, setRetryCount] = useState(0);
   const [isRecovering, setIsRecovering] = useState(false);
+
+  // Save isServerDown state to localStorage when it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem('isServerDown', String(isServerDown));
+    } catch (e) {
+      console.error('Failed to save server down state to localStorage:', e);
+    }
+  }, [isServerDown]);
+
+  // Save error state to localStorage when it changes
+  useEffect(() => {
+    try {
+      if (error) {
+        localStorage.setItem('appError', JSON.stringify(error));
+      } else {
+        localStorage.removeItem('appError');
+      }
+    } catch (e) {
+      console.error('Failed to save error state to localStorage:', e);
+    }
+  }, [error]);
 
   // Function to set error
   const setAppError = useCallback((errorData) => {
@@ -49,6 +87,12 @@ export const ErrorProvider = ({ children }) => {
   const clearError = useCallback(() => {
     setError(null);
     setRetryCount(0);
+    // Clear from localStorage too
+    try {
+      localStorage.removeItem('appError');
+    } catch (e) {
+      console.error('Failed to clear error from localStorage:', e);
+    }
   }, []);
 
   // Function to mark server as recovered
@@ -57,6 +101,13 @@ export const ErrorProvider = ({ children }) => {
     clearError();
     setRetryCount(0);
     setIsRecovering(false);
+    // Clear the localStorage flags when server is back up
+    try {
+      localStorage.removeItem('isServerDown');
+      localStorage.removeItem('appError');
+    } catch (e) {
+      console.error('Failed to clear state from localStorage:', e);
+    }
   }, [clearError]);
 
   // Function to attempt recovery

@@ -3,8 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 // NOTE: Assumes Bootstrap and Font Awesome CSS/JS are included in the main application.
-
-// --- Configuration and Data (Replicated from HTML) ---
 const FIELD_MAP = {
     orgLogo: { name: 'Organization Logo', ext: 'png', icon: 'fas fa-image', isImage: true },
     orgBrochure: { name: 'Organization Brochure', ext: 'pdf', icon: 'fas fa-file-pdf', isImage: false },
@@ -25,8 +23,6 @@ const STATUS_ICONS = {
     'Pending': 'hourglass-half',
     'Not Uploaded': 'minus-circle'
 };
-
-// --- Mock Data Setup (Organizations) ---
 const mockOrganizationData = [
     {
         _id: 'o001',
@@ -79,12 +75,6 @@ const mockOrganizationData = [
         }
     }
 ];
-
-
-
-
-// --- Main React Component ---
-
 const OrgVerify = () => {
     const navigate = useNavigate();
     const [organizations, setOrganizations] = useState([]);
@@ -92,9 +82,6 @@ const OrgVerify = () => {
     const [notification, setNotification] = useState(null);
     const [modal, setModal] = useState({ active: false, message: '', onConfirm: () => {} });
     const [fileViewer, setFileViewer] = useState({ active: false, file: null });
-
-    // --- State Handlers ---
-
     const handleNotify = (message, type = 'info', duration = 5000, isFinalReject = false) => {
         setNotification({ message, type, isFinalReject });
         setTimeout(() => setNotification(null), duration);
@@ -102,9 +89,6 @@ const OrgVerify = () => {
 
     const closeFileViewer = () => setFileViewer({ active: false, file: null });
     const toggleDocumentDetails = (rowId) => setExpandedRow(expandedRow === rowId ? null : rowId);
-
-    // --- API Handlers ---
-
     const fetchOrganizations = useCallback(async () => {
         try {
             const response = await axios.get('/api/verify/organizations', {
