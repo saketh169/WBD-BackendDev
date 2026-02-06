@@ -21,19 +21,19 @@ const PROGRESS_PLAN_ACCESS = {
   premium: [
     // Includes basic plans plus:
     'general', 'weight-loss', 'hydration', 'balanced-diet', 'cardio', 'energy', 'flexibility',
-    'muscle-gain',     // Muscle Gain - protein & strength training
-    'stamina',         // Stamina Building - endurance training
-    'detox',           // Detox Program - clean eating
-    'stress',          // Stress Relief - mental wellness
-    'maintenance'      // Weight Maintenance - long-term tracking
+    'muscle-gain',     
+    'stamina',        
+    'detox',          
+    'stress',         
+    'maintenance'     
   ],
   ultimate: [
     // All plans including specialized ones:
     'general', 'weight-loss', 'hydration', 'balanced-diet', 'cardio', 'energy', 'flexibility',
     'muscle-gain', 'stamina', 'detox', 'stress', 'maintenance',
-    'diabetes',        // Diabetes Management - specialized health tracking
-    'recovery',        // Post-Injury Recovery - rehabilitation
-    'athletic'         // Athletic Performance - sport-specific training
+    'diabetes',        
+    'recovery',       
+    'athletic'         
   ]
 };
 
