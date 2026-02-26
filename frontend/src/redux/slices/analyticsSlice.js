@@ -335,6 +335,52 @@ export const fetchRevenueAnalytics = createAsyncThunk(
   }
 );
 
+// Fetch dietitian-specific revenue
+export const fetchDietitianRevenue = createAsyncThunk(
+  'analytics/fetchDietitianRevenue',
+  async () => {
+    const fallbackData = {
+      data: [],
+      totalDietitians: 0,
+      totalRevenue: 0
+    };
+
+    const data = await handleApiCall(async (token) => {
+      const response = await axios.get('/api/dietitian-revenue', {
+        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
+      });
+
+      return response.data || fallbackData;
+    }, fallbackData);
+
+    return data;
+  }
+);
+
+// Fetch user-specific revenue
+export const fetchUserRevenue = createAsyncThunk(
+  'analytics/fetchUserRevenue',
+  async () => {
+    const fallbackData = {
+      data: [],
+      totalUsers: 0,
+      totalRevenue: 0
+    };
+
+    const data = await handleApiCall(async (token) => {
+      const response = await axios.get('/api/user-revenue', {
+        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
+      });
+
+      return response.data || fallbackData;
+    }, fallbackData);
+
+    return data;
+  }
+);
+
 // --- Initial State ---
 const initialState = {
   userStats: {
@@ -376,6 +422,16 @@ const initialState = {
     },
     monthlyBreakdown: [],
     recentConsultations: []
+  },
+  dietitianRevenue: {
+    data: [],
+    totalDietitians: 0,
+    totalRevenue: 0
+  },
+  userRevenue: {
+    data: [],
+    totalUsers: 0,
+    totalRevenue: 0
   },
   subscriptions: [],
   expandedSubscriptionId: null,
@@ -477,6 +533,34 @@ const analyticsSlice = createSlice({
         state.error = null;
       })
       .addCase(fetchRevenueAnalytics.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.error.message;
+      })
+
+      // Fetch Dietitian Revenue
+      .addCase(fetchDietitianRevenue.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(fetchDietitianRevenue.fulfilled, (state, action) => {
+        state.dietitianRevenue = action.payload;
+        state.isLoading = false;
+        state.error = null;
+      })
+      .addCase(fetchDietitianRevenue.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.error.message;
+      })
+
+      // Fetch User Revenue
+      .addCase(fetchUserRevenue.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(fetchUserRevenue.fulfilled, (state, action) => {
+        state.userRevenue = action.payload;
+        state.isLoading = false;
+        state.error = null;
+      })
+      .addCase(fetchUserRevenue.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.error.message;
       });

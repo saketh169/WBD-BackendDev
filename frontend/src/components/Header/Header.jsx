@@ -103,6 +103,11 @@ const Header = () => {
           setProfileImage(response.data.profileImage);
         }
       } catch (error) {
+        // Handle rate limiting
+        if (error.response?.status === 429) {
+          window.location.href = '/rate-limit';
+          return;
+        }
         console.error('Error fetching profile data:', error);
         // Fallback to localStorage if API fails
         const storedImage = localStorage.getItem(`profileImage_${currentRole}`);

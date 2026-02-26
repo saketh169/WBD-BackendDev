@@ -5,7 +5,7 @@ import NotFoundPage from '../pages/Error/NotFoundPage';
 
 import DietitianHome from '../pages/HomePages/DietitianHome';
 import DietitianDashboard from '../pages/Dashboards/Dietitian';
-import DietitianSchedule from '../pages/Schedules/DietitanSchedule';
+import DietitianSchedule from '../pages/Schedules/DietitianSchedule';
 import DietitianSetup from '../pages/DietitianSetup';
 import DietitianDocStatus from '../pages/Status/DietitianDocStatus';
 import ChangePassword from '../pages/ChangePassword';
@@ -78,7 +78,7 @@ export default function DietitianRoutes() {
          {/* Lab Reports Route */}
          <Route path="lab-reports" element={<DietitianLabReportViewer />} />
          <Route path="lab-reports/:clientId" element={<DietitianLabReportViewer />} />
-         
+
          <Route path="*" element={<NotFoundPage role="dietitian" />} />
       </Routes>
     </div>

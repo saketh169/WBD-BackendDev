@@ -122,7 +122,7 @@ exports.getMessages = async (req, res) => {
 // Send a message
 exports.sendMessage = async (req, res) => {
   try {
-    const { conversationId, senderId, senderType, content, messageType, videoLink, labReport } = req.body;
+    const { conversationId, senderId, senderType, content, messageType, videoLink, labReport, mealPreferences, consultationReport } = req.body;
 
     if (!conversationId || !senderId || !senderType || !content) {
       return res.status(400).json({
@@ -148,6 +148,14 @@ exports.sendMessage = async (req, res) => {
         ...labReport,
         uploadedAt: new Date()
       };
+    }
+
+    if (messageType === 'meal-preferences' && mealPreferences) {
+      messageData.mealPreferences = mealPreferences;
+    }
+
+    if (messageType === 'consultation-report' && consultationReport) {
+      messageData.consultationReport = consultationReport;
     }
 
     const message = await Message.create(messageData);

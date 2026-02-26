@@ -31,6 +31,21 @@ const FormInput = ({ label, type = 'text', required = false, unit = '', onView, 
   const isFile = type === 'file';
   const [filePreview, setFilePreview] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [fileSizeError, setFileSizeError] = useState('');
+  const [selectedFileName, setSelectedFileName] = useState('');
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file && file.size > 10 * 1024 * 1024) { // 10MB limit
+      setFileSizeError('File too large (max 10MB)');
+      e.target.value = '';
+      setSelectedFileName('');
+    } else {
+      setFileSizeError('');
+      setSelectedFileName(file ? file.name : '');
+    }
+    if (registerProps.onChange) registerProps.onChange(e);
+  };
 
   const handleViewFile = () => {
     const input = document.querySelector(`input[name="${registerProps.name}"]`);
@@ -66,9 +81,23 @@ const FormInput = ({ label, type = 'text', required = false, unit = '', onView, 
               type="file"
               className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-100 file:text-emerald-700 hover:file:bg-emerald-200"
               required={required}
+              onChange={handleFileChange}
               {...registerProps}
             />
-            {onView && (
+            <div className="text-xs text-gray-500">
+              Maximum file size: 10MB. Supported formats: PDF, Images
+            </div>
+            {selectedFileName && !fileSizeError && (
+              <div className="text-xs text-emerald-600">
+                Selected: {selectedFileName}
+              </div>
+            )}
+            {fileSizeError && (
+              <div className="text-xs text-red-600 font-medium">
+                {fileSizeError}
+              </div>
+            )}
+            {onView && selectedFileName && !fileSizeError && (
               <button
                 type="button"
                 onClick={handleViewFile}
@@ -368,18 +397,12 @@ const LabReportUploader = () => {
 
     } catch (error) {
       console.error('Error submitting lab report:', error);
-      const errorMessage = error.response?.data?.message || error.message || 'Failed to submit lab report. Please try again.';
-      
-      // Show error notification
-      setNotification({
-        type: 'error',
-        message: errorMessage
-      });
 
-      // Hide error notification after 5 seconds
-      setTimeout(() => {
-        setNotification(null);
-      }, 5000);
+      // const isNetworkError = !error.response || error.code === 'ERR_NETWORK' || error.code === 'ECONNREFUSED';
+      // if (isNetworkError) {
+      //   setNotification({ type: 'error', message: 'Server is not responding. Please try again later.' });
+      //   setTimeout(() => setNotification(null), 5000);
+      // }
     } finally {
       setSubmitting(false);
     }

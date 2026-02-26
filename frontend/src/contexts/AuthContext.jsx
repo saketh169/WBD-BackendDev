@@ -139,6 +139,11 @@ export const AuthProvider = ({ children, currentRole }) => {
         return userData;
       }
     } catch (error) {
+      // Handle rate limiting
+      if (error.response?.status === 429) {
+        window.location.href = '/rate-limit';
+        return;
+      }
       console.error('Error fetching user details:', error);
     }
   };

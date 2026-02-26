@@ -4,9 +4,9 @@ const rateLimit = require('express-rate-limit');
 const helmetMiddleware = helmet();
 
 const rateLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
+  windowMs: 10000,
   max: 100000,
-  message: 'Too many requests from this IP, please try again after 15 minutes',
+  message: 'Too many requests from this IP, please try again after 10 seconds',
   standardHeaders: true,
   legacyHeaders: false,
   skip: (req) => {
@@ -16,9 +16,9 @@ const rateLimiter = rateLimit({
 });
 
 const authRateLimiter = rateLimit({
-  windowMs: 6000,
-  max: 1,
-  message: 'Too many login attempts, please try again after 15 minutes',
+  windowMs: 10000,
+  max: 100000,
+  message: 'Too many login attempts, please try again after 10 seconds',
   skipSuccessfulRequests: true,
   standardHeaders: true,
   legacyHeaders: false,
