@@ -22,18 +22,15 @@ const mockAdmin = {
   profileImage: "/images/dummy_user.png",
 };
 
-const mockOrganizations = [
-  { org_name: "Wellness Corp", verificationStatus: { finalReport: "Verified" } },
-  { org_name: "Healthy Life India", verificationStatus: { finalReport: "Received" } },
-  { org_name: "FitFast Centers", verificationStatus: { finalReport: "Rejected" } },
-  { org_name: "NutriClinic Pvt Ltd", verificationStatus: { finalReport: "Not Received" } },
-];
-
-// Mock function to simulate fetching organizations
-const mockFetchOrganizations = async () => {
-  await new Promise((resolve) => setTimeout(resolve, 500));
-  return mockOrganizations;
+// --- Organization Verification Table (real data) ---
+const getOrgStatusClass = (status) => {
+  switch (status) {
+    case 'Verified': return 'bg-green-100 text-green-800';
+    case 'Rejected': return 'bg-red-100 text-red-800';
+    default: return 'bg-yellow-100 text-yellow-800';
+  }
 };
+
 const GrowthChart = ({ data }) => {
   const chartRef = useRef(null);
   const chartInstance = useRef(null);
@@ -108,67 +105,43 @@ const GrowthChart = ({ data }) => {
 };
 
 // --- Organization Table Component ---
-const OrganizationTable = ({ organizations }) => {
+const OrganizationTable = ({ onViewAll }) => {
   const navigate = useNavigate();
+  const [organizations, setOrganizations] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const getStatusClass = (status) => {
-    switch (status) {
-      case "Verified": return "bg-green-100 text-green-800";
-      case "Rejected": return "bg-red-100 text-red-800";
-      case "Received":
-      case "Not Received":
-      default: return "bg-yellow-100 text-yellow-800";
-    }
-  };
-
-  const getStatusText = (status) => {
-    return status === "Not Received" ? "Pending" : status;
-  };
-
-  const handleRowClick = () => {
-    // Navigate to organization verification page
-    navigate('/admin/verify-organizations');
-  };
+  useEffect(() => {
+    axios.get('/api/verify/corporate', { withCredentials: true })
+      .then(res => setOrganizations(res.data.slice(0, 5)))
+      .catch(err => console.error('Failed to fetch organizations:', err))
+      .finally(() => setIsLoading(false));
+  }, []);
 
   return (
     <div className="overflow-x-auto bg-white rounded-xl shadow-lg">
       <table className="min-w-full divide-y divide-gray-200">
         <thead className="bg-green-700">
           <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
-              Organization Name
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
-              Verification Status
-            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Organization Name</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Verification Status</th>
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
-          {organizations.length === 0 ? (
-            <tr>
-              <td colSpan="2" className="px-6 py-4 text-center text-sm text-gray-500">
-                No organizations found.
-              </td>
-            </tr>
+          {isLoading ? (
+            <tr><td colSpan="2" className="px-6 py-4 text-center text-sm text-gray-500"><i className="fas fa-spinner fa-spin mr-2"></i>Loading...</td></tr>
+          ) : organizations.length === 0 ? (
+            <tr><td colSpan="2" className="px-6 py-4 text-center text-sm text-gray-500">No organizations found.</td></tr>
           ) : (
             organizations.map((org, index) => {
-              const overallStatus = org.verificationStatus?.finalReport || "Not Received";
-              const statusClass = getStatusClass(overallStatus);
-              const statusText = getStatusText(overallStatus);
-
+              const status = org.verificationStatus?.finalReport || 'Not Received';
+              const displayStatus = status === 'Not Received' ? 'Pending' : status;
               return (
-                <tr
-                  key={index}
-                  className="hover:bg-green-50 transition duration-150 cursor-pointer"
-                  onClick={() => handleRowClick()}
-                >
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {org.org_name || "Unknown Organization"}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClass}`}>
-                      <i className={`fas fa-${overallStatus === 'Verified' ? 'check-circle' : overallStatus === 'Rejected' ? 'times-circle' : 'hourglass-half'} mr-1`}></i>
-                      {statusText}
+                <tr key={index} className="hover:bg-green-50 transition duration-150 cursor-pointer" onClick={() => navigate('/admin/verify-organizations')}>
+                  <td className="px-6 py-4 text-sm font-medium text-gray-900">{org.org_name || org.name || 'Unknown'}</td>
+                  <td className="px-6 py-4 text-sm">
+                    <span className={`px-3 py-1 inline-flex text-xs font-semibold rounded-full ${getOrgStatusClass(status)}`}>
+                      <i className={`fas fa-${status === 'Verified' ? 'check-circle' : status === 'Rejected' ? 'times-circle' : 'hourglass-half'} mr-1`}></i>
+                      {displayStatus}
                     </span>
                   </td>
                 </tr>
@@ -177,6 +150,14 @@ const OrganizationTable = ({ organizations }) => {
           )}
         </tbody>
       </table>
+      <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 flex justify-end">
+        <button
+          onClick={onViewAll}
+          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-full hover:bg-green-700 transition"
+        >
+          <i className="fas fa-arrow-right"></i> View All Verifications
+        </button>
+      </div>
     </div>
   );
 };
@@ -198,7 +179,6 @@ const AdminDashboard = () => {
     error: analyticsError
   } = useSelector(state => state.analytics);
 
-  const [organizations, setOrganizations] = useState([]);
   const [profileImage, setProfileImage] = useState(mockAdmin.profileImage);
   const [isUploading, setIsUploading] = useState(false);
   const [showImageModal, setShowImageModal] = useState(false);
@@ -226,19 +206,12 @@ const AdminDashboard = () => {
 
   // Fetch data on component mount
   useEffect(() => {
-    const loadData = async () => {
-      dispatch(fetchUserStats());
-      dispatch(fetchUserGrowth());
-      dispatch(fetchMembershipRevenue());
-      dispatch(fetchConsultationRevenue());
-      dispatch(fetchSubscriptions());
-      dispatch(fetchRevenueAnalytics());
-
-      const fetchedOrgs = await mockFetchOrganizations();
-      setOrganizations(fetchedOrgs);
-    };
-
-    loadData();
+    dispatch(fetchUserStats());
+    dispatch(fetchUserGrowth());
+    dispatch(fetchMembershipRevenue());
+    dispatch(fetchConsultationRevenue());
+    dispatch(fetchSubscriptions());
+    dispatch(fetchRevenueAnalytics());
   }, [dispatch]);
 
   useEffect(() => {
@@ -254,13 +227,13 @@ const AdminDashboard = () => {
     const handleResize = () => {
       const newWidth = window.innerWidth;
       setWindowWidth(newWidth);
-      
+
       // Update breakpoint for profile card re-rendering
       let newBreakpoint;
       if (newWidth >= 1024) newBreakpoint = 'lg';
       else if (newWidth >= 768) newBreakpoint = 'md';
       else newBreakpoint = 'sm';
-      
+
       setCurrentBreakpoint(newBreakpoint);
     };
 
@@ -412,7 +385,7 @@ const AdminDashboard = () => {
             <p className="text-xs text-gray-500 mb-4">
               {isUploading ? "Uploading..." : "Click camera to update photo"}
             </p>
-            
+
             <p className="font-semibold text-lg text-gray-800">{user?.name || mockAdmin.name}</p>
             {user?.age && <p className="text-sm text-gray-600">Age: {user.age}</p>}
             <p className="text-sm text-gray-600">Email: {user?.email || mockAdmin.email}</p>
@@ -475,24 +448,24 @@ const AdminDashboard = () => {
                 consultations: consultationRevenue.monthlyPeriods?.length > 0
                   ? consultationRevenue.monthlyPeriods.map(period => period.revenue).reverse()
                   : userGrowth.monthlyGrowth?.length > 0
-                  ? userGrowth.monthlyGrowth.map(() => yearlyConRevenue / 12)
-                  : [yearlyConRevenue / 12],
+                    ? userGrowth.monthlyGrowth.map(() => yearlyConRevenue / 12)
+                    : [yearlyConRevenue / 12],
                 users: userGrowth.monthlyGrowth?.length > 0
                   ? userGrowth.monthlyGrowth.map(item => item.cumulative)
                   : consultationRevenue.monthlyPeriods?.length > 0
-                  ? consultationRevenue.monthlyPeriods.map(() => userStats.totalUsers || 0)
-                  : [userStats.totalUsers || 0]
+                    ? consultationRevenue.monthlyPeriods.map(() => userStats.totalUsers || 0)
+                    : [userStats.totalUsers || 0]
               }} />
             </div>
           )}
         </div>
-        
 
-        <div className="mt-8 bg-white rounded-2xl shadow-lg p-6 border-t-4 border-gray-600">
+
+        <div className="mt-8 bg-white rounded-2xl shadow-lg p-6 border-t-4 border-amber-500">
           <h3 className="text-xl font-bold text-teal-900 mb-5">
-            Organization Verification Status
+            Recent Organization Verifications
           </h3>
-          <OrganizationTable organizations={organizations} />
+          <OrganizationTable onViewAll={() => { navigate('/admin/verify-organizations'); window.scrollTo(0, 0); }} />
         </div>
 
         {showImageModal && (
@@ -504,15 +477,15 @@ const AdminDashboard = () => {
               className="bg-white rounded-2xl max-w-2xl w-full relative overflow-hidden shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
-            <button
-              onClick={() => setShowImageModal(false)}
-              className="absolute top-4 right-4 bg-red-600 hover:bg-red-700 text-white rounded-full w-10 h-10 flex items-center justify-center shadow-lg z-10 transition"
-              aria-label="Close modal"
-            >
-              <i className="fas fa-times text-lg"></i>
-            </button>
+              <button
+                onClick={() => setShowImageModal(false)}
+                className="absolute top-4 right-4 bg-red-600 hover:bg-red-700 text-white rounded-full w-10 h-10 flex items-center justify-center shadow-lg z-10 transition"
+                aria-label="Close modal"
+              >
+                <i className="fas fa-times text-lg"></i>
+              </button>
 
-            <div className="flex items-center justify-center bg-gray-100 p-4 md:p-8 h-64 md:h-80 lg:h-96">
+              <div className="flex items-center justify-center bg-gray-100 p-4 md:p-8 h-64 md:h-80 lg:h-96">
                 <img
                   src={profileImage}
                   alt="Admin Profile Full Size"

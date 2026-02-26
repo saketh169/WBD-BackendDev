@@ -55,7 +55,7 @@ const sendErrorProd = (err, req, res) => {
             message: err.message
         });
     }
-    
+
     // Programming or other unknown error: don't leak error details
     console.error('ERROR 💥', err);
     return res.status(500).json({
@@ -71,6 +71,16 @@ const errorHandler = (err, req, res, next) => {
 
     // Log the error using errorLogger from loggerMiddleware
     errorLogger(err, req);
+
+    // Handle Multer file upload errors first (before dev/prod split)
+    if (err.name === 'MulterError') {
+        const multerMessages = {
+            LIMIT_FILE_SIZE: `File too large: "${err.field}" exceeds the 10MB limit. Please upload a smaller file.`,
+            LIMIT_UNEXPECTED_FILE: `Unexpected file field: "${err.field}". Please use the correct upload field.`,
+        };
+        const message = multerMessages[err.code] || `File upload error: ${err.message}`;
+        return res.status(400).json({ success: false, name: 'MulterError', code: err.code, field: err.field, message });
+    }
 
     if (process.env.NODE_ENV === 'development') {
         sendErrorDev(err, req, res);
