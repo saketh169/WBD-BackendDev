@@ -3,25 +3,22 @@ import axios from 'axios';
 
 // Mock data for fallback
 const mockAllUsers = {
-    'user': [
-        { _id: 'u1', name: 'Alice Johnson', email: 'alice@client.com', phone: '1234567890', dob: '1990-05-15T00:00:00.000Z', gender: 'female', address: '101 Main St' },
-        { _id: 'u2', name: 'Bob Smith', email: 'bob@client.com', phone: '9876543210', dob: '1985-11-22T00:00:00.000Z', gender: 'male', address: '202 Oak Ave' },
-    ],
-    'dietitian': [
-        { _id: 'd1', name: 'Dr. Jane Doe', email: 'jane@dietitian.com', phone: '5551234567', age: 40, licenseNumber: 'DLN123456', verificationStatus: 'Verified' },
-        { _id: 'd2', name: 'Mark Wilson', email: 'mark@dietitian.com', phone: '5559876543', age: 35, licenseNumber: 'DLN654321', verificationStatus: 'Pending' },
-    ],
-    'organization': [
-        { _id: 'o1', name: 'Wellness Corp', email: 'admin@wellness.com', phone: '9991112222', licenseNumber: 'OLN000111', address: 'HQ Building' },
-    ],
-    'corporatepartner': [
-        { _id: 'c1', name: 'Tech Health', email: 'hr@techhealth.com', phone: '8883334444', licenseNumber: 'CLN999888', address: 'Tech Park' },
-    ],
+  'user': [
+    { _id: 'u1', name: 'Alice Johnson', email: 'alice@client.com', phone: '1234567890', dob: '1990-05-15T00:00:00.000Z', gender: 'female', address: '101 Main St' },
+    { _id: 'u2', name: 'Bob Smith', email: 'bob@client.com', phone: '9876543210', dob: '1985-11-22T00:00:00.000Z', gender: 'male', address: '202 Oak Ave' },
+  ],
+  'dietitian': [
+    { _id: 'd1', name: 'Dr. Jane Doe', email: 'jane@dietitian.com', phone: '5551234567', age: 40, licenseNumber: 'DLN123456', verificationStatus: 'Verified' },
+    { _id: 'd2', name: 'Mark Wilson', email: 'mark@dietitian.com', phone: '5559876543', age: 35, licenseNumber: 'DLN654321', verificationStatus: 'Pending' },
+  ],
+  'organization': [
+    { _id: 'o1', name: 'Wellness Corp', email: 'admin@wellness.com', phone: '9991112222', licenseNumber: 'OLN000111', address: 'HQ Building' },
+  ],
 };
 
 const mockRemovedAccounts = [
-    { _id: 'r1', name: 'Zoe Deleted', email: 'zoe@old.com', phone: '1112223333', accountType: 'User', removedOn: '2024-10-01' },
-    { _id: 'r2', name: 'Dr. Removed', email: 'removed@old.com', phone: '4445556666', accountType: 'Dietitian', removedOn: '2024-10-15' },
+  { _id: 'r1', name: 'Zoe Deleted', email: 'zoe@old.com', phone: '1112223333', accountType: 'User', removedOn: '2024-10-01' },
+  { _id: 'r2', name: 'Dr. Removed', email: 'removed@old.com', phone: '4445556666', accountType: 'Dietitian', removedOn: '2024-10-15' },
 ];
 
 // Helper function to get auth token
@@ -111,7 +108,7 @@ export const fetchRemovedAccounts = createAsyncThunk(
 // Remove a user
 export const removeUser = createAsyncThunk(
   'admin/removeUser',
-  async ({ role, id }) => {
+  async ({ role, id, reason }) => {
     const mockResponse = { message: 'User removed successfully' };
     const data = await handleApiCall(async (token) => {
       const response = await axios.delete(`/api/crud/${role}-list/${id}`, {
@@ -119,6 +116,7 @@ export const removeUser = createAsyncThunk(
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
+        data: { reason },
         withCredentials: true,
       });
       return response.data;
@@ -154,7 +152,6 @@ const initialState = {
     user: [],
     dietitian: [],
     organization: [],
-    corporatepartner: [],
     _isSearchResult: false,
   },
   removedAccounts: [],
@@ -164,6 +161,7 @@ const initialState = {
   removedSearchTerm: '',
   expandedDetails: null,
   confirmAction: null,
+  removeReason: '',
   isLoading: false,
   error: null,
 };
@@ -198,9 +196,14 @@ const adminSlice = createSlice({
     setConfirmAction: (state, action) => {
       state.confirmAction = action.payload;
       state.expandedDetails = null;
+      state.removeReason = '';
+    },
+    setRemoveReason: (state, action) => {
+      state.removeReason = action.payload;
     },
     clearConfirmAction: (state) => {
       state.confirmAction = null;
+      state.removeReason = '';
     },
     clearError: (state) => {
       state.error = null;
@@ -275,6 +278,7 @@ export const {
   setRemovedSearchTerm,
   setExpandedDetails,
   setConfirmAction,
+  setRemoveReason,
   clearConfirmAction,
   clearError,
 } = adminSlice.actions;

@@ -21,13 +21,13 @@ const BlogModeration = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const dispatch = useDispatch();
-    
+
     // Redux state
     const reportedBlogs = useSelector(selectReportedBlogs);
     const loading = useSelector(selectIsLoading);
     const reduxError = useSelector(selectError);
     const reduxSuccessMessage = useSelector(selectSuccessMessage);
-    
+
     // Local state
     const [selectedBlog, setSelectedBlog] = useState(null);
     const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -46,13 +46,12 @@ const BlogModeration = () => {
         if (path.startsWith('/dietitian')) return 'dietitian';
         if (path.startsWith('/organization')) return 'organization';
         if (path.startsWith('/admin')) return 'admin';
-        if (path.startsWith('/corporatepartner')) return 'corporatepartner';
         return 'organization'; // default for this page
     }, [location.pathname]);
 
     useEffect(() => {
         window.scrollTo(0, 0);
-        
+
         const roleFromUrl = getRoleFromPath();
         dispatch(fetchReportedBlogs({ page: pagination.page, role: roleFromUrl }));
     }, [pagination.page, dispatch, getRoleFromPath]);
@@ -98,12 +97,12 @@ const BlogModeration = () => {
 
         const roleFromUrl = getRoleFromPath();
         const result = await dispatch(deleteBlog({ blogId: blogToDelete, role: roleFromUrl }));
-        
+
         if (deleteBlog.fulfilled.match(result)) {
             setShowDetailsModal(false);
             setSelectedBlog(null);
         }
-        
+
         setShowDeleteConfirm(false);
         setBlogToDelete(null);
     };
@@ -118,12 +117,12 @@ const BlogModeration = () => {
 
         const roleFromUrl = getRoleFromPath();
         const result = await dispatch(dismissReports({ blogId: blogToDismiss, role: roleFromUrl }));
-        
+
         if (dismissReports.fulfilled.match(result)) {
             setShowDetailsModal(false);
             setSelectedBlog(null);
         }
-        
+
         setShowDismissConfirm(false);
         setBlogToDismiss(null);
     };
@@ -141,8 +140,8 @@ const BlogModeration = () => {
     };
 
     const getRoleBadgeColor = (role) => {
-        return role === 'dietitian' 
-            ? 'bg-[#1E6F5C] text-white' 
+        return role === 'dietitian'
+            ? 'bg-[#1E6F5C] text-white'
             : 'bg-[#E8B86D] text-gray-800';
     };
 
@@ -152,7 +151,6 @@ const BlogModeration = () => {
             'dietitian': 'Dietitian',
             'admin': 'Admin',
             'organization': 'Organization',
-            'corporatepartner': 'Corporate Partner'
         };
         return roleLabels[role] || 'Unknown';
     };
@@ -171,7 +169,7 @@ const BlogModeration = () => {
                     <div className="flex items-center">
                         <div className="py-1">
                             <svg className="fill-current h-6 w-6 text-green-500 mr-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                                <path d="M2.93 17.07A10 10 0 1 1 17.07 2.93 10 10 0 0 1 2.93 17.07zm12.73-1.41A8 8 0 1 0 4.34 4.34a8 8 0 0 0 11.32 11.32zM15 9a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V7a1 1 0 0 1 2 0v1h4a1 1 0 0 1 1 1z"/>
+                                <path d="M2.93 17.07A10 10 0 1 1 17.07 2.93 10 10 0 0 1 2.93 17.07zm12.73-1.41A8 8 0 1 0 4.34 4.34a8 8 0 0 0 11.32 11.32zM15 9a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V7a1 1 0 0 1 2 0v1h4a1 1 0 0 1 1 1z" />
                             </svg>
                         </div>
                         <div>
@@ -187,7 +185,7 @@ const BlogModeration = () => {
                     <div className="flex items-center">
                         <div className="py-1">
                             <svg className="fill-current h-6 w-6 text-red-500 mr-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                                <path d="M2.93 17.07A10 10 0 1 1 17.07 2.93 10 10 0 0 1 2.93 17.07zm12.73-1.41A8 8 0 1 0 4.34 4.34a8 8 0 0 0 11.32 11.32zM13.41 12l1.42 1.41a1 1 0 1 1-1.42 1.42L12 13.4l-1.41 1.42a1 1 0 1 1-1.42-1.42L10.59 12l-1.42-1.41a1 1 0 1 1 1.42-1.42L12 10.59l1.41-1.42a1 1 0 1 1 1.42 1.42L13.41 12z"/>
+                                <path d="M2.93 17.07A10 10 0 1 1 17.07 2.93 10 10 0 0 1 2.93 17.07zm12.73-1.41A8 8 0 1 0 4.34 4.34a8 8 0 0 0 11.32 11.32zM13.41 12l1.42 1.41a1 1 0 1 1-1.42 1.42L12 13.4l-1.41 1.42a1 1 0 1 1-1.42-1.42L10.59 12l-1.42-1.41a1 1 0 1 1 1.42-1.42L12 10.59l1.41-1.42a1 1 0 1 1 1.42 1.42L13.41 12z" />
                             </svg>
                         </div>
                         <div>
@@ -300,11 +298,10 @@ const BlogModeration = () => {
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    <span className={`text-xs px-3 py-1 rounded-full font-semibold ${
-                                                        blog.status === 'flagged' 
-                                                            ? 'bg-orange-100 text-orange-800' 
+                                                    <span className={`text-xs px-3 py-1 rounded-full font-semibold ${blog.status === 'flagged'
+                                                            ? 'bg-orange-100 text-orange-800'
                                                             : 'bg-green-100 text-green-800'
-                                                    }`}>
+                                                        }`}>
                                                         {blog.status.toUpperCase()}
                                                     </span>
                                                 </td>

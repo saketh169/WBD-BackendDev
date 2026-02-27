@@ -16,19 +16,19 @@ export const AuthProvider = ({ children, currentRole }) => {
   useEffect(() => {
     const initializeAuth = async () => {
       setLoading(true);
-      
+
       if (currentRole) {
         // If currentRole is provided, use it specifically
         const token = localStorage.getItem(`authToken_${currentRole}`);
         const user = localStorage.getItem(`authUser_${currentRole}`);
-        
+
         if (token) {
           setToken(token);
           setRole(currentRole);
           setIsAuthenticated(true);
           // Set axios default header
           axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-          
+
           // Fetch fresh user details if token exists
           if (!user) {
             await fetchUserDetails(token, currentRole);
@@ -46,7 +46,7 @@ export const AuthProvider = ({ children, currentRole }) => {
         }
       } else {
         // Fallback: check all roles if no currentRole provided
-        const roles = ['user', 'admin', 'organization', 'corporatepartner', 'dietitian'];
+        const roles = ['user', 'admin', 'organization', 'dietitian'];
         let foundToken = null;
         let foundRole = null;
 
@@ -65,7 +65,7 @@ export const AuthProvider = ({ children, currentRole }) => {
           setIsAuthenticated(true);
           // Set axios default header
           axios.defaults.headers.common['Authorization'] = `Bearer ${foundToken}`;
-          
+
           // Fetch fresh user details if token exists (since profileImage isn't stored locally)
           await fetchUserDetails(foundToken, foundRole);
         } else {
@@ -97,8 +97,7 @@ export const AuthProvider = ({ children, currentRole }) => {
         user: '/api/getuserdetails',
         dietitian: '/api/getdietitiandetails',
         organization: '/api/getorganizationdetails',
-        admin: '/api/getadmindetails',
-        corporatepartner: '/api/getcorporatepartnerdetails'
+        admin: '/api/getadmindetails'
       };
 
       const endpoint = apiEndpoints[role] || '/api/getuserdetails';
@@ -121,9 +120,6 @@ export const AuthProvider = ({ children, currentRole }) => {
           gender: response.data.gender,
           // Organization-specific fields
           org_name: response.data.org_name,
-          // Corporate Partner-specific fields
-          company_name: response.data.company_name,
-          programName: response.data.programName,
           // Dietitian-specific fields
           specialization: response.data.specialization,
           experience: response.data.experience,
@@ -209,7 +205,7 @@ export const AuthProvider = ({ children, currentRole }) => {
     setIsAuthenticated(false);
 
     // Clear all role-specific localStorage
-    const roles = ['user', 'admin', 'organization', 'corporatepartner', 'dietitian'];
+    const roles = ['user', 'admin', 'organization', 'dietitian'];
     roles.forEach(r => {
       localStorage.removeItem(`authToken_${r}`);
       localStorage.removeItem(`authUser_${r}`);

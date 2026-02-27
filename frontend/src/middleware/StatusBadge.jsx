@@ -48,20 +48,6 @@ const StatusBadge = ({ role }) => {
             message: 'Your documents have been verified. You can now verify dietitians and organizations.',
             button: null, // Just show text, no button
           };
-        } else if (role === 'corporatepartner') {
-          return {
-            bg: 'bg-green-100 text-green-800',
-            icon: 'fas fa-check-circle',
-            message: 'Your documents have been verified by Nutri Connect.',
-            button: (
-              <button
-                className="mt-3 px-4 py-2 bg-green-600 text-white font-semibold rounded-full hover:bg-green-700 transition shadow"
-                onClick={() => navigate(`/${role}`)}
-              >
-                <i className="fas fa-arrow-right"></i> Continue to Dashboard
-              </button>
-            ),
-          };
         }
         break;
       case 'pending': {
@@ -71,8 +57,6 @@ const StatusBadge = ({ role }) => {
               return '/dietitian/doc-status';
             case 'organization':
               return '/organization/doc-status';
-            case 'corporatepartner':
-              return '/corporate/doc-status';
             default:
               return `/status/${role}`;
           }

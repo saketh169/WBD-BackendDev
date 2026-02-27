@@ -1,5 +1,5 @@
 const nodemailer = require('nodemailer');
-const { User, Dietitian, Organization, CorporatePartner } = require('../models/userModel');
+const { User, Dietitian, Organization } = require('../models/userModel');
 
 // Create transporter
 const transporter = nodemailer.createTransport({
@@ -48,10 +48,6 @@ const sendPolicyChangeEmail = async (recipients, subject, message) => {
       users.push(...organizations);
     }
 
-    if (recipients.includes('corporate_partners')) {
-      const corporatePartners = await CorporatePartner.find();
-      users.push(...corporatePartners);
-    }
 
     // Create HTML email template
     const htmlTemplate = `
@@ -91,7 +87,76 @@ const sendPolicyChangeEmail = async (recipients, subject, message) => {
   }
 };
 
+// Send account removal email to the removed user
+const sendAccountRemovalEmail = async (to, userName, reason) => {
+  const htmlTemplate = `
+  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+    <div style="background-color: #1E6F5C; color: white; padding: 20px; text-align: center;">
+      <h1 style="margin:0;">NutriConnect</h1>
+      <p style="margin:4px 0 0;">Account Notification</p>
+    </div>
+    <div style="padding: 24px; background-color: #f9f9f9;">
+      <h2 style="color:#2C3E50;">Hello, ${userName}</h2>
+      <p>We regret to inform you that your <strong>NutriConnect account</strong> has been removed by an administrator.</p>
+
+      <div style="background-color: #fff3cd; padding: 16px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #DC3545;">
+        <h3 style="margin:0 0 8px; color:#DC3545;">Reason for Removal</h3>
+        <p style="margin:0; color:#555;">${reason}</p>
+      </div>
+
+      <p>If you believe this action was taken in error, or if you have any questions, please reach out to our support team — we'll do our best to help.</p>
+
+      <p style="margin-top:24px;">Best regards,<br><strong>The NutriConnect Team</strong></p>
+    </div>
+    <div style="background-color: #1E6F5C; color: white; padding: 12px; text-align: center; font-size: 13px;">
+      <p style="margin:0;">Contact Support: nutriconnect6@gmail.com | +91 70757 83143</p>
+    </div>
+  </div>`;
+
+  await sendEmail(to, 'Your NutriConnect Account Has Been Removed', htmlTemplate);
+};
+
+// Send leave notification email to admin when dietitian blocks days
+const sendLeaveNotificationEmail = async (dietitianName, dietitianEmail, dates, reason) => {
+  const adminEmail = process.env.EMAIL_USER; // send to admin inbox
+  const dateList = dates.map(d =>
+    new Date(d).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+  ).join('<br>');
+
+  const htmlTemplate = `
+  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+    <div style="background-color: #1E6F5C; color: white; padding: 20px; text-align: center;">
+      <h1 style="margin:0;">NutriConnect</h1>
+      <p style="margin:4px 0 0;">Dietitian Leave Notification</p>
+    </div>
+    <div style="padding: 24px; background-color: #f9f9f9;">
+      <h2 style="color:#2C3E50;">Leave Request from ${dietitianName}</h2>
+      <p><strong>Dietitian Email:</strong> ${dietitianEmail}</p>
+
+      <div style="background-color: #fff8e1; padding: 16px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #F59E0B;">
+        <h3 style="margin:0 0 8px; color:#B45309;">Dates Being Blocked</h3>
+        <p style="margin:0; color:#555;">${dateList}</p>
+      </div>
+
+      <div style="background-color: #e8f5e9; padding: 16px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #28B463;">
+        <h3 style="margin:0 0 8px; color:#1E6F5C;">Reason for Leave</h3>
+        <p style="margin:0; color:#555;">${reason}</p>
+      </div>
+
+      <p>Please review this leave request and take any necessary action in the admin panel.</p>
+      <p style="margin-top:24px;">Best regards,<br><strong>NutriConnect System</strong></p>
+    </div>
+    <div style="background-color: #1E6F5C; color: white; padding: 12px; text-align: center; font-size: 13px;">
+      <p style="margin:0;">NutriConnect Admin | nutriconnect6@gmail.com | +91 70757 83143</p>
+    </div>
+  </div>`;
+
+  await sendEmail(adminEmail, `Leave Request: ${dietitianName} — ${dates.length} day(s)`, htmlTemplate);
+};
+
 module.exports = {
   sendEmail,
-  sendPolicyChangeEmail
+  sendPolicyChangeEmail,
+  sendAccountRemovalEmail,
+  sendLeaveNotificationEmail
 };

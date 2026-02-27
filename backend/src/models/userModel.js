@@ -5,12 +5,12 @@ const Schema = mongoose.Schema;
 const UserAuthSchema = new Schema({
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     passwordHash: { type: String, required: true },
-    role: { 
-        type: String, 
-        enum: ['user', 'admin', 'dietitian', 'organization', 'corporatepartner'],
-        required: true 
+    role: {
+        type: String,
+        enum: ['user', 'admin', 'dietitian', 'organization'],
+        required: true
     },
-    roleId: { type: Schema.Types.ObjectId, required: true } 
+    roleId: { type: Schema.Types.ObjectId, required: true }
 }, { timestamps: true });
 
 
@@ -176,45 +176,7 @@ const OrganizationSchema = new Schema({
     profileImage: { type: Buffer },
 }, { timestamps: true });
 
-// 2e. Corporate Partner Profile
-const CorporatePartnerSchema = new Schema({
-    name: { type: String, required: true, minlength: 5, unique: true, trim: true }, // ROLE-SPECIFIC UNIQUE
-    email: { type: String, required: true, lowercase: true, trim: true }, // Email from UserAuth
-    phone: { type: String, required: true, minlength: 10, maxlength: 10 }, // Global check in Controller
-    licenseNumber: { type: String, required: true, unique: true, match: /^CLN[0-9]{6}$/ }, // ROLE-SPECIFIC UNIQUE
-    address: { type: String, required: true, maxlength: 200 },
-    businessLicenseType: { type: String },
-    taxIdDocumentType: { type: String },
-    incorporationCertificateType: { type: String },
-    authorizedRepIdType: { type: String },
-    bankAccountProofType: { type: String },
-    financialAuditType: { type: String },
-    codeOfConductType: { type: String },
-    files: {
-        businessLicense: { type: Buffer },
-        taxIdDocument: { type: Buffer },
-        incorporationCertificate: { type: Buffer },
-        authorizedRepId: { type: Buffer },
-        bankAccountProof: { type: Buffer },
-        financialAudit: { type: Buffer },
-        codeOfConduct: { type: Buffer },
-        finalReport: { type: Buffer }
-    },
-    verificationStatus: {
-        businessLicense: { type: String, enum: ['Not Uploaded', 'Pending', 'Verified', 'Rejected'], default: 'Not Uploaded' },
-        taxIdDocument: { type: String, enum: ['Not Uploaded', 'Pending', 'Verified', 'Rejected'], default: 'Not Uploaded' },
-        incorporationCertificate: { type: String, enum: ['Not Uploaded', 'Pending', 'Verified', 'Rejected'], default: 'Not Uploaded' },
-        authorizedRepId: { type: String, enum: ['Not Uploaded', 'Pending', 'Verified', 'Rejected'], default: 'Not Uploaded' },
-        bankAccountProof: { type: String, enum: ['Not Uploaded', 'Pending', 'Verified', 'Rejected'], default: 'Not Uploaded' },
-        financialAudit: { type: String, enum: ['Not Uploaded', 'Pending', 'Verified', 'Rejected'], default: 'Not Uploaded' },
-        codeOfConduct: { type: String, enum: ['Not Uploaded', 'Pending', 'Verified', 'Rejected'], default: 'Not Uploaded' },
-        finalReport: { type: String, enum: ['Not Received', 'Received', 'Verified', 'Rejected'], default: 'Not Received' }
-    },
-    documents: { type: Schema.Types.Mixed, default: {} }, // Store document metadata
-    documentUploadStatus: { type: String, enum: ['pending', 'verified', 'rejected'], default: 'pending' },
-    lastDocumentUpdate: { type: Date, default: null },
-    profileImage: { type: Buffer },
-}, { timestamps: true });
+
 
 
 module.exports = {
@@ -222,6 +184,5 @@ module.exports = {
     User: mongoose.model('User', UserSchema),
     Admin: mongoose.model('Admin', AdminSchema),
     Dietitian: mongoose.model('Dietitian', DietitianSchema),
-    Organization: mongoose.model('Organization', OrganizationSchema),
-    CorporatePartner: mongoose.model('CorporatePartner', CorporatePartnerSchema)
+    Organization: mongoose.model('Organization', OrganizationSchema)
 };

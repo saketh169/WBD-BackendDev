@@ -73,7 +73,7 @@ exports.initializePayment = async (req, res) => {
     let userName = 'User';
 
     try {
-      const { User, Dietitian, Organization, Admin, CorporatePartner } = require('../models/userModel');
+      const { User, Dietitian, Organization, Admin } = require('../models/userModel');
       let userProfile = null;
 
       switch (userRole) {
@@ -88,9 +88,6 @@ exports.initializePayment = async (req, res) => {
           break;
         case 'admin':
           userProfile = await Admin.findById(userId);
-          break;
-        case 'corporatepartner':
-          userProfile = await CorporatePartner.findById(userId);
           break;
       }
 
@@ -174,7 +171,7 @@ exports.processPayment = async (req, res) => {
     }
 
     const userIdToCheck = req.user.roleId || req.user.userId;
-    
+
     if (payment.userId.toString() !== userIdToCheck) {
       return res.status(403).json({
         success: false,
@@ -241,7 +238,7 @@ exports.verifyPayment = async (req, res) => {
     // Verify that the payment belongs to the authenticated user
     // Check both roleId and userId for backwards compatibility
     const userIdToCheck = req.user.roleId || req.user.userId;
-    
+
     console.log('🔍 Verify payment - Authorization check:', {
       paymentUserId: result.payment.userId.toString(),
       jwtRoleId: req.user.roleId,
@@ -249,7 +246,7 @@ exports.verifyPayment = async (req, res) => {
       usingId: userIdToCheck,
       match: result.payment.userId.toString() === userIdToCheck
     });
-    
+
     if (result.payment.userId.toString() !== userIdToCheck) {
       return res.status(403).json({
         success: false,

@@ -60,9 +60,12 @@ const DietitianSchedule = () => {
     const [selectedDatesToBlock, setSelectedDatesToBlock] = useState([]);
     const [showMultiDateModal, setShowMultiDateModal] = useState(false);
     const [isBlockingMultipleDays, setIsBlockingMultipleDays] = useState(false);
+    const [showUnblockModal, setShowUnblockModal] = useState(false);
     const [showBlockingMenu, setShowBlockingMenu] = useState(false);
     const [dateRangeFrom, setDateRangeFrom] = useState('');
     const [dateRangeTo, setDateRangeTo] = useState('');
+    const [leaveReason, setLeaveReason] = useState('');
+    const [blockedDays, setBlockedDays] = useState([]);
     const weekDates = useMemo(() => generateWeekDates(), []);
     const sortedDays = useMemo(() => Object.entries(weekDates).sort((a, b) => a[1].dateObj - b[1].dateObj), [weekDates]);
     const initialDay = sortedDays.find(([, dayInfo]) => dayInfo.dateObj.toDateString() === new Date().toDateString())?.[0] || sortedDays[0]?.[0];
@@ -112,11 +115,11 @@ const DietitianSchedule = () => {
                 setBlockedSlots(resp.data.blockedSlots || []);
                 const now = new Date();
                 const isToday = new Date(date).toDateString() === now.toDateString();
-                const allSlots = ['09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30','20:00'].filter(slot => {
+                const allSlots = ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00', '18:30', '19:00', '19:30', '20:00'].filter(slot => {
                     if (!isToday) return true;
-                    const [h,m] = slot.split(':').map(Number);
-                    const mins = h*60 + m;
-                    const current = now.getHours()*60 + now.getMinutes();
+                    const [h, m] = slot.split(':').map(Number);
+                    const mins = h * 60 + m;
+                    const current = now.getHours() * 60 + now.getMinutes();
                     return mins > current;
                 });
                 const categorized = {
@@ -151,11 +154,11 @@ const DietitianSchedule = () => {
                 const userConflictingTimes = resp.data.userConflictingTimes || [];
                 const now = new Date();
                 const isToday = new Date(date).toDateString() === now.toDateString();
-                const allSlots = ['09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30','20:00'].filter(slot => {
+                const allSlots = ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00', '18:30', '19:00', '19:30', '20:00'].filter(slot => {
                     if (!isToday) return true;
-                    const [h,m] = slot.split(':').map(Number);
-                    const mins = h*60 + m;
-                    const current = now.getHours()*60 + now.getMinutes();
+                    const [h, m] = slot.split(':').map(Number);
+                    const mins = h * 60 + m;
+                    const current = now.getHours() * 60 + now.getMinutes();
                     return mins > current;
                 });
                 const available = allSlots.filter(slot => !bookedSlots.includes(slot) && !blockedSlots.includes(slot) && !userConflictingTimes.includes(slot));
@@ -203,6 +206,36 @@ const DietitianSchedule = () => {
     useEffect(() => {
         if (activeDayInfo?.fullDateKey) setDrawerDate(activeDayInfo.fullDateKey);
     }, [activeDayInfo]);
+
+    // Fetch blocked days list for sidebar highlight
+    const fetchBlockedDays = useCallback(async () => {
+        if (!user?.id) return;
+        try {
+            const today = new Date().toISOString().split('T')[0];
+            // Check each of the next 30 days if they are fully blocked
+            // We piggyback on the booked-slots API which already returns blockedSlots
+            const days = [];
+            const allSlots = ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00', '18:30', '19:00', '19:30', '20:00'];
+            const checks = sortedDays.map(async ([, dayInfo]) => {
+                try {
+                    const resp = await axios.get(`/api/bookings/dietitian/${user.id}/booked-slots`, {
+                        params: { date: dayInfo.fullDateKey, userId: user.id },
+                        headers: { Authorization: `Bearer ${token}` }
+                    });
+                    if (resp.data?.success) {
+                        const bs = resp.data.blockedSlots || [];
+                        if (bs.length >= allSlots.length) days.push(dayInfo.fullDateKey);
+                    }
+                } catch { }
+            });
+            await Promise.all(checks);
+            setBlockedDays(days);
+        } catch (err) {
+            console.error('Error fetching blocked days:', err);
+        }
+    }, [user?.id, token, sortedDays]);
+
+    useEffect(() => { fetchBlockedDays(); }, [fetchBlockedDays]);
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -290,9 +323,10 @@ const DietitianSchedule = () => {
             alert('Please select at least one date to block.');
             return;
         }
-        const datesList = selectedDatesToBlock.map(d => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })).join(', ');
-        const confirmBlock = window.confirm(`Are you sure you want to block all slots for ${selectedDatesToBlock.length} day(s)?\n\nDates: ${datesList}`);
-        if (!confirmBlock) return;
+        if (!leaveReason.trim()) {
+            alert('Please provide a reason for the leave.');
+            return;
+        }
         setIsBlockingMultipleDays(true);
         try {
             const results = await Promise.allSettled(
@@ -302,14 +336,55 @@ const DietitianSchedule = () => {
             );
             const successful = results.filter(r => r.status === 'fulfilled').length;
             const failed = results.filter(r => r.status === 'rejected').length;
-            if (failed > 0) alert(`Blocking completed: ${successful} day(s) blocked successfully, ${failed} failed (may have existing bookings).`);
-            else alert(`All ${successful} day(s) blocked successfully!`);
+
+            // Notify admin via email (non-fatal)
+            try {
+                await axios.post(`/api/dietitians/${user.id}/notify-leave`, {
+                    dates: selectedDatesToBlock,
+                    reason: leaveReason.trim()
+                }, { headers: { Authorization: `Bearer ${token}` } });
+            } catch (emailErr) {
+                console.error('Failed to send leave email:', emailErr.message);
+            }
+
+            if (failed > 0) alert(`Blocking completed: ${successful} day(s) blocked, ${failed} failed (may have existing bookings). Admin notified.`);
+            else alert(`All ${successful} day(s) blocked successfully! Admin has been notified.`);
             setSelectedDatesToBlock([]);
+            setLeaveReason('');
             setShowMultiDateModal(false);
             fetchDietitianSlots(drawerDate);
+            fetchBlockedDays();
         } catch (err) {
             console.error('Error blocking multiple dates:', err);
             alert('Failed to block dates. Please try again.');
+        } finally {
+            setIsBlockingMultipleDays(false);
+        }
+    };
+
+    const handleUnblockMultipleDates = async () => {
+        if (selectedDatesToBlock.length === 0 || !user?.id) {
+            alert('Please select at least one date to unblock.');
+            return;
+        }
+        setIsBlockingMultipleDays(true);
+        try {
+            const results = await Promise.allSettled(
+                selectedDatesToBlock.map(date => axios.post(`/api/dietitians/${user.id}/unblock-day`, { date }, {
+                    headers: { Authorization: `Bearer ${token}` }
+                }))
+            );
+            const successful = results.filter(r => r.status === 'fulfilled').length;
+            const failed = results.filter(r => r.status === 'rejected').length;
+            if (failed > 0) alert(`Unblocking: ${successful} day(s) unblocked, ${failed} had no blocks.`);
+            else alert(`All ${successful} day(s) unblocked successfully!`);
+            setSelectedDatesToBlock([]);
+            setShowUnblockModal(false);
+            fetchDietitianSlots(drawerDate);
+            fetchBlockedDays();
+        } catch (err) {
+            console.error('Error unblocking multiple dates:', err);
+            alert('Failed to unblock dates. Please try again.');
         } finally {
             setIsBlockingMultipleDays(false);
         }
@@ -429,7 +504,7 @@ const DietitianSchedule = () => {
     };
 
     const getDayIcon = (dayKey) => {
-        switch(dayKey.toLowerCase()) {
+        switch (dayKey.toLowerCase()) {
             case 'sunday': return 'fa-bed';
             case 'monday': return 'fa-sun';
             case 'tuesday': return 'fa-cloud';
@@ -442,7 +517,7 @@ const DietitianSchedule = () => {
     };
 
     const getCardColor = (type) => {
-        switch(type.toLowerCase()) {
+        switch (type.toLowerCase()) {
             case 'workshop': return `border-l-[4px] border-[${WARNING_COLOR}]`;
             case 'consultation': return `border-l-[4px] border-[${PRIMARY_GREEN}]`;
             case 'group': return `border-l-[4px] border-[${ACCENT_GREEN}]`;
@@ -477,6 +552,9 @@ const DietitianSchedule = () => {
                                 <div className="font-bold text-sm">{dayInfo.name}</div>
                                 <div className="text-xs opacity-80">{dayInfo.shortDate}</div>
                             </div>
+                            {blockedDays.includes(dayInfo.fullDateKey) && (
+                                <span title="Day fully blocked" className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-tight ${activeDayKey === key ? 'bg-white/20 text-white' : 'bg-red-100 text-red-600'}`}><i className="fas fa-ban mr-0.5"></i>Blocked</span>
+                            )}
                         </div>
                     ))}
                 </aside>
@@ -563,41 +641,42 @@ const DietitianSchedule = () => {
                                 <label className="block text-sm font-semibold mb-2 text-gray-700">Select Date</label>
                                 <input type="date" value={drawerDate} onChange={(e) => { setDrawerDate(e.target.value); fetchDietitianSlots(e.target.value); }} min={new Date().toISOString().split('T')[0]} max={(() => { const maxDate = new Date(); maxDate.setDate(maxDate.getDate() + 7); return maxDate.toISOString().split('T')[0]; })()} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white" />
                             </div>
-                            <div className="mb-4 blocking-options-container">
-                                <div className="relative">
-                                    <button onClick={() => setShowBlockingMenu(!showBlockingMenu)} disabled={drawerLoading} className="w-full px-4 py-3 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between gap-2 shadow-md">
-                                        <span className="flex items-center gap-2"><i className="fas fa-calendar-times"></i>Blocking Options</span>
-                                        <i className={`fas fa-chevron-${showBlockingMenu ? 'up' : 'down'} text-sm`}></i>
-                                    </button>
-                                    {showBlockingMenu && (
-                                        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-xl border border-emerald-200 overflow-hidden z-10">
-                                            <button onClick={() => { setShowBlockingMenu(false); handleBlockEntireDay(); }} disabled={isBlockingDay || drawerLoading} className="w-full px-4 py-3 text-left hover:bg-emerald-50 transition flex items-center gap-3 border-b border-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">
-                                                <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center"><i className="fas fa-ban text-emerald-600"></i></div>
-                                                <div className="flex-1">
-                                                    <div className="font-semibold text-gray-800 text-sm">Block Entire Day</div>
-                                                    <div className="text-xs text-gray-500">Block all slots for selected date</div>
-                                                </div>
-                                                {isBlockingDay && <i className="fas fa-spinner fa-spin text-emerald-600"></i>}
-                                            </button>
-                                            <button onClick={() => { setShowBlockingMenu(false); setShowMultiDateModal(true); }} disabled={drawerLoading} className="w-full px-4 py-3 text-left hover:bg-emerald-50 transition flex items-center gap-3 border-b border-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">
-                                                <div className="w-8 h-8 bg-teal-100 rounded-lg flex items-center justify-center"><i className="fas fa-calendar-check text-teal-600"></i></div>
-                                                <div className="flex-1">
-                                                    <div className="font-semibold text-gray-800 text-sm">Block Multiple Days</div>
-                                                    <div className="text-xs text-gray-500">Choose specific dates to block</div>
-                                                </div>
-                                            </button>
-                                            <button onClick={() => { setShowBlockingMenu(false); handleUnblockEntireDay(); }} disabled={isBlockingDay || drawerLoading} className="w-full px-4 py-3 text-left hover:bg-green-50 transition flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed">
-                                                <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center"><i className="fas fa-check-circle text-green-600"></i></div>
-                                                <div className="flex-1">
-                                                    <div className="font-semibold text-gray-800 text-sm">Unblock Entire Day</div>
-                                                    <div className="text-xs text-gray-500">Remove all blocks for selected date</div>
-                                                </div>
-                                                {isBlockingDay && <i className="fas fa-spinner fa-spin text-green-600"></i>}
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-                                <p className="text-[10px] text-gray-500 mt-2 italic flex items-center gap-1"><i className="fas fa-info-circle"></i>Manage your availability for extended periods</p>
+                            <div className="mb-4 relative blocking-options-container">
+                                <button
+                                    onClick={() => setShowBlockingMenu(prev => !prev)}
+                                    disabled={drawerLoading}
+                                    className="w-full px-4 py-3 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition font-semibold text-sm disabled:opacity-50 flex items-center justify-between gap-2 shadow-md"
+                                >
+                                    <span className="flex items-center gap-2"><i className="fas fa-calendar-times"></i>Blocking Options</span>
+                                    <i className={`fas fa-chevron-${showBlockingMenu ? 'up' : 'down'} text-sm`}></i>
+                                </button>
+                                {showBlockingMenu && (
+                                    <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-xl border border-emerald-200 overflow-hidden z-20">
+                                        <button
+                                            onClick={() => { setShowBlockingMenu(false); setSelectedDatesToBlock([]); setLeaveReason(''); setShowMultiDateModal(true); }}
+                                            disabled={drawerLoading}
+                                            className="w-full px-4 py-3 text-left hover:bg-emerald-50 transition flex items-center gap-3 border-b border-gray-100 disabled:opacity-50"
+                                        >
+                                            <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center"><i className="fas fa-ban text-emerald-600"></i></div>
+                                            <div className="flex-1">
+                                                <div className="font-semibold text-gray-800 text-sm">Block Days</div>
+                                                <div className="text-xs text-gray-500">Select one or multiple days to block</div>
+                                            </div>
+                                        </button>
+                                        <button
+                                            onClick={() => { setShowBlockingMenu(false); setSelectedDatesToBlock([]); setShowUnblockModal(true); }}
+                                            disabled={drawerLoading}
+                                            className="w-full px-4 py-3 text-left hover:bg-emerald-50 transition flex items-center gap-3 disabled:opacity-50"
+                                        >
+                                            <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center"><i className="fas fa-check-circle text-emerald-600"></i></div>
+                                            <div className="flex-1">
+                                                <div className="font-semibold text-gray-800 text-sm">Unblock Days</div>
+                                                <div className="text-xs text-gray-500">Remove blocks from selected days</div>
+                                            </div>
+                                        </button>
+                                    </div>
+                                )}
+                                <p className="text-[10px] text-gray-500 mt-2 italic flex items-center gap-1"><i className="fas fa-info-circle"></i>Admin will be emailed your reason when blocking days.</p>
                             </div>
                             <div className="mb-4 p-3 bg-gray-50 rounded-lg">
                                 <p className="text-xs font-semibold mb-2 text-gray-700">Legend:</p>
@@ -725,12 +804,15 @@ const DietitianSchedule = () => {
                                 {getCalendarDates().map(({ dateString, displayDate, dayOfWeek, isToday }, index) => {
                                     const emptyCell = index === 0 && dayOfWeek > 0;
                                     const isSelected = selectedDatesToBlock.includes(dateString);
+                                    const alreadyBlocked = blockedDays.includes(dateString);
+                                    const isDisabled = isBlockingMultipleDays || alreadyBlocked;
                                     return (
                                         <React.Fragment key={dateString}>
                                             {emptyCell && Array(dayOfWeek).fill(null).map((_, i) => <div key={`empty-${i}`} className="p-2"></div>)}
-                                            <button onClick={() => toggleDateSelection(dateString)} disabled={isBlockingMultipleDays} className={`p-2 rounded-lg text-sm font-medium transition-all transform hover:scale-105 ${isSelected ? 'bg-emerald-500 text-white shadow-md' : isToday ? 'bg-blue-100 text-blue-700 border-2 border-blue-300' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'} ${isBlockingMultipleDays ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`} title={displayDate}>
+                                            <button onClick={() => !alreadyBlocked && toggleDateSelection(dateString)} disabled={isDisabled} className={`p-2 rounded-lg text-sm font-medium transition-all ${alreadyBlocked ? 'bg-gray-100 text-gray-500 cursor-not-allowed opacity-60' : isSelected ? 'bg-emerald-500 text-white shadow-md transform hover:scale-105' : isToday ? 'bg-blue-100 text-blue-700 border-2 border-blue-300 hover:scale-105' : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:scale-105 cursor-pointer'}`} title={alreadyBlocked ? 'Already blocked' : displayDate}>
                                                 <div className="text-xs">{new Date(dateString).getDate()}</div>
-                                                {isToday && <div className="text-[8px] font-bold">Today</div>}
+                                                {isToday && !alreadyBlocked && <div className="text-[8px] font-bold">Today</div>}
+                                                {alreadyBlocked && <div className="text-[7px] font-bold">Blocked</div>}
                                             </button>
                                         </React.Fragment>
                                     );
@@ -744,11 +826,88 @@ const DietitianSchedule = () => {
                                     <button onClick={() => setSelectedDatesToBlock([])} disabled={isBlockingMultipleDays} className="px-3 py-1 bg-gray-400 text-white rounded text-xs hover:bg-gray-500 transition disabled:opacity-50">Clear All</button>
                                 </div>
                             </div>
+
+                            {/* Leave Reason - required */}
+                            <div className="mb-4">
+                                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                                    Reason for Leave <span className="text-red-500">*</span>
+                                </label>
+                                <textarea
+                                    value={leaveReason}
+                                    onChange={(e) => setLeaveReason(e.target.value)}
+                                    disabled={isBlockingMultipleDays}
+                                    rows={3}
+                                    placeholder="e.g. Personal health issue, family emergency, attending a conference..."
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-400 text-sm resize-none disabled:opacity-50"
+                                />
+                                <p className="text-[10px] text-gray-500 mt-1 flex items-center gap-1"><i className="fas fa-envelope text-red-400"></i>This reason will be emailed to the admin for records.</p>
+                            </div>
+
                             <div className="flex gap-3 pt-4 border-t border-gray-200">
-                                <button onClick={handleBlockMultipleDates} disabled={selectedDatesToBlock.length === 0 || isBlockingMultipleDays} className="flex-1 px-6 py-3 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-md">
+                                <button
+                                    onClick={handleBlockMultipleDates}
+                                    disabled={selectedDatesToBlock.length === 0 || !leaveReason.trim() || isBlockingMultipleDays}
+                                    className="flex-1 px-6 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-md"
+                                >
                                     {isBlockingMultipleDays ? (<><i className="fas fa-spinner fa-spin"></i>Blocking...</>) : (<><i className="fas fa-ban"></i>Block {selectedDatesToBlock.length > 0 ? `${selectedDatesToBlock.length} Day(s)` : 'Days'}</>)}
                                 </button>
-                                <button onClick={() => { setShowMultiDateModal(false); setSelectedDatesToBlock([]); }} disabled={isBlockingMultipleDays} className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-semibold disabled:opacity-50">Cancel</button>
+                                <button onClick={() => { setShowMultiDateModal(false); setSelectedDatesToBlock([]); setLeaveReason(''); }} disabled={isBlockingMultipleDays} className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-semibold disabled:opacity-50">Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Unblock Days Modal */}
+                {showUnblockModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm" onClick={() => !isBlockingMultipleDays && setShowUnblockModal(false)}>
+                        <div className="bg-white p-6 rounded-2xl shadow-2xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-200">
+                                <h4 className="text-xl font-bold text-gray-800 flex items-center gap-2"><i className="fas fa-calendar-check text-emerald-600"></i>Select Days to Unblock</h4>
+                                <button onClick={() => setShowUnblockModal(false)} disabled={isBlockingMultipleDays} className="p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"><i className="fas fa-times text-gray-600"></i></button>
+                            </div>
+                            <p className="text-sm text-gray-600 mb-4">Click on dates to select or deselect them for unblocking.</p>
+                            {selectedDatesToBlock.length > 0 && (
+                                <div className="mb-4 p-3 bg-emerald-50 rounded-lg border border-emerald-200">
+                                    <p className="text-sm font-semibold text-emerald-800 mb-2">Selected: {selectedDatesToBlock.length} day(s)</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {selectedDatesToBlock.map(date => (
+                                            <span key={date} className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-xs font-medium flex items-center gap-1">
+                                                {new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                                <button onClick={() => toggleDateSelection(date)} className="ml-1 hover:text-emerald-900"><i className="fas fa-times text-[10px]"></i></button>
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            <div className="grid grid-cols-7 gap-2 mb-4">
+                                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => <div key={day} className="text-center text-xs font-semibold text-gray-600 py-2">{day}</div>)}
+                                {getCalendarDates().map(({ dateString, displayDate, dayOfWeek, isToday }, index) => {
+                                    const emptyCell = index === 0 && dayOfWeek > 0;
+                                    const isSelected = selectedDatesToBlock.includes(dateString);
+                                    const isFullyBlocked = blockedDays.includes(dateString);
+                                    const isDisabled = isBlockingMultipleDays || !isFullyBlocked;
+                                    return (
+                                        <React.Fragment key={dateString}>
+                                            {emptyCell && Array(dayOfWeek).fill(null).map((_, i) => <div key={`empty-${i}`} className="p-2"></div>)}
+                                            <button
+                                                onClick={() => isFullyBlocked && toggleDateSelection(dateString)}
+                                                disabled={isDisabled}
+                                                title={isFullyBlocked ? displayDate : 'Not blocked'}
+                                                className={`p-2 rounded-lg text-sm font-medium transition-all ${isSelected ? 'bg-emerald-500 text-white shadow-md transform hover:scale-105' : isFullyBlocked ? 'bg-red-100 text-red-700 border border-red-300 hover:scale-105 cursor-pointer' : 'bg-gray-100 text-gray-600 cursor-not-allowed opacity-60'}`}
+                                            >
+                                                <div className="text-xs">{new Date(dateString).getDate()}</div>
+                                                {isFullyBlocked && !isSelected && <div className="text-[7px] font-bold text-red-500">Blocked</div>}
+                                                {isSelected && <div className="text-[7px] font-bold">✓</div>}
+                                            </button>
+                                        </React.Fragment>
+                                    );
+                                })}
+                            </div>
+                            <div className="flex gap-3 pt-4 border-t border-gray-200">
+                                <button onClick={handleUnblockMultipleDates} disabled={selectedDatesToBlock.length === 0 || isBlockingMultipleDays} className="flex-1 px-6 py-3 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-md">
+                                    {isBlockingMultipleDays ? (<><i className="fas fa-spinner fa-spin"></i>Unblocking...</>) : (<><i className="fas fa-check-circle"></i>Unblock {selectedDatesToBlock.length > 0 ? `${selectedDatesToBlock.length} Day(s)` : 'Days'}</>)}
+                                </button>
+                                <button onClick={() => { setShowUnblockModal(false); setSelectedDatesToBlock([]); }} disabled={isBlockingMultipleDays} className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-semibold disabled:opacity-50">Cancel</button>
                             </div>
                         </div>
                     </div>

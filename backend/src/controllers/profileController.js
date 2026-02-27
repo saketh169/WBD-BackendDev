@@ -1,4 +1,4 @@
-const { User, Admin, Dietitian, Organization, CorporatePartner} = require('../models/userModel');
+﻿const { User, Admin, Dietitian, Organization } = require('../models/userModel');
 const jwt = require('jsonwebtoken');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-for-development';
@@ -8,10 +8,10 @@ const getUserIdFromToken = (req) => {
     try {
         const authHeader = req.headers['authorization'];
         if (!authHeader) return null;
-        
+
         const token = authHeader.split(' ')[1]; // Bearer TOKEN
         if (!token) return null;
-        
+
         const decoded = jwt.verify(token, JWT_SECRET);
         return decoded.roleId; // roleId is the actual document ID in the specific collection
     } catch (error) {
@@ -32,14 +32,14 @@ async function uploadUserProfileImage(req, res) {
         if (!userId) {
             userId = req.body.userId || req.query.userId || req.params.userId;
         }
-        
+
         if (!userId) {
             return res.status(400).json({ success: false, message: 'User ID is required. Please provide a valid token or user ID.' });
         }
 
         const user = await User.findByIdAndUpdate(
             userId,
-            { 
+            {
                 profileImage: req.file.buffer
             },
             { new: true }
@@ -73,14 +73,14 @@ async function uploadAdminProfileImage(req, res) {
         if (!adminId) {
             adminId = req.body.adminId || req.query.adminId || req.params.adminId;
         }
-        
+
         if (!adminId) {
             return res.status(400).json({ success: false, message: 'Admin ID is required. Please provide a valid token or admin ID.' });
         }
 
         const admin = await Admin.findByIdAndUpdate(
             adminId,
-            { 
+            {
                 profileImage: req.file.buffer
             },
             { new: true }
@@ -114,14 +114,14 @@ async function uploadDietitianProfileImage(req, res) {
         if (!dietitianId) {
             dietitianId = req.body.dietitianId || req.query.dietitianId || req.params.dietitianId;
         }
-        
+
         if (!dietitianId) {
             return res.status(400).json({ success: false, message: 'Dietitian ID is required. Please provide a valid token or dietitian ID.' });
         }
 
         const dietitian = await Dietitian.findByIdAndUpdate(
             dietitianId,
-            { 
+            {
                 profileImage: req.file.buffer
             },
             { new: true }
@@ -155,14 +155,14 @@ async function uploadOrganizationProfileImage(req, res) {
         if (!orgId) {
             orgId = req.body.orgId || req.query.orgId || req.params.orgId;
         }
-        
+
         if (!orgId) {
             return res.status(400).json({ success: false, message: 'Organization ID is required. Please provide a valid token or organization ID.' });
         }
 
         const organization = await Organization.findByIdAndUpdate(
             orgId,
-            { 
+            {
                 profileImage: req.file.buffer
             },
             { new: true }
@@ -185,46 +185,6 @@ async function uploadOrganizationProfileImage(req, res) {
     }
 }
 
-// Upload profile image for Corporate Partner
-async function uploadCorporatePartnerProfileImage(req, res) {
-    try {
-        if (!req.file) {
-            return res.status(400).json({ success: false, message: 'No file uploaded' });
-        }
-
-        let partnerId = getUserIdFromToken(req);
-        if (!partnerId) {
-            partnerId = req.body.partnerId || req.query.partnerId || req.params.partnerId;
-        }
-        
-        if (!partnerId) {
-            return res.status(400).json({ success: false, message: 'Partner ID is required. Please provide a valid token or partner ID.' });
-        }
-
-        const partner = await CorporatePartner.findByIdAndUpdate(
-            partnerId,
-            { 
-                profileImage: req.file.buffer
-            },
-            { new: true }
-        );
-
-        if (!partner) {
-            return res.status(404).json({ success: false, message: 'Corporate Partner not found' });
-        }
-
-        res.status(200).json({
-            success: true,
-            message: 'Profile photo uploaded successfully'
-        });
-    } catch (error) {
-        console.error('Error uploading corporate partner profile photo:', error);
-        res.status(500).json({
-            success: false,
-            message: error.message || 'Failed to upload profile photo'
-        });
-    }
-}
 
 // Get profile image for User
 async function getUserProfileImage(req, res) {
@@ -233,7 +193,7 @@ async function getUserProfileImage(req, res) {
         if (!userId) {
             userId = req.body.userId || req.query.userId || req.params.userId;
         }
-        
+
         if (!userId) {
             return res.status(400).json({ success: false, message: 'User ID is required' });
         }
@@ -268,7 +228,7 @@ async function getAdminProfileImage(req, res) {
         if (!adminId) {
             adminId = req.body.adminId || req.query.adminId || req.params.adminId;
         }
-        
+
         if (!adminId) {
             return res.status(400).json({ success: false, message: 'Admin ID is required' });
         }
@@ -302,7 +262,7 @@ async function getDietitianProfileImage(req, res) {
         if (!dietitianId) {
             dietitianId = req.body.dietitianId || req.query.dietitianId || req.params.dietitianId;
         }
-        
+
         if (!dietitianId) {
             return res.status(400).json({ success: false, message: 'Dietitian ID is required' });
         }
@@ -336,7 +296,7 @@ async function getOrganizationProfileImage(req, res) {
         if (!orgId) {
             orgId = req.body.orgId || req.query.orgId || req.params.orgId;
         }
-        
+
         if (!orgId) {
             return res.status(400).json({ success: false, message: 'Organization ID is required' });
         }
@@ -363,49 +323,16 @@ async function getOrganizationProfileImage(req, res) {
     }
 }
 
-// Get profile image for Corporate Partner
-async function getCorporatePartnerProfileImage(req, res) {
-    try {
-        let partnerId = getUserIdFromToken(req);
-        if (!partnerId) {
-            partnerId = req.body.partnerId || req.query.partnerId || req.params.partnerId;
-        }
-        
-        if (!partnerId) {
-            return res.status(400).json({ success: false, message: 'Partner ID is required' });
-        }
-
-        const partner = await CorporatePartner.findById(partnerId);
-
-        if (!partner || !partner.profileImage) {
-            return res.status(404).json({ success: false, message: 'Profile image not found' });
-        }
-
-        const base64Image = Buffer.from(partner.profileImage).toString('base64');
-        const dataUrl = `data:image/jpeg;base64,${base64Image}`;
-
-        res.status(200).json({
-            success: true,
-            profileImage: dataUrl
-        });
-    } catch (error) {
-        console.error('Error retrieving corporate partner profile image:', error);
-        res.status(500).json({
-            success: false,
-            message: error.message || 'Failed to retrieve profile image'
-        });
-    }
-}
 
 // Helper function to detect role from token
 const getRoleFromToken = (req) => {
     try {
         const authHeader = req.headers['authorization'];
         if (!authHeader) return null;
-        
+
         const token = authHeader.split(' ')[1]; // Bearer TOKEN
         if (!token) return null;
-        
+
         const decoded = jwt.verify(token, JWT_SECRET);
         return decoded.role; // role should be stored in the token
     } catch (error) {
@@ -416,7 +343,7 @@ const getRoleFromToken = (req) => {
 
 /**
  * Generic function to get user details based on the role in the token
- * Works for all roles: User, Dietitian, Admin, Organization, CorporatePartner
+ * Works for all roles: User, Dietitian, Admin, Organization
  */
 async function getUserDetailsGeneric(req, res) {
     try {
@@ -424,16 +351,16 @@ async function getUserDetailsGeneric(req, res) {
         const userRole = getRoleFromToken(req);
 
         if (!userId) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'User ID not found in token. Please provide a valid authentication token.' 
+            return res.status(400).json({
+                success: false,
+                message: 'User ID not found in token. Please provide a valid authentication token.'
             });
         }
 
         if (!userRole) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'User role not found in token.' 
+            return res.status(400).json({
+                success: false,
+                message: 'User role not found in token.'
             });
         }
 
@@ -453,20 +380,17 @@ async function getUserDetailsGeneric(req, res) {
             case 'organization':
                 user = await Organization.findById(userId);
                 break;
-            case 'corporatepartner':
-                user = await CorporatePartner.findById(userId);
-                break;
             default:
-                return res.status(400).json({ 
-                    success: false, 
-                    message: `Unknown role: ${userRole}` 
+                return res.status(400).json({
+                    success: false,
+                    message: `Unknown role: ${userRole}`
                 });
         }
 
         if (!user) {
-            return res.status(404).json({ 
-                success: false, 
-                message: `${userRole.charAt(0).toUpperCase() + userRole.slice(1)} not found` 
+            return res.status(404).json({
+                success: false,
+                message: `${userRole.charAt(0).toUpperCase() + userRole.slice(1)} not found`
             });
         }
 
@@ -517,11 +441,6 @@ async function getUserDetailsGeneric(req, res) {
             response.org_name = user.name; // Primary identifier for organizations
             response.address = user.address;
             response.licenseNumber = user.licenseNumber;
-        } else if (userRole.toLowerCase() === 'corporatepartner') {
-            response.company_name = user.name; // Primary identifier for corporate partners
-            response.programName = user.programName;
-            response.address = user.address;
-            response.licenseNumber = user.licenseNumber;
         }
 
         res.status(200).json(response);
@@ -551,9 +470,6 @@ async function getOrganizationDetails(req, res) {
     return getUserDetailsGeneric(req, res);
 }
 
-async function getCorporatePartnerDetails(req, res) {
-    return getUserDetailsGeneric(req, res);
-}
 
 
 async function updateUserProfile(req, res) {
@@ -562,16 +478,16 @@ async function updateUserProfile(req, res) {
         const userRole = getRoleFromToken(req);
 
         if (!userId) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'User ID not found in token. Please provide a valid authentication token.' 
+            return res.status(400).json({
+                success: false,
+                message: 'User ID not found in token. Please provide a valid authentication token.'
             });
         }
 
         if (!userRole) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'User role not found in token.' 
+            return res.status(400).json({
+                success: false,
+                message: 'User role not found in token.'
             });
         }
 
@@ -591,22 +507,19 @@ async function updateUserProfile(req, res) {
             case 'organization':
                 UserModel = Organization;
                 break;
-            case 'corporatepartner':
-                UserModel = CorporatePartner;
-                break;
             default:
-                return res.status(400).json({ 
-                    success: false, 
-                    message: `Unknown role: ${userRole}` 
+                return res.status(400).json({
+                    success: false,
+                    message: `Unknown role: ${userRole}`
                 });
         }
 
         // Find the user
         const user = await UserModel.findById(userId);
         if (!user) {
-            return res.status(404).json({ 
-                success: false, 
-                message: `${userRole.charAt(0).toUpperCase() + userRole.slice(1)} not found` 
+            return res.status(404).json({
+                success: false,
+                message: `${userRole.charAt(0).toUpperCase() + userRole.slice(1)} not found`
             });
         }
 
@@ -631,7 +544,7 @@ async function updateUserProfile(req, res) {
 
         // Check if name is being updated and if it conflicts with existing names
         if (updateData.name && updateData.name !== user.name) {
-            const models = [User, Admin, Dietitian, Organization, CorporatePartner];
+            const models = [User, Admin, Dietitian, Organization];
             for (const Model of models) {
                 const existing = await Model.findOne({ name: updateData.name, _id: { $ne: userId } });
                 if (existing) {
@@ -645,7 +558,7 @@ async function updateUserProfile(req, res) {
 
         // Check if phone is being updated and if it conflicts
         if (updateData.phone && updateData.phone !== user.phone) {
-            const models = [User, Admin, Dietitian, Organization, CorporatePartner];
+            const models = [User, Admin, Dietitian, Organization];
             for (const Model of models) {
                 const existing = await Model.findOne({ phone: updateData.phone, _id: { $ne: userId } });
                 if (existing) {
@@ -682,7 +595,7 @@ async function updateUserProfile(req, res) {
             response.data.dob = user.dob;
         } else if (userRole.toLowerCase() === 'dietitian') {
             response.data.age = user.age;
-        } else if (userRole.toLowerCase() === 'organization' || userRole.toLowerCase() === 'corporatepartner') {
+        } else if (userRole.toLowerCase() === 'organization') {
             response.data.address = user.address;
         }
 
@@ -690,17 +603,17 @@ async function updateUserProfile(req, res) {
 
     } catch (error) {
         console.error('Error updating profile:', error);
-        
+
         // Handle validation errors
         if (error.name === 'ValidationError') {
             const errors = {};
             for (const field in error.errors) {
                 errors[field] = error.errors[field].message;
             }
-            return res.status(400).json({ 
+            return res.status(400).json({
                 success: false,
-                message: 'Validation failed.', 
-                errors 
+                message: 'Validation failed.',
+                errors
             });
         }
 
@@ -709,10 +622,10 @@ async function updateUserProfile(req, res) {
             let field = 'A field';
             if (error.message.includes('name')) field = 'Name';
             else if (error.message.includes('phone')) field = 'Phone';
-            
-            return res.status(409).json({ 
+
+            return res.status(409).json({
                 success: false,
-                message: `${field} is already in use.` 
+                message: `${field} is already in use.`
             });
         }
 
@@ -728,16 +641,13 @@ module.exports = {
     uploadAdminProfileImage,
     uploadDietitianProfileImage,
     uploadOrganizationProfileImage,
-    uploadCorporatePartnerProfileImage,
     getUserProfileImage,
     getAdminProfileImage,
     getDietitianProfileImage,
     getOrganizationProfileImage,
-    getCorporatePartnerProfileImage,
     getUserDetails,
     getDietitianDetails,
     getAdminDetails,
     getOrganizationDetails,
-    getCorporatePartnerDetails,
     updateUserProfile
 };

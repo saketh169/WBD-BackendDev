@@ -39,7 +39,7 @@ const NavFooter = ({ handleScrollToTop }) => {
     { name: 'MealPlans', href: '/dietitian/add-plans' },
     { name: 'Blog', href: '/dietitian/blog' },
   ];
-  
+
   // 4. Links for the 'admin' role (matching adminNavLinks from NavHeader)
   const adminFooterLinks = [
     { name: 'Home', href: '/admin/home' },
@@ -48,24 +48,15 @@ const NavFooter = ({ handleScrollToTop }) => {
     { name: 'Queries', href: '/admin/queries' },
     { name: 'Settings', href: '/admin/settings' },
   ];
-  
+
   // 5. Links for the 'organization' role (matching organizationNavLinks from NavHeader)
-  const organizationFooterLinks = [ 
+  const organizationFooterLinks = [
     { name: 'Home', href: '/organization/home' },
     { name: 'Verify Dietitians', href: '/organization/verify-dietitian' },
-    { name: 'Verify Corps', href: '/organization/verify-corporate' },
     { name: 'Blog Moderation', href: '/organization/blog-moderation' },
     { name: 'Blogs', href: '/organization/blogs' },
   ];
 
-  // 6. Links for the 'corporatepartner' role (matching corporatePartnerNavLinks from NavHeader)
-  const corporatePartnerFooterLinks = [ 
-    { name: 'Home', href: '/corporatepartner/home' },
-    { name: 'Plans/Offers', href: '/corporatepartner/plans-offers' },
-    { name: 'Analytics', href: '/corporatepartner/analytics' },
-    { name: 'Renewal', href: '/corporatepartner/renewal' },
-    { name: 'Bookings', href: '/corporatepartner/bookings' },
-  ];
 
   // --- Logic to Determine Active Links ---
   const getFooterLinks = () => {
@@ -74,9 +65,6 @@ const NavFooter = ({ handleScrollToTop }) => {
     }
     if (currentPath.startsWith('/organization')) {
       return organizationFooterLinks;
-    }
-    if (currentPath.startsWith('/corporatepartner')) {
-      return corporatePartnerFooterLinks;
     }
     if (currentPath.startsWith('/dietitian')) {
       return dietitianFooterLinks;
@@ -103,8 +91,7 @@ const NavFooter = ({ handleScrollToTop }) => {
               end
               onClick={handleScrollToTop}
               className={({ isActive }) =>
-                `no-underline hover:text-[#FFD700] hover:pl-2 transition-all duration-300 ${
-                  isActive ? 'text-[#FFD700]' : ''
+                `no-underline hover:text-[#FFD700] hover:pl-2 transition-all duration-300 ${isActive ? 'text-[#FFD700]' : ''
                 }`
               }
             >

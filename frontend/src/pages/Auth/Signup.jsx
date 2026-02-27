@@ -14,8 +14,7 @@ const roleRoutes = {
     user: '/user/home',
     admin: '/admin/home',
     // Note: Signup component redirects these roles to document upload on successful registration
-    organization: `/upload-documents?role=organization`, 
-    corporatepartner: `/upload-documents?role=corporatepartner`,
+    organization: `/upload-documents?role=organization`,
     dietitian: `/upload-documents?role=dietitian`,
 };
 
@@ -39,8 +38,6 @@ const getInitialValues = (role) => {
             return { ...base, age: '', licenseNumber: '' };
         case 'organization':
             return { ...base, organizationLicenseNumber: '' };
-        case 'corporatepartner':
-            return { ...base, corporatepartnerLicenseNumber: '' };
         default:
             return {};
     }
@@ -145,19 +142,6 @@ const buildSignupValidationSchema = (role) => {
             });
             break;
 
-        case 'corporatepartner':
-            schema = schema.shape({
-                name: nameValidation.label('Corporate Name'),
-                corporatepartnerLicenseNumber: Yup.string()
-                    .required('Corporate License Number is required.')
-                    .matches(/^CLN[0-9]{6}$/, 'License Number must be in the format CLN followed by 6 digits (e.g., CLN123456).')
-                    .length(9, 'License Number must be 9 characters (e.g., CLN123456).'),
-                address: Yup.string()
-                    .required('Address is required.')
-                    .min(5, 'Address must be at least 5 characters.')
-                    .max(200, 'Address must not exceed 200 characters.'),
-            });
-            break;
 
         default:
             break;
@@ -171,7 +155,6 @@ const Signup = () => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const [role, setRole] = useState('');
-    const [corporateType, setCorporateType] = useState('');
     const [message, setMessage] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
@@ -179,16 +162,9 @@ const Signup = () => {
     useEffect(() => {
         const roleFromUrl = searchParams.get('role');
         const corporateTypeFromUrl = searchParams.get('corporateType');
-        
+
         if (roleFromUrl) {
-            // If corporate employee, treat as user role
-            if (corporateTypeFromUrl === 'corporate_employee') {
-                setRole('user');
-                setCorporateType('corporate_employee');
-            } else {
-                setRole(roleFromUrl);
-                setCorporateType('');
-            }
+            setRole(roleFromUrl);
         }
     }, [searchParams]);
 
@@ -226,19 +202,11 @@ const Signup = () => {
             formData.licenseNumber = formData.organizationLicenseNumber;
             delete formData.organizationLicenseNumber;
         }
-        if (formData.corporatepartnerLicenseNumber) {
-            formData.licenseNumber = formData.corporatepartnerLicenseNumber;
-            delete formData.corporatepartnerLicenseNumber;
-        }
-        
-        // Add corporate type information for corporate employees
-        if (corporateType === 'corporate_employee') {
-            formData.corporateType = 'employee';
-        }
-        
+
+
         // Add the role to the payload
         formData.role = role;
-        
+
         const apiRoute = `/api/signup/${role}`; // Dynamically sets route: /api/signup/user, /api/signup/dietitian, etc.
 
         // 1. Show the initial validation/pre-check message
@@ -252,7 +220,7 @@ const Signup = () => {
             const responseData = response.data;
 
             // 2. Upon successful POST, the registration is complete.
-            const redirectMessage = ['organization', 'corporatepartner', 'dietitian'].includes(role) 
+            const redirectMessage = ['organization', 'dietitian'].includes(role)
                 ? `Sign-up successful! Welcome! Redirecting to ${role} upload documents ...`
                 : `Sign-up successful! Welcome! Redirecting to ${role} home page ...`;
             setMessage(redirectMessage);
@@ -305,7 +273,7 @@ const Signup = () => {
         const commonButtonClasses =
             `w-full bg-[${primaryGreen}] text-white font-semibold py-3 rounded-lg hover:bg-[#155345] transition-colors duration-300 shadow-md hover:shadow-lg disabled:opacity-50`;
         const errorClasses = 'text-red-500 text-xs mt-1';
-        
+
         // Helper function to render a form group using React Hook Form's `register`
         // We use a custom fieldName that matches the keys in the Yup schema
         const renderInputGroup = (type, label, placeholder, fieldName, isRequired = true, minLength, maxLength, pattern) => (
@@ -401,11 +369,11 @@ const Signup = () => {
 
                             <div className="relative lg:col-span-2">
                                 <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">Address</label>
-                                <textarea 
-                                    id="address" 
-                                    className={`${commonInputClasses} ${errors.address ? 'border-red-500' : ''}`} 
-                                    rows="3" 
-                                    placeholder="Enter your address" 
+                                <textarea
+                                    id="address"
+                                    className={`${commonInputClasses} ${errors.address ? 'border-red-500' : ''}`}
+                                    rows="3"
+                                    placeholder="Enter your address"
                                     {...register('address')} // **React Hook Form integration**
                                 ></textarea>
                                 {errors.address && <div className={errorClasses}>{errors.address.message}</div>}
@@ -462,16 +430,16 @@ const Signup = () => {
                                 </div>
                                 {errors.gender && <div className={errorClasses}>{errors.gender.message}</div>}
                             </div>
-                            
+
                             <div className="relative"></div> {/* Placeholder for grid alignment */}
 
                             <div className="relative lg:col-span-2">
                                 <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">Address</label>
-                                <textarea 
-                                    id="address" 
-                                    className={`${commonInputClasses} ${errors.address ? 'border-red-500' : ''}`} 
-                                    rows="3" 
-                                    placeholder="Enter your address" 
+                                <textarea
+                                    id="address"
+                                    className={`${commonInputClasses} ${errors.address ? 'border-red-500' : ''}`}
+                                    rows="3"
+                                    placeholder="Enter your address"
                                     {...register('address')}
                                 ></textarea>
                                 {errors.address && <div className={errorClasses}>{errors.address.message}</div>}
@@ -532,11 +500,11 @@ const Signup = () => {
 
                             <div className="relative lg:col-span-2">
                                 <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">Address</label>
-                                <textarea 
-                                    id="address" 
-                                    className={`${commonInputClasses} ${errors.address ? 'border-red-500' : ''}`} 
-                                    rows="3" 
-                                    placeholder="Enter your address" 
+                                <textarea
+                                    id="address"
+                                    className={`${commonInputClasses} ${errors.address ? 'border-red-500' : ''}`}
+                                    rows="3"
+                                    placeholder="Enter your address"
                                     {...register('address')}
                                 ></textarea>
                                 {errors.address && <div className={errorClasses}>{errors.address.message}</div>}
@@ -551,44 +519,6 @@ const Signup = () => {
                     </div>
                 );
 
-            // CORPORATE PARTNER FORM
-            case 'corporatepartner':
-                return (
-                    <div className="mt-6 mb-3 w-full max-w-7xl mx-auto">
-                        <form
-                            id="corporatepartnerSignupForm"
-                            onSubmit={handleSubmit(onSubmit)}
-                            className="needs-validation grid gap-3 sm:gap-4 lg:grid-cols-2"
-                            noValidate
-                        >
-                            {renderInputGroup('text', 'Corporate Name', 'Enter corporate name', 'name', true, 5, 50)}
-                            {renderInputGroup('email', 'Email', 'Enter your email', 'email', true, 10, 50)}
-                            {renderInputGroup('tel', 'Phone Number', 'Enter your phone number', 'phone', true, 10, 10, '[0-9]{10}')}
-                            {renderInputGroup('password', 'Password', 'Create a password', 'password', true, 6, 20)}
-                            {renderInputGroup('text', 'Corporate License Number', 'e.g., CLN123456', 'corporatepartnerLicenseNumber', true, 9, 9)}
-
-                            <div className="relative"></div> {/* Placeholder for grid alignment */}
-
-                            <div className="relative lg:col-span-2">
-                                <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">Address</label>
-                                <textarea 
-                                    id="address" 
-                                    className={`${commonInputClasses} ${errors.address ? 'border-red-500' : ''}`} 
-                                    rows="3" 
-                                    placeholder="Enter your address" 
-                                    {...register('address')}
-                                ></textarea>
-                                {errors.address && <div className={errorClasses}>{errors.address.message}</div>}
-                            </div>
-
-                            <div className="lg:col-span-2">
-                                <SubmitButton />
-                            </div>
-
-                            <LoginLink />
-                        </form>
-                    </div>
-                );
 
             default:
                 return (
@@ -620,20 +550,19 @@ const Signup = () => {
                     <i className="fas fa-times text-xl"></i>
                 </button>
                 <h2 className="text-center text-3xl font-bold text-[#1E6F5C] mb-4">
-                    SIGN UP AS A {corporateType === 'corporate_employee' ? 'CORPORATE EMPLOYEE' : (role.toUpperCase() || 'NEW MEMBER')}
+                    SIGN UP AS A {role.toUpperCase() || 'NEW MEMBER'}
                 </h2>
 
                 {/* Global Alert */}
                 {message && (
                     <div
                         aria-live="polite"
-                        className={`p-3 mb-5 text-center text-base font-medium rounded-lg shadow-sm animate-slide-in w-full ${
-                            message.includes('successful')
+                        className={`p-3 mb-5 text-center text-base font-medium rounded-lg shadow-sm animate-slide-in w-full ${message.includes('successful')
                                 ? 'text-green-800 bg-green-100 border border-green-300'
                                 : message.includes('Validating')
-                                ? 'text-blue-800 bg-blue-100 border border-blue-300' // Using blue for validation/loading
-                                : 'text-red-800 bg-red-100 border border-red-300'
-                        }`}
+                                    ? 'text-blue-800 bg-blue-100 border border-blue-300' // Using blue for validation/loading
+                                    : 'text-red-800 bg-red-100 border border-red-300'
+                            }`}
                         role="alert"
                     >
                         {message}

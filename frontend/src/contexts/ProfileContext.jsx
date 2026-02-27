@@ -14,7 +14,7 @@ export const useProfile = () => {
   return context;
 };
 
- 
+
 
 // Role-specific configuration
 const roleConfig = {
@@ -50,21 +50,13 @@ const roleConfig = {
     apiEndpoint: '/api/getadmindetails',
     fields: ['name', 'phone']
   },
-  corporatepartner: {
-    tokenKey: 'authToken_corporatepartner',
-    signinPath: '/signin?role=corporatepartner',
-    dashboardPath: '/corporatepartner/profile',
-    roleLabel: 'Corporate Partner',
-    apiEndpoint: '/api/getcorporatepartnerdetails',
-    fields: ['name', 'phone', 'address']
-  }
 };
 
 // Profile Provider Component
 export const ProfileProvider = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   const [profileData, setProfileData] = useState({});
   const [originalData, setOriginalData] = useState({});
   const [isLoading, setIsLoading] = useState(false);
@@ -80,7 +72,6 @@ export const ProfileProvider = ({ children }) => {
     if (path.includes('/dietitian/')) return 'dietitian';
     if (path.includes('/organization/')) return 'organization';
     if (path.includes('/admin/')) return 'admin';
-    if (path.includes('/corporatepartner/')) return 'corporatepartner';
     return 'user'; // Default fallback
   }, [location.pathname]);
 
@@ -96,9 +87,9 @@ export const ProfileProvider = ({ children }) => {
   const fetchProfileData = useCallback(async () => {
     setIsFetching(true);
     setMessage('');
-    
+
     const { role, config: roleConfiguration } = initializeRole();
-    
+
     try {
       const token = localStorage.getItem(roleConfiguration.tokenKey);
       if (!token) {
@@ -115,7 +106,7 @@ export const ProfileProvider = ({ children }) => {
 
       if (response.data.success) {
         const userData = {};
-        
+
         // Populate data based on role-specific fields
         roleConfiguration.fields.forEach(field => {
           if (field === 'dob' && response.data[field]) {
@@ -124,10 +115,10 @@ export const ProfileProvider = ({ children }) => {
             userData[field] = response.data[field] || '';
           }
         });
-        
+
         // Email is always included (read-only)
         userData.email = response.data.email || '';
-        
+
         setProfileData(userData);
         setOriginalData(userData);
         return userData;
@@ -145,9 +136,9 @@ export const ProfileProvider = ({ children }) => {
   const updateProfile = useCallback(async (data) => {
     setMessage('');
     setIsLoading(true);
-    
+
     const { config: roleConfiguration } = initializeRole();
-    
+
     try {
       // Check if any changes were made
       const hasChanges = roleConfiguration.fields.some(key => data[key] !== originalData[key]);
@@ -184,33 +175,28 @@ export const ProfileProvider = ({ children }) => {
         setMessage('Profile updated successfully! Redirecting to dashboard...');
         setProfileData(data);
         setOriginalData(data);
-        
+
         // Update localStorage authUser data so AuthContext picks up the changes
         const currentAuthUser = localStorage.getItem(`authUser_${currentRole}`);
-        
+
         if (currentAuthUser) {
           const authUserData = JSON.parse(currentAuthUser);
           // Merge updated fields into authUser data
           const updatedAuthUser = { ...authUserData, ...data };
-          
+
           // Special handling for organization - sync 'name' to 'org_name' field
           if (currentRole === 'organization' && data.name) {
             updatedAuthUser.org_name = data.name;
           }
-          
-          // Special handling for corporatepartner - sync 'name' to 'company_name' field
-          if (currentRole === 'corporatepartner' && data.name) {
-            updatedAuthUser.company_name = data.name;
-          }
-          
+
           localStorage.setItem(`authUser_${currentRole}`, JSON.stringify(updatedAuthUser));
         }
-        
+
         // Force page reload to refresh AuthContext
         setTimeout(() => {
           window.location.href = roleConfiguration.dashboardPath;
         }, 2000);
-        
+
         return { success: true, message: 'Profile updated successfully' };
       }
     } catch (error) {
@@ -227,9 +213,9 @@ export const ProfileProvider = ({ children }) => {
   const changePassword = useCallback(async (oldPassword, newPassword) => {
     setMessage('');
     setIsLoading(true);
-    
+
     const { config: roleConfiguration } = initializeRole();
-    
+
     try {
       const token = localStorage.getItem(roleConfiguration.tokenKey);
       if (!token) {

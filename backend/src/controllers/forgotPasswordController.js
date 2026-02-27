@@ -8,7 +8,7 @@ exports.forgotPasswordController = async (req, res) => {
     const { email } = req.body;
 
     // Validate role
-    const validRoles = ['user', 'admin', 'dietitian', 'organization', 'corporatepartner'];
+    const validRoles = ['user', 'admin', 'dietitian', 'organization'];
     if (!validRoles.includes(role)) {
         return res.status(400).json({ message: 'Invalid role specified.' });
     }
@@ -52,7 +52,7 @@ exports.resetPasswordController = async (req, res) => {
     const { email, otp, newPassword } = req.body;
 
     // Validate role
-    const validRoles = ['user', 'admin', 'dietitian', 'organization', 'corporatepartner'];
+    const validRoles = ['user', 'admin', 'dietitian', 'organization'];
     if (!validRoles.includes(role)) {
         return res.status(400).json({ message: 'Invalid role specified.' });
     }

@@ -1,12 +1,12 @@
 const mongoose = require('mongoose');
+const { sendAccountRemovalEmail } = require('../services/emailService');
 const bcrypt = require('bcryptjs');
 const {
     UserAuth,
     User,
     Admin,
     Dietitian,
-    Organization,
-    CorporatePartner
+    Organization
 } = require('../models/userModel');
 
 // Removed Account Schema for tracking deleted users
@@ -17,12 +17,13 @@ const RemovedAccountSchema = new mongoose.Schema({
     phone: { type: String },
     role: {
         type: String,
-        enum: ['user', 'dietitian', 'organization', 'corporatepartner'],
+        enum: ['user', 'dietitian', 'organization'],
         required: true
     },
     accountType: { type: String, required: true }, // Same as role but capitalized
     removedOn: { type: Date, default: Date.now },
     removedBy: { type: String }, // Admin who removed the account
+    removalReason: { type: String }, // Reason provided by the admin for removal
     originalPasswordHash: { type: String }, // Store original password hash for restoration
     originalData: { type: mongoose.Schema.Types.Mixed } // Store original profile data
 }, { timestamps: true });
@@ -34,8 +35,7 @@ const getModelByRole = (role) => {
     const models = {
         'user': User,
         'dietitian': Dietitian,
-        'organization': Organization,
-        'corporatepartner': CorporatePartner
+        'organization': Organization
     };
     return models[role.toLowerCase()];
 };
@@ -151,7 +151,16 @@ exports.removeUser = async (req, res) => {
         // Remove '-list' suffix to get the actual role
         const actualRole = role.replace('-list', '');
         const adminToken = req.headers.authorization?.replace('Bearer ', '') ||
-                          req.headers['admin-auth-token'];
+            req.headers['admin-auth-token'];
+        const { reason } = req.body;
+
+        // Reason is mandatory
+        if (!reason || !reason.trim()) {
+            return res.status(400).json({
+                success: false,
+                message: 'A reason must be provided before removing an account'
+            });
+        }
 
         // Prevent admin management
         if (actualRole.toLowerCase() === 'admin') {
@@ -188,9 +197,10 @@ exports.removeUser = async (req, res) => {
             name: user.name,
             email: user.email,
             phone: user.phone,
-            role: role.toLowerCase(),
-            accountType: role.charAt(0).toUpperCase() + role.slice(1),
+            role: actualRole.toLowerCase(),
+            accountType: actualRole.charAt(0).toUpperCase() + actualRole.slice(1),
             removedBy: adminToken, // In real app, decode admin info from token
+            removalReason: reason.trim(),
             originalPasswordHash: originalPasswordHash, // Store original password hash
             originalData: user.toObject()
         });
@@ -202,14 +212,21 @@ exports.removeUser = async (req, res) => {
 
         // Also remove from UserAuth if it exists
         try {
-            await UserAuth.findOneAndDelete({ roleId: id, role: role.toLowerCase() });
+            await UserAuth.findOneAndDelete({ roleId: id, role: actualRole.toLowerCase() });
         } catch (authError) {
             console.log('UserAuth entry not found or already removed:', authError.message);
         }
 
+        // Send notification email to removed user (non-fatal if it fails)
+        try {
+            await sendAccountRemovalEmail(user.email, user.name, reason.trim());
+        } catch (emailError) {
+            console.error('Failed to send removal notification email:', emailError.message);
+        }
+
         res.status(200).json({
             success: true,
-            message: `${role.charAt(0).toUpperCase() + role.slice(1)} removed successfully`
+            message: `${actualRole.charAt(0).toUpperCase() + actualRole.slice(1)} removed successfully`
         });
 
     } catch (error) {
