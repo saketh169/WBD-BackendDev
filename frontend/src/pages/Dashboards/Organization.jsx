@@ -5,108 +5,50 @@ import Sidebar from "../../components/Sidebar/Sidebar";
 import Status from "../../middleware/StatusBadge";
 import { useAuthContext } from "../../hooks/useAuthContext";
 
-const mockOrganization = {
-  org_name: "",
-  email: "",
-  phone: "",
-  address: "",
-  profileImage: "/images/dummy_user.png",
+const getStatusBadge = (status) => {
+  switch (status) {
+    case 'Verified': return 'bg-green-100 text-green-800';
+    case 'Rejected': return 'bg-red-100 text-red-800';
+    default: return 'bg-yellow-100 text-yellow-800';
+  }
 };
 
-const mockRecentDietitians = [
-  { name: "Suresh K.", verificationStatus: { finalReport: "Verified" }, createdAt: '2025-10-25T10:00:00Z' },
-  { name: "Priya V.", verificationStatus: { finalReport: "Rejected" }, createdAt: '2025-10-24T10:00:00Z' },
-  { name: "Rajesh M.", verificationStatus: { finalReport: "Received" }, createdAt: '2025-10-23T10:00:00Z' },
-];
-
-const mockFetchRecentDietitians = async () => {
-  await new Promise((resolve) => setTimeout(resolve, 500));
-  return mockRecentDietitians.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 3);
-};
-
-const RecentDietitiansTable = () => {
+const RecentDietitiansTable = ({ onViewAll }) => {
   const [dietitians, setDietitians] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const loadDietitians = async () => {
-      try {
-        const data = await mockFetchRecentDietitians(); // Replace with actual API call
-        setDietitians(data);
-      } catch (error) {
-        console.error("Failed to fetch recent dietitians:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    loadDietitians();
+    axios.get('/api/verify/dietitians', { withCredentials: true })
+      .then(res => setDietitians(res.data.slice(0, 5)))
+      .catch(err => console.error('Failed to fetch dietitians:', err))
+      .finally(() => setIsLoading(false));
   }, []);
-
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case "Verified":
-        return "bg-green-500 text-white";
-      case "Rejected":
-        return "bg-red-500 text-white";
-      case "Received":
-      case "Not Received":
-      default:
-        return "bg-yellow-500 text-white";
-    }
-  };
-
-  const getStatusText = (status) => {
-    return status === "Not Received" ? "Pending" : status;
-  };
-  
-  const getStatusIcon = (status) => {
-    switch (status) {
-        case 'Verified': return 'fas fa-check-circle';
-        case 'Rejected': return 'fas fa-times-circle';
-        default: return 'fas fa-hourglass-half';
-    }
-  }
 
   return (
     <div className="overflow-x-auto bg-white rounded-xl shadow-lg border border-gray-200">
       <table className="min-w-full divide-y divide-gray-200">
         <thead className="bg-green-700">
           <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
-              Dietitian Name
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
-              Verification Status
-            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Dietitian Name</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Verification Status</th>
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
           {isLoading ? (
-            <tr>
-              <td colSpan="2" className="px-6 py-4 text-center text-sm text-gray-500">
-                <i className="fas fa-spinner fa-spin mr-2"></i> Loading recent dietitians...
-              </td>
-            </tr>
+            <tr><td colSpan="2" className="px-6 py-4 text-center text-sm text-gray-500"><i className="fas fa-spinner fa-spin mr-2"></i>Loading...</td></tr>
           ) : dietitians.length === 0 ? (
-            <tr>
-              <td colSpan="2" className="px-6 py-4 text-center text-sm text-gray-500">
-                No recent dietitian verifications found.
-              </td>
-            </tr>
+            <tr><td colSpan="2" className="px-6 py-4 text-center text-sm text-gray-500">No dietitian verifications found.</td></tr>
           ) : (
-            dietitians.map((dietitian, index) => {
-              const status = dietitian.verificationStatus?.finalReport || "Not Received";
-              const badgeClass = getStatusBadge(status);
-              const statusText = getStatusText(status);
-
+            dietitians.map((d) => {
+              const status = d.verificationStatus?.finalReport || 'Not Received';
+              const displayStatus = status === 'Not Received' ? 'Pending' : status;
               return (
-                <tr key={index} className="hover:bg-green-50 transition duration-150 cursor-pointer">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {dietitian.name || "Unknown Dietitian"}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${badgeClass}`}>
-                       <i className={`${getStatusIcon(status)} mr-1`}></i> {statusText}
+                <tr key={d._id} className="hover:bg-green-50 transition duration-150">
+                  <td className="px-6 py-4 text-sm font-medium text-gray-900">{d.name || 'Unknown'}</td>
+                  <td className="px-6 py-4 text-sm">
+                    <span className={`px-3 py-1 inline-flex text-xs font-semibold rounded-full ${getStatusBadge(status)}`}>
+                      <i className={`fas fa-${status === 'Verified' ? 'check-circle' : status === 'Rejected' ? 'times-circle' : 'hourglass-half'} mr-1`}></i>
+                      {displayStatus}
                     </span>
                   </td>
                 </tr>
@@ -115,10 +57,22 @@ const RecentDietitiansTable = () => {
           )}
         </tbody>
       </table>
+      <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 flex justify-end">
+        <button
+          onClick={onViewAll}
+          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-full hover:bg-green-700 transition"
+        >
+          <i className="fas fa-arrow-right"></i> View All Verifications
+        </button>
+      </div>
     </div>
   );
 };
 
+
+const mockOrganization = {
+  profileImage: "/images/dummy_user.png",
+};
 
 // --- Main Dashboard Component ---
 const OrganizationDashboard = () => {
@@ -298,11 +252,11 @@ const OrganizationDashboard = () => {
           </div>
         </div>
 
-        <div className="mt-8 bg-white rounded-2xl shadow-lg p-6 border-t-4 border-gray-400">
+        <div className="mt-8 bg-white rounded-2xl shadow-lg p-6 border-t-4 border-amber-500">
           <h3 className="text-xl font-bold text-teal-900 mb-5 text-center">
             Recent Dietitian Verifications
           </h3>
-          <RecentDietitiansTable />
+          <RecentDietitiansTable onViewAll={() => { navigate('/organization/verify-dietitian'); window.scrollTo(0, 0); }} />
         </div>
 
         {showImageModal && (

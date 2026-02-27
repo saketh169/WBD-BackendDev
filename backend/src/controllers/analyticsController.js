@@ -443,3 +443,97 @@ exports.getRevenueAnalytics = async (req, res) => {
         res.status(500).json({ message: 'Error fetching revenue analytics', error: error.message });
     }
 };
+
+// Get dietitian-specific revenue
+exports.getDietitianRevenue = async (req, res) => {
+    try {
+        // Get all completed consultation bookings with dietitian information
+        const consultations = await Booking.find({ paymentStatus: 'completed' })
+            .populate('dietitianId', 'name')
+            .select('dietitianId dietitianName amount createdAt');
+
+        // Group revenue by dietitian
+        const dietitianRevenueMap = {};
+
+        consultations.forEach(booking => {
+            const dietitianId = booking.dietitianId?._id?.toString() || 'unknown';
+            const dietitianName = booking.dietitianId?.name || booking.dietitianName || 'Unknown Dietitian';
+            const amount = booking.amount || 0;
+
+            if (!dietitianRevenueMap[dietitianId]) {
+                dietitianRevenueMap[dietitianId] = {
+                    dietitianId,
+                    dietitianName,
+                    totalRevenue: 0,
+                    consultationCount: 0
+                };
+            }
+
+            dietitianRevenueMap[dietitianId].totalRevenue += amount;
+            dietitianRevenueMap[dietitianId].consultationCount += 1;
+        });
+
+        // Convert to array and sort by revenue (descending)
+        const dietitianRevenue = Object.values(dietitianRevenueMap)
+            .sort((a, b) => b.totalRevenue - a.totalRevenue);
+
+        res.json({
+            data: dietitianRevenue,
+            totalDietitians: dietitianRevenue.length,
+            totalRevenue: dietitianRevenue.reduce((sum, d) => sum + d.totalRevenue, 0)
+        });
+    } catch (error) {
+        console.error('Error fetching dietitian revenue:', error);
+        res.status(500).json({ message: 'Error fetching dietitian revenue', error: error.message });
+    }
+};
+
+// Get user-specific revenue (subscription payments)
+exports.getUserRevenue = async (req, res) => {
+    try {
+        // Get all subscription payments with user information
+        const payments = await Payment.find({ paymentStatus: { $in: ['success', 'completed'] } })
+            .populate('userId', 'name')
+            .select('userId userName amount planType billingCycle createdAt');
+
+        // Group revenue by user
+        const userRevenueMap = {};
+
+        payments.forEach(payment => {
+            const userId = payment.userId?._id?.toString() || 'unknown';
+            const userName = payment.userId?.name || payment.userName || 'Unknown User';
+            const amount = payment.amount || 0;
+
+            if (!userRevenueMap[userId]) {
+                userRevenueMap[userId] = {
+                    userId,
+                    userName,
+                    totalRevenue: 0,
+                    subscriptionCount: 0,
+                    plans: []
+                };
+            }
+
+            userRevenueMap[userId].totalRevenue += amount;
+            userRevenueMap[userId].subscriptionCount += 1;
+            userRevenueMap[userId].plans.push({
+                planType: payment.planType,
+                billingCycle: payment.billingCycle,
+                amount: amount
+            });
+        });
+
+        // Convert to array and sort by revenue (descending)
+        const userRevenue = Object.values(userRevenueMap)
+            .sort((a, b) => b.totalRevenue - a.totalRevenue);
+
+        res.json({
+            data: userRevenue,
+            totalUsers: userRevenue.length,
+            totalRevenue: userRevenue.reduce((sum, u) => sum + u.totalRevenue, 0)
+        });
+    } catch (error) {
+        console.error('Error fetching user revenue:', error);
+        res.status(500).json({ message: 'Error fetching user revenue', error: error.message });
+    }
+};

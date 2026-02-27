@@ -1,10 +1,20 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import * as Yup from 'yup';
 import { useNavigate, useParams } from 'react-router-dom';
 import { User, Heart, Leaf, TestTube, Factory, Activity, Upload, Scale, TrendingUp, Calendar, Droplet, Eye, CheckCircle, X } from 'lucide-react';
 import AuthContext from '../../contexts/AuthContext';
 import { useContext } from 'react';
 import axios from 'axios';
+
+// Yup validation schema for client info fields
+const labReportSchema = Yup.object().shape({
+  clientName: Yup.string().trim().required('Full Name is required.').min(2, 'Name must be at least 2 characters.'),
+  clientAge: Yup.number().typeError('Age must be a number.').required('Age is required.').min(1, 'Enter a valid age.').max(120, 'Enter a valid age.'),
+  clientPhone: Yup.string().required('Phone Number is required.').matches(/^[0-9]{10}$/, 'Enter a valid 10-digit phone number.'),
+  clientAddress: Yup.string().trim().required('Address is required.').min(5, 'Address must be at least 5 characters.'),
+});
 
 // --- Icon components for the category buttons ---
 const CategoryIcon = ({ icon, label, isActive, onClick }) => {
@@ -15,9 +25,9 @@ const CategoryIcon = ({ icon, label, isActive, onClick }) => {
       className={`
       flex flex-col items-center justify-center p-4 m-2 w-36 h-36 md:w-40 md:h-40 text-center rounded-xl transition-all duration-300 transform shadow-lg
       ${isActive
-        ? 'bg-emerald-600 text-white ring-4 ring-emerald-300 scale-[1.02] shadow-emerald-500/50'
-        : 'bg-white text-gray-700 hover:bg-emerald-50 hover:shadow-xl border border-emerald-100'
-      }
+          ? 'bg-emerald-600 text-white ring-4 ring-emerald-300 scale-[1.02] shadow-emerald-500/50'
+          : 'bg-white text-gray-700 hover:bg-emerald-50 hover:shadow-xl border border-emerald-100'
+        }
       `}
     >
       <Icon className={`w-12 h-12 mb-2 ${isActive ? 'text-white' : 'text-emerald-600'}`} />
@@ -31,6 +41,21 @@ const FormInput = ({ label, type = 'text', required = false, unit = '', onView, 
   const isFile = type === 'file';
   const [filePreview, setFilePreview] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [fileSizeError, setFileSizeError] = useState('');
+  const [selectedFileName, setSelectedFileName] = useState('');
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file && file.size > 10 * 1024 * 1024) { // 10MB limit
+      setFileSizeError('File too large (max 10MB)');
+      e.target.value = '';
+      setSelectedFileName('');
+    } else {
+      setFileSizeError('');
+      setSelectedFileName(file ? file.name : '');
+    }
+    if (registerProps.onChange) registerProps.onChange(e);
+  };
 
   const handleViewFile = () => {
     const input = document.querySelector(`input[name="${registerProps.name}"]`);
@@ -66,9 +91,23 @@ const FormInput = ({ label, type = 'text', required = false, unit = '', onView, 
               type="file"
               className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-100 file:text-emerald-700 hover:file:bg-emerald-200"
               required={required}
+              onChange={handleFileChange}
               {...registerProps}
             />
-            {onView && (
+            <div className="text-xs text-gray-500">
+              Maximum file size: 10MB. Supported formats: PDF, Images
+            </div>
+            {selectedFileName && !fileSizeError && (
+              <div className="text-xs text-emerald-600">
+                Selected: {selectedFileName}
+              </div>
+            )}
+            {fileSizeError && (
+              <div className="text-xs text-red-600 font-medium">
+                {fileSizeError}
+              </div>
+            )}
+            {onView && selectedFileName && !fileSizeError && (
               <button
                 type="button"
                 onClick={handleViewFile}
@@ -142,18 +181,34 @@ const FormInput = ({ label, type = 'text', required = false, unit = '', onView, 
       )}
     </>
   );
-};// --- The Main Application Component ---
+};// --- Stable FormSectionWrapper (must be outside LabReportUploader to avoid remounting) ---
+const FormSectionWrapper = ({ label, icon: Icon, description, children }) => (
+  <>
+    <h2 className="text-2xl font-bold text-emerald-800 mb-2 flex items-center">
+      <span className="mr-2"><Icon className='w-8 h-8' /></span>
+      {label} - Details
+    </h2>
+    <p className="text-gray-600 mb-6 border-b border-emerald-200 pb-4">{description}</p>
+    {children}
+  </>
+);
+
+// --- The Main Application Component ---
 const LabReportUploader = () => {
-  // Initialize the form using React Hook Form
-  const { register, handleSubmit, setValue } = useForm();
+  // Initialize the form using React Hook Form + Yup validation
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm({
+    resolver: yupResolver(labReportSchema),
+    mode: 'onBlur',
+  });
   const navigate = useNavigate();
   const { dietitianId } = useParams();
   const { user } = useContext(AuthContext);
- 
+
   // === NEW STATE: Array to track active forms in order of selection ===
   const [activeFormsOrder, setActiveFormsOrder] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [notification, setNotification] = useState(null);
+  const [fileError, setFileError] = useState('');
 
   // Populate form with user data on component mount
   useEffect(() => {
@@ -225,15 +280,72 @@ const LabReportUploader = () => {
 
   // Submission handler function
   const onSubmit = async (data) => {
-    console.log('Form data received:', data);
-    console.log('Active forms order:', activeFormsOrder);
-
+    // Yup handles client info validation — this only runs if schema passes
     if (activeFormsOrder.length === 0) {
-      alert('Please select at least one category to submit.');
+      setNotification({ type: 'error', message: 'Please select at least one category to submit.' });
+      return;
+    }
+
+    // Per-category required field validation
+    const categoryRequiredFields = {
+      Hormonal_Issues: [['testosteroneTotal', 'Total Testosterone'], ['dheaS', 'DHEA-S'], ['cortisol', 'Cortisol'], ['vitaminD', 'Vitamin D']],
+      Fitness_Metrics: [['heightCm', 'Height'], ['currentWeight', 'Current Weight'], ['bodyFatPercentage', 'Body Fat %'], ['activityLevel', 'Activity Level']],
+      General_Reports: [['dateOfReport', 'Date of Report'], ['bmiValue', 'BMI Value']],
+      Blood_Sugar_Focus: [['fastingGlucose', 'Fasting Glucose'], ['hba1c', 'HbA1c'], ['cholesterolTotal', 'Total Cholesterol'], ['triglycerides', 'Triglycerides']],
+      Thyroid: [['tsh', 'TSH'], ['freeT4', 'Free T4'], ['reverseT3', 'Reverse T3'], ['thyroidAntibodies', 'Thyroid Antibodies']],
+      Cardiovascular: [['systolicBP', 'Systolic BP'], ['diastolicBP', 'Diastolic BP'], ['spO2', 'SpO₂'], ['restingHeartRate', 'Resting Heart Rate']],
+    };
+
+    const validationErrors = [];
+    activeFormsOrder.forEach(categoryId => {
+      const required = categoryRequiredFields[categoryId] || [];
+      const missing = required.filter(([field]) => !data[field] && data[field] !== 0).map(([, label]) => label);
+      if (missing.length > 0) {
+        const categoryLabel = categoryId.replace(/_/g, ' ');
+        validationErrors.push(`${categoryLabel}: ${missing.join(', ')}`);
+      }
+    });
+
+    if (validationErrors.length > 0) {
+      setNotification({ type: 'error', message: `Please fill in all required fields:\n${validationErrors.join('\n')}` });
+      return;
+    }
+
+    // Pre-submit: validate ALL file inputs at once
+    const fileFieldLabels = {
+      hormonalProfileReport: 'Hormonal Profile Report',
+      endocrineReport: 'General Endocrine Report',
+      generalHealthReport: 'General Health Report',
+      bloodTestReport: 'Blood Test Report',
+      bloodSugarReport: 'Blood Sugar Report',
+      diabetesReport: 'Diabetes/HbA1c Report',
+      thyroidReport: 'Thyroid Panel Report',
+      cardiacHealthReport: 'Cardiac Health Report',
+      cardiovascularReport: 'Cardiovascular Report',
+      ecgReport: 'ECG/ECHO Report',
+    };
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+    const fileErrors = [];
+    Object.entries(fileFieldLabels).forEach(([field, label]) => {
+      const file = data[field]?.[0];
+      if (!file) return;
+      let error = '';
+      if (file.size > 10 * 1024 * 1024) error = `${label}: exceeds 10MB limit`;
+      else if (!allowedTypes.includes(file.type)) error = `${label}: invalid format (use PDF, JPG, PNG)`;
+      if (error) {
+        fileErrors.push(error);
+        // Clear only this bad file input
+        const input = document.querySelector(`input[name="${field}"]`);
+        if (input) input.value = '';
+      }
+    });
+    if (fileErrors.length > 0) {
+      setNotification({ type: 'error', message: `File upload issues:\n${fileErrors.join('\n')}` });
       return;
     }
 
     setSubmitting(true);
+
     try {
       // Create FormData for file uploads
       const formData = new FormData();
@@ -244,7 +356,7 @@ const LabReportUploader = () => {
       formData.append('clientPhone', data.clientPhone);
       formData.append('clientAddress', data.clientAddress);
       formData.append('submittedCategories', JSON.stringify(activeFormsOrder));
-      
+
       // Add user ID from AuthContext
       // NOTE: Both userId and dietitianId are stored in the schema
       // Schema fields: userId (references User), dietitianId (references Dietitian)
@@ -335,11 +447,11 @@ const LabReportUploader = () => {
 
       // Submit to backend
       console.log('Submitting to backend...');
-      
+
       // Get auth token from localStorage
       const role = user?.role || 'user'; // Default to 'user' if role not available
       const token = localStorage.getItem(`authToken_${role}`);
-      
+
       const response = await axios.post('/api/lab-reports/lab/submit', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -351,7 +463,7 @@ const LabReportUploader = () => {
 
       if (response.data.success) {
         console.log('Lab report submitted successfully');
-        
+
         // Show success notification
         setNotification({
           type: 'success',
@@ -368,52 +480,37 @@ const LabReportUploader = () => {
 
     } catch (error) {
       console.error('Error submitting lab report:', error);
-      const errorMessage = error.response?.data?.message || error.message || 'Failed to submit lab report. Please try again.';
-      
-      // Show error notification
+
+      const errorMessage = error.response?.data?.message || error.message || 'An unexpected error occurred';
+
       setNotification({
         type: 'error',
         message: errorMessage
       });
 
-      // Hide error notification after 5 seconds
+      // Auto-hide error after some time
       setTimeout(() => {
-        setNotification(null);
+        setNotification(prev => prev?.type === 'error' ? null : prev);
       }, 5000);
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Function to handle simulated file viewing
-  const handleViewFile = useCallback((filename) => {
-    // This function is now handled within FormInput component
-    console.log('File preview handled by FormInput component:', filename);
+  // Handles file validation errors from FormInput
+  const handleViewFile = useCallback((error) => {
+    setFileError(error || '');
   }, []);
   // --- Centralized Form Rendering Function ---
   const renderFormContent = useCallback((categoryId) => {
     // Find the category metadata for title and description
     const categoryMeta = categories.find(c => c.id === categoryId);
 
-    // Default structure for every form section
-    const FormWrapper = ({ description, children }) => (
-      <>
-        <h2 className="text-2xl font-bold text-emerald-800 mb-2 flex items-center">
-          <span className="mr-2">
-            <categoryMeta.icon className='w-8 h-8' />
-          </span>
-          {categoryMeta.label} - Details
-        </h2>
-        <p className="text-gray-600 mb-6 border-b border-emerald-200 pb-4">{description}</p>
-        {children}
-      </>
-    );
-
     switch (categoryId) {
-     
-      case 'Hormonal_Issues': 
+
+      case 'Hormonal_Issues':
         return (
-          <FormWrapper {...categoryMeta}>
+          <FormSectionWrapper {...categoryMeta}>
             <div className="space-y-6">
               <h3 className="text-xl font-semibold text-gray-700 border-b pb-2 mb-4">Hormonal Metrics</h3>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -423,35 +520,35 @@ const LabReportUploader = () => {
                 <FormInput label="Vitamin D" type="number" unit="ng/mL" {...register('vitaminD')} />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
-                <FormInput 
-                  label="Upload Hormonal Profile Report" 
-                  type="file" 
-                  onView={handleViewFile} 
-                  {...register('hormonalProfileReport')} 
+                <FormInput
+                  label="Upload Hormonal Profile Report"
+                  type="file"
+                  onView={handleViewFile}
+                  {...register('hormonalProfileReport')}
                 />
-                <FormInput 
-                  label="Upload General Endocrine Report" 
-                  type="file" 
-                  onView={handleViewFile} 
-                  {...register('endocrineReport')} 
+                <FormInput
+                  label="Upload General Endocrine Report"
+                  type="file"
+                  onView={handleViewFile}
+                  {...register('endocrineReport')}
                 />
               </div>
             </div>
-          </FormWrapper>
-        );      case 'Fitness_Metrics':
+          </FormSectionWrapper>
+        ); case 'Fitness_Metrics':
         return (
-          <FormWrapper {...categoryMeta}>
+          <FormSectionWrapper {...categoryMeta}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <FormInput label="Height" type="number" unit="cm" {...register('heightCm')} />
               <FormInput label="Current Weight" type="number" unit="kg" {...register('currentWeight')} />
               <FormInput label="Body Fat Percentage" type="number" unit="%" {...register('bodyFatPercentage')} />
-             
+
               {/* Activity Level - using register props directly on select */}
               <div className="flex flex-col space-y-1">
                 <label htmlFor="activityLevel" className="text-sm font-medium text-gray-700">Activity Level</label>
                 <select
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 transition duration-150"
-                  {...register('activityLevel')} 
+                  {...register('activityLevel')}
                 >
                   <option value="">Select Level</option>
                   <option value="sedentary">Sedentary (Little or no exercise)</option>
@@ -461,7 +558,7 @@ const LabReportUploader = () => {
                   <option value="extra">Extra Active (2x per day/training)</option>
                 </select>
               </div>
-             
+
               {/* Additional Info - using register props directly on textarea */}
               <div className="flex flex-col space-y-1 md:col-span-2">
                 <label htmlFor="additionalInfo" className="text-sm font-medium text-gray-700">Additional Health Information (E.g., Allergies, Medications)</label>
@@ -472,12 +569,12 @@ const LabReportUploader = () => {
                 />
               </div>
             </div>
-          </FormWrapper>
+          </FormSectionWrapper>
         );
 
       case 'General_Reports':
         return (
-          <FormWrapper {...categoryMeta}>
+          <FormSectionWrapper {...categoryMeta}>
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <FormInput label="Date of Latest Report" type="date" {...register('dateOfReport')} />
@@ -488,16 +585,16 @@ const LabReportUploader = () => {
               <FormInput
                 label="Upload General Health Report (PDF/Image)"
                 type="file"
-                onView={handleViewFile} 
+                onView={handleViewFile}
                 {...register('generalHealthReport')}
               />
             </div>
-          </FormWrapper>
+          </FormSectionWrapper>
         );
 
       case 'Blood_Sugar_Focus':
         return (
-          <FormWrapper {...categoryMeta}>
+          <FormSectionWrapper {...categoryMeta}>
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <FormInput label="Fasting Glucose" type="number" unit="mg/dL" {...register('fastingGlucose')} />
@@ -506,32 +603,32 @@ const LabReportUploader = () => {
                 <FormInput label="Triglycerides" type="number" unit="mg/dL" {...register('triglycerides')} />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <FormInput 
-                  label="Upload General Blood Test Report" 
-                  type="file" 
-                  onView={handleViewFile} 
-                  {...register('bloodTestReport')} 
+                <FormInput
+                  label="Upload General Blood Test Report"
+                  type="file"
+                  onView={handleViewFile}
+                  {...register('bloodTestReport')}
                 />
-                <FormInput 
-                  label="Upload Blood Sugar Report (Fasting/PP)" 
-                  type="file" 
-                  onView={handleViewFile} 
-                  {...register('bloodSugarReport')} 
+                <FormInput
+                  label="Upload Blood Sugar Report (Fasting/PP)"
+                  type="file"
+                  onView={handleViewFile}
+                  {...register('bloodSugarReport')}
                 />
-                <FormInput 
-                  label="Upload Diabetes/HbA1c Report" 
-                  type="file" 
-                  onView={handleViewFile} 
-                  {...register('diabetesReport')} 
+                <FormInput
+                  label="Upload Diabetes/HbA1c Report"
+                  type="file"
+                  onView={handleViewFile}
+                  {...register('diabetesReport')}
                 />
               </div>
             </div>
-          </FormWrapper>
+          </FormSectionWrapper>
         );
 
-      case 'Thyroid': 
+      case 'Thyroid':
         return (
-          <FormWrapper {...categoryMeta}>
+          <FormSectionWrapper {...categoryMeta}>
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <FormInput label="TSH" type="number" unit="mIU/L" {...register('tsh')} />
@@ -540,26 +637,26 @@ const LabReportUploader = () => {
                 <FormInput label="Thyroid Antibodies (TPO/TgAb)" {...register('thyroidAntibodies')} />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
-                <FormInput 
-                  label="Upload Full Thyroid Panel Report" 
-                  type="file" 
-                  onView={handleViewFile} 
-                  {...register('thyroidReport')} 
+                <FormInput
+                  label="Upload Full Thyroid Panel Report"
+                  type="file"
+                  onView={handleViewFile}
+                  {...register('thyroidReport')}
                 />
-                <FormInput 
-                  label="Upload General Health Report (PDF/Image)" 
-                  type="file" 
-                  onView={handleViewFile} 
-                  {...register('generalHealthReport')} 
+                <FormInput
+                  label="Upload General Health Report (PDF/Image)"
+                  type="file"
+                  onView={handleViewFile}
+                  {...register('generalHealthReport')}
                 />
               </div>
             </div>
-          </FormWrapper>
+          </FormSectionWrapper>
         );
 
       case 'Cardiovascular':
         return (
-          <FormWrapper {...categoryMeta}>
+          <FormSectionWrapper {...categoryMeta}>
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <FormInput label="Systolic Blood Pressure" type="number" unit="mmHg" {...register('systolicBP')} />
@@ -568,27 +665,27 @@ const LabReportUploader = () => {
                 <FormInput label="Resting Heart Rate" type="number" unit="bpm" {...register('restingHeartRate')} />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <FormInput 
-                  label="Upload General Cardiac Health Report" 
-                  type="file" 
-                  onView={handleViewFile} 
-                  {...register('cardiacHealthReport')} 
+                <FormInput
+                  label="Upload General Cardiac Health Report"
+                  type="file"
+                  onView={handleViewFile}
+                  {...register('cardiacHealthReport')}
                 />
-                <FormInput 
-                  label="Upload Cardiovascular Risk Assessment" 
-                  type="file" 
-                  onView={handleViewFile} 
-                  {...register('cardiovascularReport')} 
+                <FormInput
+                  label="Upload Cardiovascular Risk Assessment"
+                  type="file"
+                  onView={handleViewFile}
+                  {...register('cardiovascularReport')}
                 />
-                <FormInput 
-                  label="Upload ECG/ECHO Report" 
-                  type="file" 
-                  onView={handleViewFile} 
-                  {...register('ecgReport')} 
+                <FormInput
+                  label="Upload ECG/ECHO Report"
+                  type="file"
+                  onView={handleViewFile}
+                  {...register('ecgReport')}
                 />
               </div>
             </div>
-          </FormWrapper>
+          </FormSectionWrapper>
         );
 
       default:
@@ -601,28 +698,29 @@ const LabReportUploader = () => {
       {/* Modern Success/Error Notification */}
       {notification && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
-          <div className={`bg-white rounded-3xl shadow-2xl max-w-md w-full mx-4 p-8 text-center border ${
-            notification.type === 'success' ? 'border-emerald-200' : 'border-red-200'
-          }`}>
-            <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 ${
-              notification.type === 'success' ? 'bg-emerald-100' : 'bg-red-100'
+          <div className={`bg-white rounded-3xl shadow-2xl max-w-md w-full mx-4 p-8 text-center border ${notification.type === 'success' ? 'border-emerald-200' : 'border-red-200'
             }`}>
+            <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 ${notification.type === 'success' ? 'bg-emerald-100' : 'bg-red-100'
+              }`}>
               {notification.type === 'success' ? (
                 <CheckCircle className="w-12 h-12 text-emerald-600" />
               ) : (
                 <X className="w-12 h-12 text-red-600" />
               )}
             </div>
-            <h3 className={`text-2xl font-bold mb-4 ${
-              notification.type === 'success' ? 'text-gray-800' : 'text-red-800'
-            }`}>
-              {notification.type === 'success' ? 'Report Submitted Successfully!' : 'Submission Failed'}
+            <h3 className={`text-2xl font-bold mb-4 ${notification.type === 'success' ? 'text-gray-800' : 'text-red-800'
+              }`}>
+              {notification.type === 'success' ? 'Report Submitted Successfully!' : 'Error'}
             </h3>
-            <p className={`mb-6 ${
-              notification.type === 'success' ? 'text-gray-600' : 'text-red-600'
-            }`}>
-              {notification.message}
-            </p>
+            <div className={`mb-6 text-sm leading-relaxed ${notification.type === 'success' ? 'text-gray-600 text-center' : 'text-red-600 text-left'}`}>
+              {notification.type === 'error' && notification.message.includes('\n') ? (
+                <ul className="list-disc list-inside space-y-1">
+                  {notification.message.split('\n').map((line, i) => <li key={i}>{line}</li>)}
+                </ul>
+              ) : (
+                <p className="text-center">{notification.message}</p>
+              )}
+            </div>
             {notification.type === 'success' ? (
               <div className="flex justify-center">
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-emerald-500"></div>
@@ -670,21 +768,21 @@ const LabReportUploader = () => {
             </button>
           </div>
         </header>        {/* --- Category Buttons (Two Rows of Three) --- */}
-        <section className="grid grid-cols-6 gap-4 mb-10 max-w-6xl mx-auto">
-          {categories.map((cat) => (
-            <CategoryIcon
-              key={cat.id}
-              icon={cat.icon}
-              label={cat.label}
-              // === UPDATED: Check if category is in the order array ===
-              isActive={activeFormsOrder.includes(cat.id)}
-              // === UPDATED: Use new toggle function ===
-              onClick={() => toggleCategory(cat.id)}
-            />
-          ))}
-        </section>
-        
-                {/* --- Client Information Section --- */}
+        <section className="grid grid-cols-6 gap-4 mb-10 max-w-6xl mx-auto">
+          {categories.map((cat) => (
+            <CategoryIcon
+              key={cat.id}
+              icon={cat.icon}
+              label={cat.label}
+              // === UPDATED: Check if category is in the order array ===
+              isActive={activeFormsOrder.includes(cat.id)}
+              // === UPDATED: Use new toggle function ===
+              onClick={() => toggleCategory(cat.id)}
+            />
+          ))}
+        </section>
+
+        {/* --- Client Information Section --- */}
         <div className="p-6 border border-emerald-200 rounded-xl bg-emerald-50/50 shadow-inner mb-8">
           <h2 className="text-2xl font-bold text-emerald-800 mb-2 flex items-center">
             <span className="mr-2">
@@ -693,77 +791,67 @@ const LabReportUploader = () => {
             Client Information
           </h2>
           <p className="text-gray-600 mb-6 border-b border-emerald-200 pb-4">Please verify your personal details</p>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <FormInput 
-              label="Full Name" 
-              type="text" 
-              required 
-              {...register('clientName')} 
-            />
-            <FormInput 
-              label="Age" 
-              type="number" 
-              required 
-              {...register('clientAge')} 
-            />
-            <FormInput 
-              label="Phone Number" 
-              type="tel" 
-              required 
-              {...register('clientPhone')} 
-            />
+            <div>
+              <FormInput label="Full Name" type="text" required {...register('clientName')} />
+              {errors.clientName && <p className="text-xs text-red-500 mt-1">{errors.clientName.message}</p>}
+            </div>
+            <div>
+              <FormInput label="Age" type="number" required {...register('clientAge')} />
+              {errors.clientAge && <p className="text-xs text-red-500 mt-1">{errors.clientAge.message}</p>}
+            </div>
+            <div>
+              <FormInput label="Phone Number" type="tel" required {...register('clientPhone')} />
+              {errors.clientPhone && <p className="text-xs text-red-500 mt-1">{errors.clientPhone.message}</p>}
+            </div>
             <div className="md:col-span-2">
-              <FormInput 
-                label="Address" 
-                type="text" 
-                required 
-                {...register('clientAddress')} 
-              />
+              <FormInput label="Address" type="text" required {...register('clientAddress')} />
+              {errors.clientAddress && <p className="text-xs text-red-500 mt-1">{errors.clientAddress.message}</p>}
             </div>
           </div>
         </div>
-        
-        {/* --- Dynamic Form Section Container --- */}
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-          
-          {/* === NEW DYNAMIC RENDERING === */}
-          {activeFormsOrder.length > 0 ? (
-            // Render forms in the order they were clicked
-            activeFormsOrder.map(categoryId => (
-              <div 
-                key={categoryId} 
-                id={`form-section-${categoryId}`}
-                className="p-6 border border-emerald-200 rounded-xl bg-emerald-50/50 shadow-inner space-y-4"
-              >
-                {renderFormContent(categoryId)}
-              </div>
-            ))
-          ) : (
-            // Default message when no forms are active
-            <div className="p-6 border border-gray-300 rounded-xl bg-gray-50 text-center text-gray-500 italic">
-              Select one or more categories above to dynamically load the corresponding forms for submission.
-            </div>
-          )}
-          
-            <div className="flex justify-center pt-4">
-              <button
-                type="submit"
-                disabled={submitting || activeFormsOrder.length === 0}
-                className="px-12 py-3 bg-emerald-700 text-white font-bold text-lg rounded-xl shadow-lg hover:bg-emerald-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-[1.01] flex items-center"
-              >
-                <Upload className="w-6 h-6 mr-2" />
-                {submitting ? 'Submitting...' : 'Submit the Report'}
-              </button>
-            </div>
-        </form>
 
-        <footer className="mt-10 pt-6 border-t border-emerald-200 text-center text-sm text-gray-400">
-          *Note: Your lab reports and uploaded files will be securely stored and reviewed by your dietitian.
-        </footer>
-      </div>
-    </div>
-  );
+        {/* --- Dynamic Form Section Container --- */}
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+
+          {/* === NEW DYNAMIC RENDERING === */}
+          {activeFormsOrder.length > 0 ? (
+            // Render forms in the order they were clicked
+            activeFormsOrder.map(categoryId => (
+              <div
+                key={categoryId}
+                id={`form-section-${categoryId}`}
+                className="p-6 border border-emerald-200 rounded-xl bg-emerald-50/50 shadow-inner space-y-4"
+              >
+                {renderFormContent(categoryId)}
+              </div>
+            ))
+          ) : (
+            // Default message when no forms are active
+            <div className="p-6 border border-gray-300 rounded-xl bg-gray-50 text-center text-gray-500 italic">
+              Select one or more categories above to dynamically load the corresponding forms for submission.
+            </div>
+          )}
+
+          <div className="flex justify-center pt-4">
+            <button
+              type="submit"
+              disabled={submitting || activeFormsOrder.length === 0}
+              className="px-12 py-3 bg-emerald-700 text-white font-bold text-lg rounded-xl shadow-lg hover:bg-emerald-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-[1.01] flex items-center"
+            >
+              <Upload className="w-6 h-6 mr-2" />
+              {submitting ? 'Submitting...' : 'Submit the Report'}
+            </button>
+          </div>
+        </form>
+
+        <footer className="mt-10 pt-6 border-t border-emerald-200 text-center text-sm text-gray-400">
+          *Note: Your lab reports and uploaded files will be securely stored and reviewed by your dietitian.
+        </footer>
+      </div>
+    </div>
+  );
 };
 
 export default LabReportUploader;

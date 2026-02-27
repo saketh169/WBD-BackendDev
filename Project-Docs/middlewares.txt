@@ -1,0 +1,439 @@
+================================================================================
+                    MIDDLEWARE FILES DOCUMENTATION
+                    NutriConnect WBD Backend Project
+                    9 Core Middleware Files Explained
+================================================================================
+
+All middleware files are located in: WBD/backend/src/middlewares/
+
+================================================================================
+FILE 1: authMiddleware.js
+Location: WBD/backend/src/middlewares/authMiddleware.js
+Lines: 179 lines | Functions: 9
+
+PURPOSE:
+Handles all JWT authentication and role-based authorization. Verifies user
+tokens and enforces access control based on user roles (dietitian, organization,
+corporate partner, admin).
+
+KEY FUNCTIONS:
+
+authenticate JWT()
+- Verifies JWT token from Authorization header
+- Extracts Bearer token and validates with JWT_SECRET
+- Returns 401 if no token, 403 if invalid
+- Attaches user data to req.user
+
+ensureDietitianAuthenticated() / ensureOrganizationAuthenticated()
+ensureCorporatePartnerAuthenticated() / ensureAdminAuthenticated()
+- Role-specific authentication middlewares
+- Verify token and check user matches required role
+- Return 401/403 based on failure type
+
+validateDietitianObjectId() / validateOrganizationObjectId()
+validateCorporateObjectId()
+- Validate MongoDB ObjectId format for user IDs
+- Return 400 if invalid
+- Used in routes with ID parameters
+
+handleMulterError()
+- Catches multer file upload errors
+- Provides user-friendly error messages
+- Handles: file size, type, and field errors
+
+USAGE EXAMPLE:
+router.get('/profile', authenticateJWT, profileController.getProfile)
+router.post('/verify', ensureDietitianAuthenticated, verifyController.verify)
+
+================================================================================
+FILE 2: blogMiddleware.js
+Location: WBD/backend/src/middlewares/blogMiddleware.js
+Lines: 189 lines | Functions: 4
+
+PURPOSE:
+Handles authentication and authorization specifically for blog operations.
+Verifies JWT, fetches detailed user information, and enforces role-based
+access control for blog features.
+
+KEY FUNCTIONS:
+
+verifyBlogAuth()
+- Async authentication middleware
+- Extracts and verifies JWT token
+- Fetches user details from database (User, Dietitian, Organization, etc.)
+- Returns user object: { userId, userName, userRole, userEmail }
+- Used for: Create, update, delete blogs, like, comment operations
+
+optionalAuth()
+- Optional authentication (doesn't fail if no token)
+- Attempts to verify if token provided
+- Sets req.user = null if not authenticated
+- Used for: Public endpoints that benefit from user tracking
+- Example: Get all blogs (anonymous access with user tracking)
+
+canCreateBlog()
+- Authorization check for blog creation
+- Requires verifyBlogAuth first
+- Only allows 'user' and 'dietitian' roles
+- Returns 403 if wrong role
+
+isOrganization()
+- Authorization check for moderation features
+- Requires verifyBlogAuth first
+- Only allows 'organization' role
+- Used for: Viewing reported blogs, dismissing reports
+
+USAGE EXAMPLE:
+router.post('/', verifyBlogAuth, canCreateBlog, checkBlogLimit, uploadBlogImage.single(), blogController.create)
+router.get('/', optionalAuth, blogController.getAll)
+
+
+
+================================================================================
+FILE 3: cloudinaryMiddleware.js
+Location: WBD/backend/src/middlewares/cloudinaryMiddleware.js
+Lines: 105 lines | Functions: 3
+
+PURPOSE:
+Handles image uploads and cloud storage with Cloudinary. Processes images from
+clients, uploads to Cloudinary CDN, and manages cleanup when images deleted.
+
+KEY FUNCTIONS:
+
+uploadBlogImage (Multer instance)
+- File upload middleware for images
+- Storage: Memory storage (files as buffer)
+- Filter: Only image/* MIME types
+- Limit: 5MB maximum per file
+- Returns: req.file with buffer, mimetype, originalname
+- Used for: Blog creation and update image uploads
+
+uploadToCloudinary()
+- Upload image buffer to Cloudinary CDN
+- Converts buffer to stream
+- Applies transformations: resize 1200x630, auto quality, auto format
+- Stores in 'fdfed-blogs' Cloudinary folder
+- Attaches result to req.cloudinaryResult
+- Returns 500 if upload fails
+
+deleteFromCloudinary()
+- Utility function called when blog deleted
+- Removes image from Cloudinary using public_id
+- Logs errors but doesn't throw (graceful failure)
+
+USAGE EXAMPLE:
+router.post('/', verifyBlogAuth, canCreateBlog, uploadBlogImage.single('featuredImage'), uploadToCloudinary, controller.create)
+
+================================================================================
+FILE 4: errorMiddleware.js
+Location: WBD/backend/src/middlewares/errorMiddleware.js
+Lines: 150+ lines | Functions: 11
+
+PURPOSE:
+Implements comprehensive error handling. Catches errors, categorizes them, logs,
+and sends appropriate responses based on environment (dev vs production).
+
+KEY FUNCTIONS:
+
+AppError (Class)
+- Custom error class extending Error
+- Properties: message, statusCode, status, isOperational
+- Usage: throw new AppError('Invalid input', 400)
+
+handleCastErrorDB() / handleDuplicateFieldsDB()
+handleValidationErrorDB()
+- Handle MongoDB-specific errors (invalid ID, duplicates, validation fails)
+- Return formatted 400 errors
+
+handleJWTError() / handleJWTExpiredError()
+- Handle JWT token errors
+- Return 401 for invalid or expired tokens
+
+sendErrorDev() / sendErrorProd()
+- Send different error responses for development vs production
+- Dev: Full details for debugging
+- Prod: Safe responses hiding internal details
+
+errorHandler() [GLOBAL]
+- Global error handler catches all errors
+- Routes through specific handlers by type
+- Logs errors and sends response
+
+notFoundHandler() [GLOBAL]
+- Catches requests to undefined routes
+- Returns 404 "Route not found"
+- Passes to errorHandler for formatting
+
+catchAsync() [Utility]
+- Wrapper for async route handlers
+- Auto-catches promise rejections
+- Usage: catchAsync(async (req, res) => { ... })
+
+USAGE EXAMPLE:
+app.use(errorHandler) - Last middleware
+throwError = () => { throw new AppError('Not found', 404) }
+
+================================================================================
+FILE 5: loggerMiddleware.js
+Location: WBD/backend/src/middlewares/loggerMiddleware.js
+Lines: 45 lines | Functions: 2
+
+PURPOSE:
+Implements HTTP request logging and error logging using Morgan with rotating
+file streams. Prevents disk overflow through log rotation.
+
+KEY FUNCTIONS:
+
+requestLogger (Morgan instance)
+- Logs all HTTP requests to file
+- Format: Apache combined format (method, URL, status, time, bytes, etc.)
+- File: logs/request.txt (rotates daily, keeps 30 days)
+- Applied: GLOBAL app.use(requestLogger)
+- Logs: Method, path, status code, response time, user agent
+
+errorLogger() [Utility]
+- Logs application errors to file
+- File: logs/error.txt (rotates daily, keeps 30 days)
+- Called from: errorHandler middleware
+- Format: [timestamp] ERROR [method] [url] - [message]
+
+FEATURES:
+- Auto-creates logs/ directory if missing
+- Daily rotation prevents single file overflow
+- 30-day retention for historical analysis
+- Non-blocking async writes
+
+USAGE EXAMPLE:
+app.use(requestLogger) - Global
+errorLogger(err, req) - Called from error handler
+
+================================================================================
+FILE 6: securityMiddleware.js
+Location: WBD/backend/src/middlewares/securityMiddleware.js
+Lines: 70 lines | Functions: 5
+
+PURPOSE:
+Implements security measures: HTTP headers, rate limiting for DOS prevention,
+and input sanitization for XSS prevention. All applied globally.
+
+KEY FUNCTIONS:
+
+helmetMiddleware (Helmet instance)
+- Sets HTTP security headers
+- Prevents: Clickjacking, MIME sniffing, XSS, etc.
+- Headers: X-Frame-Options, X-Content-Type-Options, CSP, HSTS
+- Applied: GLOBAL app.use(helmetMiddleware) - First middleware
+
+rateLimiter (express-rate-limit instance)
+- General request rate limiting
+- Limit: 100,000 requests per IP per 15 minutes
+- Skips: /api/health endpoint
+- Returns: 429 Too Many Requests if exceeded
+- Headers: X-RateLimit-Limit, X-RateLimit-Remaining
+
+authRateLimiter (express-rate-limit instance)
+- Auth-specific rate limiting
+- Limit: 10,000 attempts per IP per 15 minutes
+- Skips: Successful login attempts
+- Purpose: Prevent brute force attacks
+
+sanitizeInput()
+- Escapes dangerous characters to prevent XSS
+- Escapes: <, >, & to &lt;, &gt;, &amp;
+- Sanitizes: req.query, req.body, req.params
+- Applied: GLOBAL app.use(sanitizeInput)
+- Order: After body parsers
+
+corsHeaders()
+- Custom CORS header setter
+- Sets: Access-Control-Allow headers
+- Handles: OPTIONS preflight requests
+- Status: Defined but not actively used
+
+SECURITY LAYERS:
+1. HTTP Headers (helmet)
+2. Rate Limiting (DOS prevention)
+3. Input Sanitization (XSS prevention)
+4. CORS Control (origin verification)
+
+USAGE EXAMPLE:
+app.use(helmetMiddleware) - First line of defense
+app.use(rateLimiter) - Prevent abuse
+
+================================================================================
+FILE 7: statusMiddleware.js
+Location: WBD/backend/src/middlewares/statusMiddleware.js
+Lines: 37 lines | Functions: 1
+
+PURPOSE:
+Verifies JWT tokens and checks user verification status. Used for routes that
+confirm if professionals (dietitian, organization, etc.) are verified in system.
+
+KEY FUNCTION:
+
+statusMiddleware()
+- Async authentication and status checker
+- Extracts JWT from Authorization header
+- Verifies token with JWT_SECRET
+- Fetches user from database by role
+- Retrieves verification status from user document
+- Attaches status to req.userStatus
+- Returns:
+  * 401 if no token
+  * 403 if invalid role
+  * 404 if user not found
+  * 500 on server error
+
+USED FOR:
+- Checking if dietitian is verified
+- Checking if organization is verified
+- Checking if corporate partner is verified
+- Before routing to protected features
+
+USAGE EXAMPLE:
+router.get('/dietitian-status', statusMiddleware, controller.getStatus)
+
+================================================================================
+FILE 8: subscriptionMiddleware.js
+Location: WBD/backend/src/middlewares/subscriptionMiddleware.js
+Lines: 542 lines | Functions: 3
+
+PURPOSE:
+Manages subscription-based access control. Defines tiers (free, basic, premium,
+ultimate) with feature limits and enforces these limits.
+
+SUBSCRIPTION TIERS:
+
+FREE:
+- Monthly bookings: 0 | Advance days: 0
+- Chatbot queries: 5/day | Blog posts: 0 | Meal plans: 0
+
+BASIC:
+- Monthly bookings: 2 | Advance days: 3
+- Chatbot queries: 20/day | Blog posts: 2 | Meal plans: 4
+
+PREMIUM:
+- Monthly bookings: 8 | Advance days: 7
+- Chatbot queries: 50/day | Blog posts: 8 | Meal plans: 15
+
+ULTIMATE:
+- Monthly bookings: unlimited | Advance days: 21
+- Chatbot queries: unlimited | Blog posts: unlimited | Meal plans: unlimited
+
+KEY FUNCTIONS:
+
+getUserSubscription(userId)
+- Retrieves active subscription from Payment model
+- Returns: { planType, limits, hasSubscription, subscription }
+- Returns 'free' if no active subscription
+- Used by other limit checkers
+
+checkBookingLimit()
+- Enforces monthly booking limits
+- Counts bookings made in current month
+- Checks advance booking day limits
+- Returns: 403 if limit exceeded (with upgrade suggestion)
+- Returns: 200 if allowed
+- Free tier: Blocks all booking attempts
+- Used for: Booking creation routes
+
+checkBlogLimit()
+- Enforces blog creation limits
+- Counts blog posts created in current month
+- Checks against tier limit
+- Returns: 403 if exceeded, 200 if allowed
+- Free tier: Blocks all blog creation
+- Used for: Blog creation routes
+
+PROGRESS PLANS BY TIER:
+- Free: General, Weight Loss, Hydration
+- Basic: + Balanced Diet, Cardio, Energy, Flexibility
+- Premium: + Muscle Gain, Stamina, Detox, Stress, Maintenance
+- Ultimate: + Diabetes, Recovery, Athletic (all plans)
+
+USAGE EXAMPLE:
+router.post('/bookings', checkBookingLimit, controller.createBooking)
+router.post('/blogs', checkBlogLimit, controller.createBlog)
+
+================================================================================
+FILE 9: uploadMiddleware.js
+Location: WBD/backend/src/middlewares/uploadMiddleware.js
+Lines: 20 lines | Functions: 1
+
+PURPOSE:
+Handles general file uploads (non-image files like PDFs, documents, reports).
+Uses multer for parsing multipart/form-data and storing files in memory.
+
+KEY FUNCTION:
+
+upload (Multer instance)
+- General file upload middleware
+- Storage: Memory storage (files as buffer)
+- Limit: 20MB per file
+- Filter: All file types allowed (validation in controller if needed)
+- Usage: router.post('/upload', upload.single('file'), ...)
+- Returns: req.file with buffer, mimetype, originalname
+
+USE CASES:
+- Lab report uploads (PDF)
+- Certificate uploads (PDF/Images)
+- ID document uploads
+- Medical prescription uploads
+- Verification file uploads
+
+DIFFERENCE FROM uploadBlogImage:
+- uploadBlogImage: 5MB, image only, blog-specific
+- upload: 20MB, all files, general purpose
+
+USAGE EXAMPLE:
+router.post('/upload', authenticateJWT, upload.single('document'), controller.upload)
+
+================================================================================
+MIDDLEWARE FILES SUMMARY
+================================================================================
+
+FILE                          | LINES | FUNCTIONS | PURPOSE
+------------------------------|-------|-----------|----------------------------------
+1. authMiddleware.js          |  179  |     9     | JWT authentication & roles
+2. blogMiddleware.js          |  189  |     4     | Blog auth & limits
+3. cloudinaryMiddleware.js    |  105  |     3     | Image upload & storage
+4. errorMiddleware.js         |  150+ |    11     | Error handling & logging
+5. loggerMiddleware.js        |   45  |     2     | Request & error logging
+6. securityMiddleware.js      |   70  |     5     | Security headers & rate limit
+7. statusMiddleware.js        |   37  |     1     | Verification status
+8. subscriptionMiddleware.js  |  542  |     3     | Subscription limits
+9. uploadMiddleware.js        |   20  |     1     | General file uploads
+
+TOTAL: 1,177+ lines | 49+ functions
+
+================================================================================
+ALL MIDDLEWARE FILES AT A GLANCE
+================================================================================
+
+AUTHENTICATION & AUTHORIZATION (Files 1-2, 7):
+Files 1-2, 7 handle who users are and what they can do
+- authMiddleware.js: General auth & roles
+- blogMiddleware.js: Blog-specific auth
+- statusMiddleware.js: Verification checks
+
+SECURITY & PROTECTION (File 6):
+File 6 protects against hackers and abuse
+- securityMiddleware.js: Headers, rate limits, sanitization
+
+UPLOAD & STORAGE (Files 3, 9):
+Files 3, 9 handle file uploads
+- cloudinaryMiddleware.js: Image uploads to cloud
+- uploadMiddleware.js: Document uploads to memory
+
+ERROR & LOGGING (Files 4-5):
+Files 4-5 track what happens in the app
+- errorMiddleware.js: Error handling
+- loggerMiddleware.js: Request & error logging
+
+BUSINESS RULES (File 8):
+File 8 controls features by subscription
+- subscriptionMiddleware.js: Feature limits per plan
+
+================================================================================
+Last Updated: February 6, 2026
+================================================================================

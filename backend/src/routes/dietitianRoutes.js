@@ -751,4 +751,128 @@ router.post('/dietitians/:id/unblock-slot', authenticateJWT, async (req, res) =>
   }
 });
 
+// Block entire day for a dietitian
+router.post('/dietitians/:id/block-day', authenticateJWT, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { date } = req.body;
+
+    if (!date) {
+      return res.status(400).json({
+        success: false,
+        message: 'Date is required'
+      });
+    }
+
+    // Check if the dietitian exists
+    const dietitian = await Dietitian.findById(id);
+    if (!dietitian) {
+      return res.status(404).json({
+        success: false,
+        message: 'Dietitian not found'
+      });
+    }
+
+    // Define all time slots
+    const allSlots = [
+      '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30',
+      '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30',
+      '17:00', '17:30', '18:00', '18:30', '19:00', '19:30', '20:00'
+    ];
+
+    // Check for existing bookings on this day
+    const dayStart = new Date(date);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(date);
+    dayEnd.setDate(dayEnd.getDate() + 1);
+
+    const existingBookings = await Booking.find({
+      dietitianId: id,
+      date: { $gte: dayStart, $lt: dayEnd },
+      status: { $in: ['confirmed', 'completed'] }
+    });
+
+    if (existingBookings.length > 0) {
+      return res.status(409).json({
+        success: false,
+        message: `Cannot block entire day. There are ${existingBookings.length} existing booking(s).`
+      });
+    }
+
+    // Block all slots that aren't already blocked
+    const blockedSlots = [];
+    for (const time of allSlots) {
+      const existingBlock = await BlockedSlot.findOne({
+        dietitianId: id,
+        date,
+        time
+      });
+
+      if (!existingBlock) {
+        const blockedSlot = new BlockedSlot({
+          dietitianId: id,
+          date,
+          time
+        });
+        await blockedSlot.save();
+        blockedSlots.push(time);
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Entire day blocked successfully. ${blockedSlots.length} slots blocked.`,
+      blockedSlots
+    });
+  } catch (error) {
+    console.error('Error blocking entire day:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error blocking entire day'
+    });
+  }
+});
+
+// Unblock entire day for a dietitian
+router.post('/dietitians/:id/unblock-day', authenticateJWT, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { date } = req.body;
+
+    if (!date) {
+      return res.status(400).json({
+        success: false,
+        message: 'Date is required'
+      });
+    }
+
+    // Check if the dietitian exists
+    const dietitian = await Dietitian.findById(id);
+    if (!dietitian) {
+      return res.status(404).json({
+        success: false,
+        message: 'Dietitian not found'
+      });
+    }
+
+    // Remove all blocked slots for this day
+    const result = await BlockedSlot.deleteMany({
+      dietitianId: id,
+      date
+    });
+
+    res.json({
+      success: true,
+      message: `Entire day unblocked successfully. ${result.deletedCount} slots unblocked.`,
+      unblockedCount: result.deletedCount
+    });
+  } catch (error) {
+    console.error('Error unblocking entire day:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error unblocking entire day'
+    });
+  }
+});
+
 module.exports = router;

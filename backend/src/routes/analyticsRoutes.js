@@ -11,7 +11,9 @@ const {
     getSubscriptions,
     getMembershipRevenue,
     getConsultationRevenue,
-    getRevenueAnalytics
+    getRevenueAnalytics,
+    getDietitianRevenue,
+    getUserRevenue
 } = require('../controllers/analyticsController');
 
 // Analytics routes
@@ -26,5 +28,7 @@ router.get('/subscriptions', getSubscriptions);
 router.get('/membership-revenue', getMembershipRevenue);
 router.get('/consultation-revenue', getConsultationRevenue);
 router.get('/revenue-analytics', getRevenueAnalytics);
+router.get('/dietitian-revenue', getDietitianRevenue);
+router.get('/user-revenue', getUserRevenue);
 
 module.exports = router;

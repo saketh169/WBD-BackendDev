@@ -410,7 +410,7 @@ const DietitianProfilesPage = ({ specializationType = "all" }) => {
               </div>
 
               {/* Results Grid */}
-              <div className="h-[1600px] overflow-y-auto">
+              <div className="h-400 overflow-y-auto">
                 <div className="space-y-6">
                   {filteredDietitians.length > 0 ? (
                     filteredDietitians.map((dietitian) => (

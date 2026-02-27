@@ -6,8 +6,99 @@ import {
   fetchConsultationRevenue,
   fetchSubscriptions,
   fetchRevenueAnalytics,
+  fetchDietitianRevenue,
+  fetchUserRevenue,
   setExpandedSubscriptionId,
 } from '../../redux/slices/analyticsSlice';
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
+
+// Pagination Component
+const Pagination = ({ currentPage, totalPages, onPageChange, theme }) => {
+    const getPageNumbers = () => {
+        const pages = [];
+        const showPages = 5;
+        let startPage = Math.max(1, currentPage - Math.floor(showPages / 2));
+        let endPage = Math.min(totalPages, startPage + showPages - 1);
+        
+        if (endPage - startPage < showPages - 1) {
+            startPage = Math.max(1, endPage - showPages + 1);
+        }
+        
+        for (let i = startPage; i <= endPage; i++) {
+            pages.push(i);
+        }
+        return pages;
+    };
+
+    return (
+        <div className="flex justify-center items-center gap-2 mt-4">
+            <button
+                onClick={() => onPageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="px-3 py-1 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{
+                    backgroundColor: currentPage === 1 ? '#E0E0E0' : theme.primary,
+                    color: currentPage === 1 ? '#999' : 'white',
+                }}
+            >
+                <i className="fas fa-chevron-left"></i>
+            </button>
+            
+            {getPageNumbers()[0] > 1 && (
+                <>
+                    <button
+                        onClick={() => onPageChange(1)}
+                        className="px-3 py-1 rounded"
+                        style={{ backgroundColor: theme.lightBg, color: theme.dark }}
+                    >
+                        1
+                    </button>
+                    {getPageNumbers()[0] > 2 && <span className="px-2">...</span>}
+                </>
+            )}
+            
+            {getPageNumbers().map(page => (
+                <button
+                    key={page}
+                    onClick={() => onPageChange(page)}
+                    className="px-3 py-1 rounded transition-colors"
+                    style={{
+                        backgroundColor: currentPage === page ? theme.primary : theme.lightBg,
+                        color: currentPage === page ? 'white' : theme.dark,
+                        fontWeight: currentPage === page ? 'bold' : 'normal',
+                    }}
+                >
+                    {page}
+                </button>
+            ))}
+            
+            {getPageNumbers()[getPageNumbers().length - 1] < totalPages && (
+                <>
+                    {getPageNumbers()[getPageNumbers().length - 1] < totalPages - 1 && <span className="px-2">...</span>}
+                    <button
+                        onClick={() => onPageChange(totalPages)}
+                        className="px-3 py-1 rounded"
+                        style={{ backgroundColor: theme.lightBg, color: theme.dark }}
+                    >
+                        {totalPages}
+                    </button>
+                </>
+            )}
+            
+            <button
+                onClick={() => onPageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{
+                    backgroundColor: currentPage === totalPages ? '#E0E0E0' : theme.primary,
+                    color: currentPage === totalPages ? '#999' : 'white',
+                }}
+            >
+                <i className="fas fa-chevron-right"></i>
+            </button>
+        </div>
+    );
+};
 
 // --- Constants ---
 const THEME = {
@@ -34,10 +125,17 @@ const Analytics = () => {
         consultationRevenue,
         subscriptions,
         revenueAnalytics,
+        dietitianRevenue,
+        userRevenue,
         expandedSubscriptionId,
         isLoading,
         error: errorMessage
     } = useSelector(state => state.analytics);
+
+    // Pagination states
+    const [dietitianPage, setDietitianPage] = useState(1);
+    const [userPage, setUserPage] = useState(1);
+    const itemsPerPage = 10;
 
     const toggleDetails = (id) => {
         dispatch(setExpandedSubscriptionId(expandedSubscriptionId === id ? null : id));
@@ -50,6 +148,8 @@ const Analytics = () => {
         dispatch(fetchConsultationRevenue());
         dispatch(fetchSubscriptions());
         dispatch(fetchRevenueAnalytics());
+        dispatch(fetchDietitianRevenue());
+        dispatch(fetchUserRevenue());
     }, [dispatch]);
 
     // State for calculated data
@@ -523,6 +623,275 @@ const Analytics = () => {
                                 </tr>
                             </tbody>
                         </table>
+                    </div>
+                </div>
+
+                {/* --- Card 6: Revenue Distribution Analytics with Tables --- */}
+                <div className="bg-white p-6 rounded-xl shadow-lg border-b-4 border-green-500 hover:shadow-2xl transition-all duration-300 mt-6">
+                    <h2 className={`text-xl font-bold text-gray-700 mb-6`}>
+                        <i className={`fas fa-chart-pie text-gray-700 mr-2`}></i> Revenue Distribution Analytics
+                    </h2>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        {/* Dietitian Revenue Section */}
+                        <div className="bg-green-50 p-6 rounded-lg">
+                            <h3 className="text-lg font-semibold text-gray-800 mb-4 text-center">
+                                Dietitian-Specific Revenue (Consultation Fees)
+                            </h3>
+                            <p className="text-sm text-gray-600 text-center mb-4">
+                                Identify top-performing dietitians generating consultation revenue
+                            </p>
+                            
+                            {dietitianRevenue.data && dietitianRevenue.data.length > 0 ? (
+                                <>
+                                    {/* Pie Chart */}
+                                    <ResponsiveContainer width="100%" height={300}>
+                                        <PieChart>
+                                            <Pie
+                                                data={(() => {
+                                                    const top10 = dietitianRevenue.data.slice(0, 10);
+                                                    const others = dietitianRevenue.data.slice(10);
+                                                    const othersTotal = others.reduce((sum, d) => sum + d.totalRevenue, 0);
+                                                    
+                                                    if (othersTotal > 0) {
+                                                        return [...top10, { dietitianName: 'Others', totalRevenue: othersTotal }];
+                                                    }
+                                                    return top10;
+                                                })()}
+                                                dataKey="totalRevenue"
+                                                nameKey="dietitianName"
+                                                cx="50%"
+                                                cy="50%"
+                                                outerRadius={80}
+                                                label={({ dietitianName, percent }) => 
+                                                    `${dietitianName}: ${(percent * 100).toFixed(1)}%`
+                                                }
+                                            >
+                                                {(() => {
+                                                    const top10 = dietitianRevenue.data.slice(0, 10);
+                                                    const others = dietitianRevenue.data.slice(10);
+                                                    const totalItems = top10.length + (others.length > 0 ? 1 : 0);
+                                                    
+                                                    return Array.from({ length: totalItems }).map((_, index) => (
+                                                        <Cell 
+                                                            key={`cell-${index}`} 
+                                                            fill={index === top10.length ? '#9CA3AF' : `hsl(${120 + index * 36}, 70%, ${50 - index * 3}%)`}
+                                                        />
+                                                    ));
+                                                })()}
+                                            </Pie>
+                                            <Tooltip 
+                                                formatter={(value) => `₹${value.toLocaleString()}`}
+                                            />
+                                            <Legend />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                    
+                                    {/* Summary Card */}
+                                    <div className="mt-4 bg-white p-4 rounded border">
+                                        <h4 className="font-semibold text-sm text-gray-700 mb-2">Summary:</h4>
+                                        <div className="space-y-1">
+                                            <div className="flex justify-between text-sm">
+                                                <span className="text-gray-700">Total Dietitians:</span>
+                                                <span className="font-medium">{dietitianRevenue.totalDietitians}</span>
+                                            </div>
+                                            <div className="flex justify-between text-sm">
+                                                <span className="text-gray-700">Total Revenue:</span>
+                                                <span className="font-medium text-green-600">₹{dietitianRevenue.totalRevenue.toLocaleString()}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Dietitian Table with Pagination */}
+                                    <div className="mt-6">
+                                        <h4 className="font-semibold text-sm text-gray-700 mb-3">All Dietitians by Revenue:</h4>
+                                        <div className="overflow-x-auto">
+                                            <table className="min-w-full divide-y divide-gray-200 shadow-md rounded-lg overflow-hidden border-collapse">
+                                                <thead style={{ backgroundColor: THEME.primary }} className="text-white">
+                                                    <tr>
+                                                        <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">Rank</th>
+                                                        <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">Dietitian Name</th>
+                                                        <th className="px-4 py-2 text-right text-xs font-medium text-white uppercase tracking-wider">Consultations</th>
+                                                        <th className="px-4 py-2 text-right text-xs font-medium text-white uppercase tracking-wider">Revenue</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="bg-white divide-y divide-gray-200">
+                                                    {dietitianRevenue.data
+                                                        .slice((dietitianPage - 1) * itemsPerPage, dietitianPage * itemsPerPage)
+                                                        .map((dietitian, index) => {
+                                                            const globalRank = (dietitianPage - 1) * itemsPerPage + index + 1;
+                                                            return (
+                                                                <tr key={index} className="hover:bg-green-50 transition-colors">
+                                                                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                                                                        {globalRank}
+                                                                    </td>
+                                                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                                                                        {dietitian.dietitianName}
+                                                                    </td>
+                                                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 text-right">
+                                                                        {dietitian.consultationCount}
+                                                                    </td>
+                                                                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-green-600 text-right">
+                                                                        ₹{dietitian.totalRevenue.toLocaleString()}
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        })}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        
+                                        <Pagination
+                                            currentPage={dietitianPage}
+                                            totalPages={Math.ceil(dietitianRevenue.data.length / itemsPerPage)}
+                                            onPageChange={setDietitianPage}
+                                            theme={THEME}
+                                        />
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="text-center py-8 text-gray-500">
+                                    <p>No dietitian revenue data available</p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* User Revenue Section */}
+                        <div className="bg-blue-50 p-6 rounded-lg">
+                            <h3 className="text-lg font-semibold text-gray-800 mb-4 text-center">
+                                User-Specific Revenue (Subscription Payments)
+                            </h3>
+                            <p className="text-sm text-gray-600 text-center mb-4">
+                                Identify high-value users bringing maximum subscription revenue
+                            </p>
+                            
+                            {userRevenue.data && userRevenue.data.length > 0 ? (
+                                <>
+                                    {/* Pie Chart */}
+                                    <ResponsiveContainer width="100%" height={300}>
+                                        <PieChart>
+                                            <Pie
+                                                data={(() => {
+                                                    const top10 = userRevenue.data.slice(0, 10);
+                                                    const others = userRevenue.data.slice(10);
+                                                    const othersTotal = others.reduce((sum, u) => sum + u.totalRevenue, 0);
+                                                    
+                                                    if (othersTotal > 0) {
+                                                        return [...top10, { userName: 'Others', totalRevenue: othersTotal }];
+                                                    }
+                                                    return top10;
+                                                })()}
+                                                dataKey="totalRevenue"
+                                                nameKey="userName"
+                                                cx="50%"
+                                                cy="50%"
+                                                outerRadius={80}
+                                                label={({ userName, percent }) => 
+                                                    `${userName}: ${(percent * 100).toFixed(1)}%`
+                                                }
+                                            >
+                                                {(() => {
+                                                    const top10 = userRevenue.data.slice(0, 10);
+                                                    const others = userRevenue.data.slice(10);
+                                                    const totalItems = top10.length + (others.length > 0 ? 1 : 0);
+                                                    
+                                                    return Array.from({ length: totalItems }).map((_, index) => (
+                                                        <Cell 
+                                                            key={`cell-${index}`} 
+                                                            fill={index === top10.length ? '#9CA3AF' : `hsl(${210 + index * 36}, 70%, ${50 - index * 3}%)`}
+                                                        />
+                                                    ));
+                                                })()}
+                                            </Pie>
+                                            <Tooltip 
+                                                formatter={(value) => `₹${value.toLocaleString()}`}
+                                            />
+                                            <Legend />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                    
+                                    {/* Summary Card */}
+                                    <div className="mt-4 bg-white p-4 rounded border">
+                                        <h4 className="font-semibold text-sm text-gray-700 mb-2">Summary:</h4>
+                                        <div className="space-y-1">
+                                            <div className="flex justify-between text-sm">
+                                                <span className="text-gray-700">Total Paying Users:</span>
+                                                <span className="font-medium">{userRevenue.totalUsers}</span>
+                                            </div>
+                                            <div className="flex justify-between text-sm">
+                                                <span className="text-gray-700">Total Revenue:</span>
+                                                <span className="font-medium text-blue-600">₹{userRevenue.totalRevenue.toLocaleString()}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* User Table with Pagination */}
+                                    <div className="mt-6">
+                                        <h4 className="font-semibold text-sm text-gray-700 mb-3">All Users by Revenue:</h4>
+                                        <div className="overflow-x-auto">
+                                            <table className="min-w-full divide-y divide-gray-200 shadow-md rounded-lg overflow-hidden border-collapse">
+                                                <thead style={{ backgroundColor: THEME.info }} className="text-white">
+                                                    <tr>
+                                                        <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">Rank</th>
+                                                        <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">User Name</th>
+                                                        <th className="px-4 py-2 text-right text-xs font-medium text-white uppercase tracking-wider">Subscriptions</th>
+                                                        <th className="px-4 py-2 text-right text-xs font-medium text-white uppercase tracking-wider">Revenue</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="bg-white divide-y divide-gray-200">
+                                                    {userRevenue.data
+                                                        .slice((userPage - 1) * itemsPerPage, userPage * itemsPerPage)
+                                                        .map((user, index) => {
+                                                            const globalRank = (userPage - 1) * itemsPerPage + index + 1;
+                                                            return (
+                                                                <tr key={index} className="hover:bg-blue-50 transition-colors">
+                                                                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                                                                        {globalRank}
+                                                                    </td>
+                                                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                                                                        {user.userName}
+                                                                    </td>
+                                                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 text-right">
+                                                                        {user.subscriptionCount}
+                                                                    </td>
+                                                                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-blue-600 text-right">
+                                                                        ₹{user.totalRevenue.toLocaleString()}
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        })}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        
+                                        <Pagination
+                                            currentPage={userPage}
+                                            totalPages={Math.ceil(userRevenue.data.length / itemsPerPage)}
+                                            onPageChange={setUserPage}
+                                            theme={THEME}
+                                        />
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="text-center py-8 text-gray-500">
+                                    <p>No user revenue data available</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Key Insights Section */}
+                    <div className="mt-6 bg-yellow-50 p-4 rounded-lg border-l-4 border-yellow-400">
+                        <h3 className="font-semibold text-gray-800 mb-2">
+                            <i className="fas fa-lightbulb text-yellow-600 mr-2"></i>
+                            Key Insights for Business Growth
+                        </h3>
+                        <ul className="space-y-1 text-sm text-gray-700">
+                            <li>• <strong>Top Dietitians:</strong> Focus on retaining and incentivizing high-performing dietitians who generate maximum consultation revenue</li>
+                            <li>• <strong>High-Value Users:</strong> Identify loyal users with multiple subscriptions for targeted premium offerings and retention strategies</li>
+                            <li>• <strong>Revenue Monitoring:</strong> Track individual performance to optimize resource allocation and marketing strategies</li>
+                            <li>• <strong>Potential Growth:</strong> Analyze patterns from top performers to replicate success across the platform</li>
+                        </ul>
                     </div>
                 </div>
 
