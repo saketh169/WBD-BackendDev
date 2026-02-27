@@ -111,7 +111,7 @@ const OrganizationTable = ({ onViewAll }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    axios.get('/api/verify/corporate', { withCredentials: true })
+    axios.get('/api/verify/organizations', { withCredentials: true })
       .then(res => setOrganizations(res.data.slice(0, 5)))
       .catch(err => console.error('Failed to fetch organizations:', err))
       .finally(() => setIsLoading(false));

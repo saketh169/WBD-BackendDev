@@ -63,8 +63,7 @@ const ContactPage = () => {
         const roleMap = {
           'user': 'User',
           'dietitian': 'Dietitian',
-          'organization': 'Certifying Organization',
-          'corporatepartner': 'Corporate Partner'
+          'organization': 'Certifying Organization'
         };
         setValue('role', roleMap[role] || '');
       }
@@ -175,7 +174,6 @@ const ContactPage = () => {
                 <option value='Certifying Organization'>
                   Certifying Organization
                 </option>
-                <option value='Corporate Partner'>Corporate Partner</option>
               </select>
               {errors.role && <p className={errorClasses}>{errors.role.message}</p>}
             </div>
@@ -334,7 +332,6 @@ const ContactPageWithAuth = () => {
     const path = location.pathname;
     if (path.startsWith('/admin')) return 'admin';
     if (path.startsWith('/organization')) return 'organization';
-    if (path.startsWith('/corporatepartner')) return 'corporatepartner';
     if (path.startsWith('/dietitian')) return 'dietitian';
     if (path.startsWith('/user')) return 'user';
     return null;

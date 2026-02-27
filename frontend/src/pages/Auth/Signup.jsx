@@ -158,10 +158,9 @@ const Signup = () => {
     const [message, setMessage] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
-    // Get role and corporateType from URL on mount
+    // Get role from URL on mount
     useEffect(() => {
         const roleFromUrl = searchParams.get('role');
-        const corporateTypeFromUrl = searchParams.get('corporateType');
 
         if (roleFromUrl) {
             setRole(roleFromUrl);

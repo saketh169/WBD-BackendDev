@@ -139,50 +139,6 @@ const Guide = () => {
       }
     },
     {
-      slug: 'corporatepartner',
-      title: 'Corporate Partner',
-      subtitle: 'Employee Wellness',
-      icon: 'fas fa-handshake',
-      description: 'Corporate wellness programs and employee health solutions',
-      features: ['Employee wellness', 'Health programs', 'Corporate benefits', 'ROI tracking'],
-      guide: {
-        title: 'Corporate Wellness Solutions',
-        subtitle: 'Invest in employee health and boost organizational productivity',
-        steps: [
-          {
-            step: 1,
-            title: 'Company Partnership',
-            description: 'Register your company as a corporate wellness partner.',
-            details: ['Company information', 'Business details', 'Contact persons', 'Partnership goals']
-          },
-          {
-            step: 2,
-            title: 'Business Verification',
-            description: 'Complete business verification and legal documentation.',
-            details: ['Business licenses', 'Tax certificates', 'Incorporation docs', 'Authorized signatures']
-          },
-          {
-            step: 3,
-            title: 'Partnership Activation',
-            description: 'Get approved and access corporate wellness features.',
-            details: ['Verification process', 'Partnership approval', 'Feature access', 'Account setup']
-          },
-          {
-            step: 4,
-            title: 'Program Design',
-            description: 'Create customized wellness programs for your employees.',
-            details: ['Program structure', 'Service packages', 'Budget allocation', 'Timeline planning']
-          },
-          {
-            step: 5,
-            title: 'Employee Engagement',
-            description: 'Launch programs and track employee participation and results.',
-            details: ['Employee enrollment', 'Program monitoring', 'Health metrics', 'ROI analysis']
-          }
-        ]
-      }
-    },
-    {
       slug: 'admin',
       title: 'Admin',
       subtitle: 'Platform Manager',

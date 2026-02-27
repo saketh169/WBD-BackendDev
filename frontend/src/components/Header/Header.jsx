@@ -284,7 +284,7 @@ const Header = () => {
         </div>
       </header>
 
-      {/* Show floating Contact Us button only for user, dietitian, and corporate partner pages */}
+      {/* Show floating Contact Us button only for user and dietitian pages */}
       {(currentPath.startsWith('/user') || currentPath.startsWith('/dietitian')) && (
         <FloatingContactButton
           handleScrollToTop={handleScrollToTop}

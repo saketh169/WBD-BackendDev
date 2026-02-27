@@ -34,7 +34,7 @@ const checkGlobalConflict = async (field, value, errorMessage) => {
 
 exports.signupController = async (req, res) => {
     const role = req.params.role;
-    const { email, password, licenseNumber, corporateType, ...profileData } = req.body;
+    const { email, password, licenseNumber, ...profileData } = req.body;
 
     const ProfileModel = PROFILE_MODELS[role];
     if (!ProfileModel) {

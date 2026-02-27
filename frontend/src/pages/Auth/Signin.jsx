@@ -106,8 +106,9 @@ const Signin = () => {
     const [role, setRole] = useState('');
     const [message, setMessage] = useState('');
 
-    // Get role and corporateType from URL on mount
+    // Get role from URL on mount
     useEffect(() => {
+        const roleFromUrl = searchParams.get('role') || 'user';
         setRole(roleFromUrl);
     }, [searchParams]);
 
@@ -209,14 +210,16 @@ const Signin = () => {
         );
 
         // --- Dynamic Fields ---
-        const roleFields = [];
-        if (role === 'dietitian') {
-            roleFields.push(renderInputGroup('text', 'License Number', 'e.g., DLN123456', getFieldIdAndName('licenseNumber')));
-        } else if (role === 'organization') {
-            roleFields.push(renderInputGroup('text', 'License Number', 'Enter your License Number', getFieldIdAndName('licenseNumber')));
-        } else if (role === 'admin') {
-            roleFields.push(renderInputGroup('password', 'Admin Key', 'Enter Admin Key', getFieldIdAndName('adminKey')));
-        }
+        const renderRoleFields = () => {
+            if (role === 'dietitian') {
+                return <div key="roleField">{renderInputGroup('text', 'License Number', 'e.g., DLN123456', getFieldIdAndName('licenseNumber'))}</div>;
+            } else if (role === 'organization') {
+                return <div key="roleField">{renderInputGroup('text', 'License Number', 'Enter your License Number', getFieldIdAndName('licenseNumber'))}</div>;
+            } else if (role === 'admin') {
+                return <div key="roleField">{renderInputGroup('password', 'Admin Key', 'Enter Admin Key', getFieldIdAndName('adminKey'))}</div>;
+            }
+            return null;
+        };
 
         return (
             <>
@@ -227,7 +230,7 @@ const Signin = () => {
                 {renderInputGroup('password', 'Password', 'Enter your password', getFieldIdAndName('password'))}
 
                 {/* Role-Specific Field(s) */}
-                {roleFields}
+                {renderRoleFields()}
                 <div className="flex items-center justify-between">
                     <RememberMe />
                     <Link to={`/forgot-password?role=${role}`} className="text-sm font-medium text-[#1E6F5C] hover:text-[#155345]">

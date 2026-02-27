@@ -151,8 +151,8 @@ const AdminManagement = () => {
         error,
     } = useSelector((state) => state.admin);
 
-    const activeRolesList = useMemo(() => ['user', 'dietitian', 'organization', 'corporatepartner'], []);
-    const removedRolesList = useMemo(() => ['user', 'dietitian', 'organization', 'corporatepartner'], []);
+    const activeRolesList = useMemo(() => ['user', 'dietitian', 'organization'], []);
+    const removedRolesList = useMemo(() => ['user', 'dietitian', 'organization'], []);
 
     // --- Data Fetching Logic ---
 
@@ -162,7 +162,6 @@ const AdminManagement = () => {
             dispatch(fetchUsersByRole('user')),
             dispatch(fetchUsersByRole('dietitian')),
             dispatch(fetchUsersByRole('organization')),
-            dispatch(fetchUsersByRole('corporatepartner')),
         ]);
     }, [dispatch]);
 
@@ -236,8 +235,7 @@ const AdminManagement = () => {
             dispatch(searchUsersByRole({ role: 'user', query: searchTerm })),
             dispatch(searchUsersByRole({ role: 'dietitian', query: searchTerm })),
             dispatch(searchUsersByRole({ role: 'organization', query: searchTerm })),
-            dispatch(searchUsersByRole({ role: 'corporatepartner', query: searchTerm })),
-        ]);
+        ]);;
     };
 
     // Handle search for removed accounts
@@ -259,8 +257,8 @@ const AdminManagement = () => {
                 {type === 'user' && <><p><strong>DOB:</strong> {user.dob ? user.dob.split('T')[0] : 'N/A'}</p><p><strong>Gender:</strong> {user.gender || 'N/A'}</p></>}
                 {type !== 'user' && <><p><strong>Age:</strong> {user.age || 'N/A'}</p></>}
                 {type === 'dietitian' && <p><strong>License:</strong> {user.licenseNumber}</p>}
-                {(type === 'organization' || type === 'corporatepartner') && <p><strong>License:</strong> {user.licenseNumber}</p>}
-                {(type === 'organization' || type === 'corporatepartner') && <p><strong>Address:</strong> {user.address || 'N/A'}</p>}
+                {(type === 'organization') && <p><strong>License:</strong> {user.licenseNumber}</p>}
+                {(type === 'organization') && <p><strong>Address:</strong> {user.address || 'N/A'}</p>}
             </div>
         );
 
@@ -353,8 +351,8 @@ const AdminManagement = () => {
                     {type === 'user' && originalData.gender && <p><strong>Gender:</strong> {originalData.gender || 'N/A'}</p>}
                     {type !== 'user' && originalData.age && <p><strong>Age:</strong> {originalData.age || 'N/A'}</p>}
                     {type === 'dietitian' && originalData.licenseNumber && <p><strong>License:</strong> {originalData.licenseNumber}</p>}
-                    {(type === 'organization' || type === 'corporatepartner') && originalData.licenseNumber && <p><strong>License:</strong> {originalData.licenseNumber}</p>}
-                    {(type === 'organization' || type === 'corporatepartner') && originalData.address && <p><strong>Address:</strong> {originalData.address || 'N/A'}</p>}
+                    {(type === 'organization') && originalData.licenseNumber && <p><strong>License:</strong> {originalData.licenseNumber}</p>}
+                    {(type === 'organization') && originalData.address && <p><strong>Address:</strong> {originalData.address || 'N/A'}</p>}
                     <p><strong>Removed On:</strong> {account.removedOn}</p>
                     <p><strong>Account Type:</strong> {account.accountType}</p>
                     {account.removalReason && (
