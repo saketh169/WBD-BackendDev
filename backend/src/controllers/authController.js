@@ -1,47 +1,46 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 // Mongoose Models
-const { UserAuth, User, Admin, Dietitian, Organization, CorporatePartner } = require('../models/userModel'); 
+const { UserAuth, User, Admin, Dietitian, Organization } = require('../models/userModel');
 
 // Load environment variables
-require('dotenv').config(); 
+require('dotenv').config();
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-for-development';
-const ADMIN_SIGNIN_KEY = process.env.ADMIN_SIGNIN_KEY || 'Nutri@2025'; 
+const ADMIN_SIGNIN_KEY = process.env.ADMIN_SIGNIN_KEY || 'Nutri@2025';
 
 const PROFILE_MODELS = {
     user: User,
     admin: Admin,
     dietitian: Dietitian,
     organization: Organization,
-    corporatepartner: CorporatePartner,
 };
 
 const checkGlobalConflict = async (field, value, errorMessage) => {
-    const models = [User, Admin, Dietitian, Organization, CorporatePartner];
-    
+    const models = [User, Admin, Dietitian, Organization];
+
     if (!value) return null;
 
     for (const Model of models) {
         const query = {};
         query[field] = value;
-        
-        const existing = await Model.findOne(query).lean(); 
+
+        const existing = await Model.findOne(query).lean();
         if (existing) {
             return { message: errorMessage };
         }
     }
-    return null; 
+    return null;
 };
 
 exports.signupController = async (req, res) => {
-    const role = req.params.role; 
-    const { email, password, licenseNumber, corporateType, ...profileData } = req.body; 
-    
+    const role = req.params.role;
+    const { email, password, licenseNumber, corporateType, ...profileData } = req.body;
+
     const ProfileModel = PROFILE_MODELS[role];
     if (!ProfileModel) {
         return res.status(400).json({ message: 'Invalid signup role specified.' });
     }
-    
+
     if (!email || !password) {
         return res.status(400).json({ message: 'Email and password are required.' });
     }
@@ -50,18 +49,18 @@ exports.signupController = async (req, res) => {
     }
 
     try {
-        const { name, phone } = profileData; 
+        const { name, phone } = profileData;
 
         // 1. Check Name (Global Conflict)
         if (name) {
-            const nameConflict = await checkGlobalConflict('name', name, 
+            const nameConflict = await checkGlobalConflict('name', name,
                 `The Name "${name}" is already in use by another profile.`);
             if (nameConflict) return res.status(409).json(nameConflict);
         }
-        
+
         // 2. Check Phone Number (Global Conflict)
         if (phone) {
-            const phoneConflict = await checkGlobalConflict('phone', phone, 
+            const phoneConflict = await checkGlobalConflict('phone', phone,
                 `The Phone Number "${phone}" is already registered globally.`);
             if (phoneConflict) return res.status(409).json(phoneConflict);
         }
@@ -71,25 +70,19 @@ exports.signupController = async (req, res) => {
         if (existingUser) {
             return res.status(409).json({ message: 'Email address is already registered.' });
         }
-    
+
         // 4. Check License Number (Required Field Check)
-        const rolesWithLicense = ['dietitian', 'organization', 'corporatepartner'];
+        const rolesWithLicense = ['dietitian', 'organization'];
         if (rolesWithLicense.includes(role) && !licenseNumber) {
-             return res.status(400).json({ message: 'License Number is required for this role.' });
+            return res.status(400).json({ message: 'License Number is required for this role.' });
         }
-        
-        // 5. Handle Corporate Employee Type
-        if (corporateType === 'employee') {
-            profileData.corporateType = 'employee';
-            profileData.isCorporateEmployee = true;
-        }
-        
+
         // 6. HASH PASSWORD AND SAVE
         const hashedPassword = await bcrypt.hash(password, 12);
 
         // Save the Role-Specific Profile with email
-        const profile = new ProfileModel({ ...profileData, email, licenseNumber }); 
-        await profile.save(); 
+        const profile = new ProfileModel({ ...profileData, email, licenseNumber });
+        await profile.save();
 
         // Create Central Authentication Record 
         const authUser = new UserAuth({
@@ -108,8 +101,8 @@ exports.signupController = async (req, res) => {
         );
 
         const registeredName = profile.name || 'New Member';
-        
-        return res.status(201).json({ 
+
+        return res.status(201).json({
             message: 'Registration successful! Proceed to the next step.',
             name: registeredName,
             token,
@@ -119,9 +112,9 @@ exports.signupController = async (req, res) => {
 
     } catch (error) {
         console.error(`Error during ${role} signup:`, error);
-        
+
         // 7. ERROR HANDLING
-        
+
         // Mongoose Validation Error
         if (error.name === 'ValidationError') {
             const errors = {};
@@ -130,17 +123,17 @@ exports.signupController = async (req, res) => {
             }
             return res.status(400).json({ message: 'Validation failed.', errors });
         }
-        
+
         // MongoDB Unique Index Errors (Code 11000)
         if (error.code === 11000) {
             let uniqueField = 'A role-specific unique field';
             const match = error.message.match(/index: (.*) dup key/);
             const indexName = match ? match[1] : '';
-            
+
             if (indexName.includes('name')) uniqueField = 'Name';
             else if (indexName.includes('email')) uniqueField = 'Email';
             else if (indexName.includes('licenseNumber')) uniqueField = 'License Number';
-            
+
             return res.status(409).json({ message: `${uniqueField} is already registered.` });
         }
 
@@ -149,8 +142,8 @@ exports.signupController = async (req, res) => {
 };
 
 exports.signinController = async (req, res) => {
-    const role = req.params.role; 
-    const { email, password, licenseNumber, adminKey, rememberMe } = req.body; 
+    const role = req.params.role;
+    const { email, password, licenseNumber, adminKey, rememberMe } = req.body;
 
     if (!email || !password) {
         return res.status(400).json({ message: 'Email and password are required.' });
@@ -181,8 +174,7 @@ exports.signinController = async (req, res) => {
             // Role-specific validation for signin
             switch (role) {
                 case 'dietitian':
-                case 'organization': 
-                case 'corporatepartner': 
+                case 'organization':
                     if (!licenseNumber || profile.licenseNumber !== licenseNumber) {
                         return res.status(401).json({ message: `Invalid ${role} License Number.` });
                     }
@@ -197,20 +189,20 @@ exports.signinController = async (req, res) => {
         }
 
         // 4. Generate JWT
-        const expiresIn = rememberMe ? '7d' : '1d'; 
-        
+        const expiresIn = rememberMe ? '7d' : '1d';
+
         const token = jwt.sign(
             { userId: authUser._id, role: authUser.role, roleId: authUser.roleId },
             JWT_SECRET,
-            { expiresIn } 
+            { expiresIn }
         );
 
         // 5. Respond with token and success
-        return res.status(200).json({ 
+        return res.status(200).json({
             message: 'Login successful!',
             token,
             role: authUser.role,
-            expiresIn 
+            expiresIn
         });
 
     } catch (error) {
@@ -225,23 +217,23 @@ exports.docUploadController = async (req, res) => {
         const userId = req.user?.roleId || req.body.userId; // From token or request
 
         if (!role || !userId) {
-            return res.status(400).json({ 
-                message: 'Role and User ID are required.' 
+            return res.status(400).json({
+                message: 'Role and User ID are required.'
             });
         }
 
         const ProfileModel = PROFILE_MODELS[role];
         if (!ProfileModel) {
-            return res.status(400).json({ 
-                message: 'Invalid role specified.' 
+            return res.status(400).json({
+                message: 'Invalid role specified.'
             });
         }
 
         // Find the user profile
         const userProfile = await ProfileModel.findById(userId);
         if (!userProfile) {
-            return res.status(404).json({ 
-                message: 'User profile not found.' 
+            return res.status(404).json({
+                message: 'User profile not found.'
             });
         }
 
@@ -249,11 +241,11 @@ exports.docUploadController = async (req, res) => {
         const documents = {};
         const filesUpdate = {};
         const verificationStatusUpdate = {};
-        
+
         if (req.files && req.files.length > 0) {
             req.files.forEach(file => {
                 const fieldName = file.fieldname;
-                
+
                 // For dietitian role, store files directly in the files object (Buffer)
                 if (role === 'dietitian') {
                     filesUpdate[fieldName] = file.buffer;
@@ -280,12 +272,12 @@ exports.docUploadController = async (req, res) => {
                 Object.keys(filesUpdate).forEach(key => {
                     userProfile.files[key] = filesUpdate[key];
                 });
-                
+
                 userProfile.verificationStatus = userProfile.verificationStatus || {};
                 Object.keys(verificationStatusUpdate).forEach(key => {
                     userProfile.verificationStatus[key] = verificationStatusUpdate[key];
                 });
-                
+
                 // Set final report status to "Not Received" when new docs are uploaded
                 userProfile.verificationStatus.finalReport = 'Not Received';
             }
@@ -295,14 +287,14 @@ exports.docUploadController = async (req, res) => {
                 ...userProfile.documents,
                 ...documents
             };
-            
+
             // Set verification status to 'Pending' for uploaded documents
             userProfile.verificationStatus = userProfile.verificationStatus || {};
             Object.keys(documents).forEach(field => {
                 userProfile.verificationStatus[field] = 'Pending';
             });
         }
-        
+
         userProfile.documentUploadStatus = 'pending';
         userProfile.lastDocumentUpdate = new Date();
 
@@ -321,8 +313,8 @@ exports.docUploadController = async (req, res) => {
 
     } catch (error) {
         console.error('Document Upload Error:', error);
-        res.status(500).json({ 
-            message: 'Error uploading documents. Please try again.' 
+        res.status(500).json({
+            message: 'Error uploading documents. Please try again.'
         });
     }
 };
@@ -332,7 +324,7 @@ exports.verifyTokenController = async (req, res) => {
     try {
         const token = req.headers['authorization']?.split(' ')[1];
         if (!token) return res.status(401).json({ message: 'No token' });
-        
+
         const decoded = jwt.verify(token, JWT_SECRET);
         res.status(200).json({ message: 'Valid', userId: decoded.userId, role: decoded.role });
     } catch (error) {
@@ -389,14 +381,14 @@ exports.changePasswordController = async (req, res) => {
         authUser.passwordHash = hashedPassword;
         await authUser.save();
 
-        return res.status(200).json({ 
+        return res.status(200).json({
             message: 'Password changed successfully!',
-            success: true 
+            success: true
         });
 
     } catch (error) {
         console.error('Error during password change:', error);
-        
+
         if (error.name === 'JsonWebTokenError') {
             return res.status(401).json({ message: 'Invalid token.' });
         }

@@ -5,7 +5,6 @@ import { ProfileProvider } from './contexts/ProfileContext';
 import UserLayout from './Routes/UserRoutes.jsx';
 import AdminLayout from './Routes/AdminRoutes.jsx';
 import OrganizationLayout from './Routes/OrganizationRoutes.jsx';
-import CorporateLayout from './Routes/CorporateRoutes.jsx';
 import DietitianLayout from './Routes/DietitianRoutes.jsx';
 import NotFoundPage from './pages/Error/NotFoundPage.jsx';
 
@@ -20,30 +19,25 @@ export default function Layout() {
                 <UserLayout />
               </ProtectedProvider>
             } />
-          <Route path="/admin/*" element={
-            <ProtectedProvider requiredRole="admin">
-              <AdminLayout />
-            </ProtectedProvider>
-          } />
-          <Route path="/organization/*" element={
-            <ProtectedProvider requiredRole="organization">
-              <OrganizationLayout />
-            </ProtectedProvider>
-          } />
-          <Route path="/corporatepartner/*" element={
-            <ProtectedProvider requiredRole="corporatepartner">
-              <CorporateLayout />
-            </ProtectedProvider>
-          } />
-          <Route path="/dietitian/*" element={
-            <ProtectedProvider requiredRole="dietitian">
-              <DietitianLayout />
-            </ProtectedProvider>
-          } />
-          <Route path="*" element={<NotFoundPage />} />
-        </Routes>
-      </main>
-    </div>
+            <Route path="/admin/*" element={
+              <ProtectedProvider requiredRole="admin">
+                <AdminLayout />
+              </ProtectedProvider>
+            } />
+            <Route path="/organization/*" element={
+              <ProtectedProvider requiredRole="organization">
+                <OrganizationLayout />
+              </ProtectedProvider>
+            } />
+            <Route path="/dietitian/*" element={
+              <ProtectedProvider requiredRole="dietitian">
+                <DietitianLayout />
+              </ProtectedProvider>
+            } />
+            <Route path="*" element={<NotFoundPage />} />
+          </Routes>
+        </main>
+      </div>
     </ProfileProvider>
   );
 }

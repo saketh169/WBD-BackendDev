@@ -28,17 +28,8 @@ const Footer = () => {
     if (currentPath.startsWith('/organization')) {
       return [
         { name: 'Dietitian Verification', href: '/organization/verify-dietitian' },
-        { name: 'Corporate Verification', href: '/organization/verify-corporate' },
         { name: 'Blog Moderation', href: '/organization/blog-moderation' },
         { name: 'Content Management', href: '/organization/blogs' },
-      ];
-    }
-    if (currentPath.startsWith('/corporatepartner')) {
-      return [
-        { name: 'Corporate Plans', href: '/corporatepartner/plans-offers' },
-        { name: 'Membership Renewal', href: '/corporatepartner/renewal' },
-        { name: 'Booking Management', href: '/corporatepartner/bookings' },
-        { name: 'Employee Wellness', href: '/corporatepartner/employee-wellness' },
       ];
     }
     if (currentPath.startsWith('/dietitian')) {
@@ -77,9 +68,9 @@ const Footer = () => {
     <footer className="bg-[#1E6F5C] text-white pt-16 font-poppins">
       {/* Font Awesome CDN (Can be moved to index.html for better practice) */}
       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-      
+
       <div className={`max-w-6xl mx-auto grid grid-cols-1 ${isUserPage ? 'md:grid-cols-4' : 'md:grid-cols-3'} gap-10 px-5 border-b border-white/20 pb-12 place-items-start`}>
-        
+
         {/* Column 1: Contact Us (STATIC) */}
         <div className="flex flex-col items-start w-full">
           <h3 className="text-xl font-semibold mb-4 relative pb-2.5 after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-12 after:h-0.5 after:bg-[#28B463]">

@@ -35,23 +35,14 @@ const NavHeader = ({ renderActionButtons, handleScrollToTop }) => {
     { name: 'Schedule', href: '/dietitian/schedule' },
     { name: 'MealPlans', href: '/dietitian/add-plans' },
     { name: 'Blog', href: '/dietitian/blog' },
-  
-  ];
-
-  
-  const corporatePartnerNavLinks = [ 
-    { name: 'Home', href: '/corporatepartner/home' },
-    { name: 'Plans/Offers', href: '/corporatepartner/plans-offers' },
-    { name: 'Analytics', href: '/corporatepartner/analytics' },
-    { name: 'Renewal', href: '/corporatepartner/renewal' },
-    { name: 'Bookings', href: '/corporatepartner/bookings' },
 
   ];
 
-   const organizationNavLinks = [ 
+
+
+  const organizationNavLinks = [
     { name: 'Home', href: '/organization/home' },
     { name: 'Verify Dietitians', href: '/organization/verify-dietitian' },
-    { name: 'Verify Corps', href: '/organization/verify-corporate' },
     { name: 'Blog Moderation', href: '/organization/blog-moderation' },
     { name: 'Blogs', href: '/organization/blogs' },
   ];
@@ -62,24 +53,22 @@ const NavHeader = ({ renderActionButtons, handleScrollToTop }) => {
     { name: 'Users', href: '/admin/users' },
     { name: 'Queries', href: '/admin/queries' },
     { name: 'Settings', href: '/admin/settings' },
-   
+
   ];
 
- 
+
   // --- Function to Select Links based on Path ---
   const getNavLinks = () => {
     // If on dashboard routes, return empty array (no nav links needed)
-    if (currentPath.startsWith('/admin/profile') || 
-        currentPath.startsWith('/organization/profile') || 
-        currentPath.startsWith('/corporatepartner/profile') || 
-        currentPath.startsWith('/dietitian/profile') || 
-        currentPath.startsWith('/user/profile')) {
+    if (currentPath.startsWith('/admin/profile') ||
+      currentPath.startsWith('/organization/profile') ||
+      currentPath.startsWith('/dietitian/profile') ||
+      currentPath.startsWith('/user/profile')) {
       return [];  // No nav links on dashboards
     }
 
     if (currentPath.startsWith('/admin')) return adminNavLinks;
     if (currentPath.startsWith('/organization')) return organizationNavLinks;
-    if (currentPath.startsWith('/corporatepartner')) return corporatePartnerNavLinks;
     if (currentPath.startsWith('/dietitian')) return dietitianNavLinks;
     if (currentPath.startsWith('/user')) return userNavLinks;
     return baseNavLinks;
@@ -99,8 +88,7 @@ const NavHeader = ({ renderActionButtons, handleScrollToTop }) => {
                 end
                 onClick={handleScrollToTop}
                 className={({ isActive }) =>
-                  `font-poppins text-base lg:text-lg font-medium text-[#2C3E50] transition-colors duration-300 hover:text-[#28B463] hover:underline hover:underline-offset-4 ${
-                    isActive ? 'text-[#1E6F5C] underline underline-offset-4' : ''
+                  `font-poppins text-base lg:text-lg font-medium text-[#2C3E50] transition-colors duration-300 hover:text-[#28B463] hover:underline hover:underline-offset-4 ${isActive ? 'text-[#1E6F5C] underline underline-offset-4' : ''
                   }`
                 }
               >
@@ -114,9 +102,9 @@ const NavHeader = ({ renderActionButtons, handleScrollToTop }) => {
         {/* Adjusted the ml value to fix the overlap issue previously caused by mr-[-100px] */}
         {/* We now only render action buttons if the current links aren't already providing Profile/Logout */}
         {!navLinks.some(link => link.name === 'Logout') && (
-            <div className="flex items-center space-x-3 ml-12">
-              {renderActionButtons()}
-            </div>
+          <div className="flex items-center space-x-3 ml-12">
+            {renderActionButtons()}
+          </div>
         )}
       </div>
 
@@ -143,8 +131,7 @@ const NavHeader = ({ renderActionButtons, handleScrollToTop }) => {
                     handleScrollToTop();
                   }}
                   className={({ isActive }) =>
-                    `font-poppins text-lg font-medium text-[#2C3E50] transition-colors duration-300 hover:text-[#28B463] ${
-                      isActive ? 'text-[#1E6F5C]' : ''
+                    `font-poppins text-lg font-medium text-[#2C3E50] transition-colors duration-300 hover:text-[#28B463] ${isActive ? 'text-[#1E6F5C]' : ''
                     }`
                   }
                 >
@@ -157,7 +144,7 @@ const NavHeader = ({ renderActionButtons, handleScrollToTop }) => {
           <div className="flex flex-row items-center justify-center space-x-3 px-8">
             {/* Render action buttons for mobile if not already included in role nav (i.e., not Admin/Org/Corp) */}
             {!navLinks.some(link => link.name === 'Logout') && (
-                renderActionButtons(true)
+              renderActionButtons(true)
             )}
           </div>
         </div>

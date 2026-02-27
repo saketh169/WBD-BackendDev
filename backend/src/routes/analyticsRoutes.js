@@ -6,7 +6,6 @@ const {
     getDietitiansList,
     getVerifyingOrganizations,
     getAllOrganizations,
-    getAllCorporatePartners,
     getActiveDietPlans,
     getSubscriptions,
     getMembershipRevenue,
@@ -22,7 +21,6 @@ router.get('/user-growth', getUserGrowth);
 router.get('/dietitian-list', getDietitiansList);
 router.get('/verifying-organizations', getVerifyingOrganizations);
 router.get('/organizations-list', getAllOrganizations);
-router.get('/corporate-partners-list', getAllCorporatePartners);
 router.get('/active-diet-plans', getActiveDietPlans);
 router.get('/subscriptions', getSubscriptions);
 router.get('/membership-revenue', getMembershipRevenue);

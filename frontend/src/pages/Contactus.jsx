@@ -108,13 +108,12 @@ const ContactPage = () => {
   };
 
   // Helper for input classes with error styling
-  const getInputClasses = (fieldName) => 
-    `w-full p-3 rounded-lg border transition-all ${
-      errors[fieldName]
-        ? 'border-red-500 focus:ring-red-500'
-        : 'border-gray-300 focus:ring-2 focus:ring-[#28B463] focus:border-transparent'
+  const getInputClasses = (fieldName) =>
+    `w-full p-3 rounded-lg border transition-all ${errors[fieldName]
+      ? 'border-red-500 focus:ring-red-500'
+      : 'border-gray-300 focus:ring-2 focus:ring-[#28B463] focus:border-transparent'
     }`;
-    
+
   const errorClasses = 'text-red-500 text-sm mt-1';
 
   return (
@@ -141,12 +140,12 @@ const ContactPage = () => {
                 name='name'
                 placeholder='Full Name'
                 // RHF registration
-                {...register('name')} 
+                {...register('name')}
                 className={getInputClasses('name')}
               />
               {errors.name && <p className={errorClasses}>{errors.name.message}</p>}
             </div>
-            
+
             <div>
               <input
                 type='email'
@@ -158,16 +157,15 @@ const ContactPage = () => {
               />
               {errors.email && <p className={errorClasses}>{errors.email.message}</p>}
             </div>
-            
+
             <div>
               <select
                 name='role'
                 // RHF registration
                 {...register('role')}
                 // Adjust text color dynamically based on RHF error
-                className={`${getInputClasses('role')} ${
-                  errors.role ? 'text-gray-900' : 'text-gray-500'
-                }`}
+                className={`${getInputClasses('role')} ${errors.role ? 'text-gray-900' : 'text-gray-500'
+                  }`}
               >
                 <option value='' disabled>
                   Select Your Role
@@ -181,7 +179,7 @@ const ContactPage = () => {
               </select>
               {errors.role && <p className={errorClasses}>{errors.role.message}</p>}
             </div>
-            
+
             <div>
               <textarea
                 name='query'
@@ -193,7 +191,7 @@ const ContactPage = () => {
               ></textarea>
               {errors.query && <p className={errorClasses}>{errors.query.message}</p>}
             </div>
-            
+
             <button
               type='submit'
               disabled={isSubmitting}
@@ -236,7 +234,7 @@ const ContactPage = () => {
               <div className='flex items-center'>
                 <i className='fas fa-map-marker-alt mr-3 text-[#28B463] text-2xl'></i>
                 <span className='text-lg'>
-                  45 Wellness Avenue, Greenfield, CA 93927
+                  IIIT SriCity, Chittor, 517346
                 </span>
               </div>
             </div>
@@ -330,7 +328,7 @@ const ContactPage = () => {
 // Wrap the component with AuthProvider
 const ContactPageWithAuth = () => {
   const location = useLocation();
-  
+
   // Determine current role from path
   const getCurrentRole = () => {
     const path = location.pathname;

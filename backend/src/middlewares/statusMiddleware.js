@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const { Dietitian, Organization, CorporatePartner } = require('../models/userModel');
+const { Dietitian, Organization } = require('../models/userModel');
 
 require('dotenv').config();
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-for-development';
@@ -18,7 +18,6 @@ const statusMiddleware = async (req, res, next) => {
         let userModel;
         if (decoded.role === 'dietitian') userModel = Dietitian;
         else if (decoded.role === 'organization') userModel = Organization;
-        else if (decoded.role === 'corporatepartner') userModel = CorporatePartner;
         else return res.status(403).json({ message: 'Invalid role' });
 
         const user = await userModel.findById(decoded.roleId).select('verificationStatus');

@@ -1,4 +1,4 @@
-const { User, Dietitian, Organization, CorporatePartner } = require('../models/userModel');
+const { User, Dietitian, Organization } = require('../models/userModel');
 const Booking = require('../models/bookingModel');
 const MealPlan = require('../models/mealPlanModel');
 const Payment = require('../models/paymentModel');
@@ -87,15 +87,6 @@ exports.getAllOrganizations = async (req, res) => {
     }
 };
 
-// Get all corporate partners
-exports.getAllCorporatePartners = async (req, res) => {
-    try {
-        const corporatePartners = await CorporatePartner.find({}, 'name email phone');
-        res.json({ data: corporatePartners });
-    } catch (error) {
-        res.status(500).json({ message: 'Error fetching corporate partners', error: error.message });
-    }
-};
 
 // Get active diet plans
 exports.getActiveDietPlans = async (req, res) => {
@@ -206,7 +197,7 @@ exports.getConsultationRevenue = async (req, res) => {
 
         const now = new Date();
         now.setHours(0, 0, 0, 0);
-        
+
         // Calculate revenue for last 7 days
         const dailyPeriods = [];
         for (let i = 0; i < 7; i++) {
@@ -249,9 +240,9 @@ exports.getConsultationRevenue = async (req, res) => {
             });
         }
 
-        // Calculate yearly revenue for last 3 years
+        // Calculate yearly revenue for last 4 years
         const yearlyPeriods = [];
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < 4; i++) {
             const year = now.getFullYear() - i;
             const yearStart = new Date(year, 0, 1);
             const yearEnd = new Date(year + 1, 0, 1);

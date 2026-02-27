@@ -2,46 +2,47 @@ import React, { useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import {
-  fetchUsersByRole,
-  searchUsersByRole,
-  fetchRemovedAccounts,
-  removeUser,
-  restoreAccount,
-  setActiveRole,
-  setRemovedRole,
-  setSearchTerm,
-  setRemovedSearchTerm,
-  setExpandedDetails,
-  setConfirmAction,
-  clearConfirmAction,
+    fetchUsersByRole,
+    searchUsersByRole,
+    fetchRemovedAccounts,
+    removeUser,
+    restoreAccount,
+    setActiveRole,
+    setRemovedRole,
+    setSearchTerm,
+    setRemovedSearchTerm,
+    setExpandedDetails,
+    setConfirmAction,
+    setRemoveReason,
+    clearConfirmAction,
 } from '../../redux/slices/adminSlice';
 
 // --- Global Constants ---
 // Theme colors matching NutriConnect design
 const THEME = {
-  primary: '#1E6F5C',      // Dark Green (primary)
-  secondary: '#28B463',    // Medium Green (accent)
-  light: '#E8F5E9',        // Light Green background
-  lightBg: '#F0F9F7',      // Very light green
-  success: '#27AE60',      // Success green
-  danger: '#DC3545',       // Red for delete/remove
-  warning: '#FFC107',      // Yellow for warning
-  info: '#17A2B8',         // Blue for info
-  dark: '#2C3E50',         // Dark gray
-  lightGray: '#F8F9FA',    // Light gray background
-  borderColor: '#E0E0E0',  // Border color
+    primary: '#1E6F5C',      // Dark Green (primary)
+    secondary: '#28B463',    // Medium Green (accent)
+    light: '#E8F5E9',        // Light Green background
+    lightBg: '#F0F9F7',      // Very light green
+    success: '#27AE60',      // Success green
+    danger: '#DC3545',       // Red for delete/remove
+    warning: '#FFC107',      // Yellow for warning
+    info: '#17A2B8',         // Blue for info
+    dark: '#2C3E50',         // Dark gray
+    lightGray: '#F8F9FA',    // Light gray background
+    borderColor: '#E0E0E0',  // Border color
 };
 
 // Bootstrap-compatible color classes
 const COLORS = {
-  primary: '#1E6F5C',
-  secondary: '#28B463',
-  success: '#27AE60',
-  danger: '#DC3545',
-  warning: '#FFC107',
-  info: '#17A2B8',
-  light: '#F8F9FA',
-  dark: '#2C3E50',
+    primary: '#1E6F5C',
+    secondary: '#28B463',
+    success: '#27AE60',
+    danger: '#DC3545',
+    warning: '#FFC107',
+    info: '#17A2B8',
+    light: '#F8F9FA',
+    dark: '#2C3E50',
 };
 
 // --- Mock API Response Structure (To define expected data shape) ---
@@ -51,7 +52,7 @@ const COLORS = {
 const handleAlert = (message) => {
     // Replaces the native alert() function
     console.log(`ALERT: ${message}`);
-    alert(message); 
+    alert(message);
 };
 
 // --- UI Components ---
@@ -137,21 +138,22 @@ const AdminManagement = () => {
 
     // Redux state
     const {
-      users,
-      removedAccounts,
-      activeRole,
-      removedRole,
-      searchTerm,
-      removedSearchTerm,
-      expandedDetails,
-      confirmAction,
-      isLoading,
-      error,
+        users,
+        removedAccounts,
+        activeRole,
+        removedRole,
+        searchTerm,
+        removedSearchTerm,
+        expandedDetails,
+        confirmAction,
+        removeReason,
+        isLoading,
+        error,
     } = useSelector((state) => state.admin);
 
     const activeRolesList = useMemo(() => ['user', 'dietitian', 'organization', 'corporatepartner'], []);
     const removedRolesList = useMemo(() => ['user', 'dietitian', 'organization', 'corporatepartner'], []);
-    
+
     // --- Data Fetching Logic ---
 
     // Fetch all active users (real API calls)
@@ -187,7 +189,11 @@ const AdminManagement = () => {
         let successMessage = '';
 
         if (action === 'remove') {
-            await dispatch(removeUser({ role: type, id }));
+            if (!removeReason.trim()) {
+                handleAlert('Please provide a reason for removing this account.');
+                return;
+            }
+            await dispatch(removeUser({ role: type, id, reason: removeReason.trim() }));
             successMessage = `${type.charAt(0).toUpperCase() + type.slice(1)} removed successfully!`;
         } else if (action === 'restore') {
             const result = await dispatch(restoreAccount(id));
@@ -277,10 +283,10 @@ const AdminManagement = () => {
                                 <React.Fragment key={user._id}>
                                     <tr className="hover:bg-gray-50 transition-colors">
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 border-r border-gray-200">{user.name}</td>
-                                        <UserActions 
-                                            id={user._id} 
-                                            type={type} 
-                                            onView={handleViewDetails} 
+                                        <UserActions
+                                            id={user._id}
+                                            type={type}
+                                            onView={handleViewDetails}
                                             onShowRemove={(id, type) => handleActionConfirm(id, type, 'remove')}
                                             onSoftDelete={handleSoftDelete}
                                         />
@@ -288,30 +294,38 @@ const AdminManagement = () => {
                                     {isExpanded && (
                                         <tr><td colSpan="2" className="px-6 py-0"><RoleDetails user={user} /></td></tr>
                                     )}
-                                    {isConfirm && (
+                                    {isConfirm && confirmAction?.action === 'remove' && (
                                         <tr>
                                             <td colSpan="2" className="px-6 py-2">
                                                 <div className="bg-red-50 border border-red-200 p-4 rounded-lg shadow-sm">
-                                                    <div className="flex items-center justify-between">
-                                                        <div className="flex items-center">
-                                                            <i className="fas fa-exclamation-triangle text-red-500 mr-3 text-lg"></i>
-                                                            <p className="text-red-700 text-sm font-medium">Are you sure you want to remove this account?</p>
+                                                    <div className="flex items-start gap-3">
+                                                        <i className="fas fa-exclamation-triangle text-red-500 text-lg mt-1 shrink-0"></i>
+                                                        <div className="flex-1">
+                                                            <p className="text-red-700 text-sm font-semibold mb-2">Remove this account? Please provide a reason:</p>
+                                                            <textarea
+                                                                rows={2}
+                                                                placeholder="Enter reason for removal (required)..."
+                                                                value={removeReason}
+                                                                onChange={(e) => dispatch(setRemoveReason(e.target.value))}
+                                                                className="w-full p-2 text-sm border border-red-300 rounded-md focus:ring-2 focus:ring-red-400 focus:border-red-400 resize-none bg-white"
+                                                            />
                                                         </div>
-                                                        <div className="flex space-x-2">
-                                                            <button
-                                                                onClick={handleActionCancel}
-                                                                className="px-3 py-1.5 text-gray-600 bg-white hover:bg-gray-50 border border-gray-300 rounded-md text-xs font-medium transition-colors duration-200"
-                                                            >
-                                                                Cancel
-                                                            </button>
-                                                            <button
-                                                                onClick={handleActionExecute}
-                                                                className="px-3 py-1.5 text-white bg-red-600 hover:bg-red-700 rounded-md text-xs font-medium transition-colors duration-200"
-                                                            >
-                                                                <i className="fas fa-trash-alt mr-1"></i>
-                                                                Remove
-                                                            </button>
-                                                        </div>
+                                                    </div>
+                                                    <div className="flex justify-end space-x-2 mt-2">
+                                                        <button
+                                                            onClick={handleActionCancel}
+                                                            className="px-3 py-1.5 text-gray-600 bg-white hover:bg-gray-50 border border-gray-300 rounded-md text-xs font-medium transition-colors duration-200"
+                                                        >
+                                                            Cancel
+                                                        </button>
+                                                        <button
+                                                            onClick={handleActionExecute}
+                                                            disabled={!removeReason.trim()}
+                                                            className="px-3 py-1.5 text-white bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed rounded-md text-xs font-medium transition-colors duration-200"
+                                                        >
+                                                            <i className="fas fa-trash-alt mr-1"></i>
+                                                            Remove
+                                                        </button>
                                                     </div>
                                                 </div>
                                             </td>
@@ -325,12 +339,12 @@ const AdminManagement = () => {
             </table>
         );
     };
-    
+
     const renderRemovedTable = (data, type) => {
         const TypeDetails = ({ account }) => {
             // Use originalData if available, otherwise fall back to account data
             const originalData = account.originalData || account;
-            
+
             return (
                 <div className="p-3 text-sm text-gray-700 bg-red-50 rounded-lg border border-red-200">
                     <p><strong>Email:</strong> {account.email}</p>
@@ -343,6 +357,11 @@ const AdminManagement = () => {
                     {(type === 'organization' || type === 'corporatepartner') && originalData.address && <p><strong>Address:</strong> {originalData.address || 'N/A'}</p>}
                     <p><strong>Removed On:</strong> {account.removedOn}</p>
                     <p><strong>Account Type:</strong> {account.accountType}</p>
+                    {account.removalReason && (
+                        <div className="mt-2 p-2 bg-red-100 border border-red-300 rounded">
+                            <p><strong className="text-red-700">Removal Reason:</strong> {account.removalReason}</p>
+                        </div>
+                    )}
                 </div>
             );
         };
@@ -368,9 +387,9 @@ const AdminManagement = () => {
                                     <tr className="hover:bg-red-50 transition-colors">
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 border-r border-gray-200">{account.name}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center border-r border-gray-200">{account.removedOn}</td>
-                                        <RemovedActions 
-                                            id={account._id} 
-                                            type={type} 
+                                        <RemovedActions
+                                            id={account._id}
+                                            type={type}
                                             onView={(id, type) => handleViewDetails(id, `removed-${type}`)}
                                             onShowRestore={(id, type) => handleActionConfirm(id, type, 'restore')}
                                         />
@@ -423,7 +442,7 @@ const AdminManagement = () => {
             <div onClick={() => navigate(-1)} style={{ color: THEME.primary, cursor: 'pointer' }} className="fixed top-4 left-4 text-4xl hover:opacity-80 transition-opacity" onMouseEnter={(e) => e.currentTarget.style.color = THEME.dark} onMouseLeave={(e) => e.currentTarget.style.color = THEME.primary}>
                 <i className="fa-solid fa-xmark"></i>
             </div>
-            
+
             <div style={{ maxWidth: '100%', margin: '0 auto' }}>
                 {/* Error Message */}
                 {error && (
@@ -443,15 +462,15 @@ const AdminManagement = () => {
                             onChange={(e) => dispatch(setSearchTerm(e.target.value))}
                             className="w-full max-w-lg p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-400 focus:border-green-400 transition-colors"
                         />
-                        <button 
-                            onClick={handleActiveSearch} 
+                        <button
+                            onClick={handleActiveSearch}
                             style={{ backgroundColor: THEME.primary }}
                             className="text-white px-6 py-3 rounded-lg hover:opacity-90 transition-opacity font-semibold"
                         >
                             <i className="fas fa-search"></i> Search
                         </button>
                         {users._isSearchResult && searchTerm && (
-                            <button 
+                            <button
                                 onClick={() => {
                                     dispatch(setSearchTerm(''));
                                     fetchAllActiveUsers();
@@ -491,7 +510,7 @@ const AdminManagement = () => {
                     <div className="text-center text-base font-medium text-gray-600 mb-4">
                         {activeRolesList.map(role => (
                             <span key={role} className="mx-2">
-                                Total {role.charAt(0).toUpperCase() + role.slice(1)}s: 
+                                Total {role.charAt(0).toUpperCase() + role.slice(1)}s:
                                 <span className="font-bold text-gray-900 ml-1">
                                     {filteredActiveUsers[role]?.length || users[role]?.length || 0}
                                 </span>
@@ -525,15 +544,15 @@ const AdminManagement = () => {
                             onChange={(e) => dispatch(setRemovedSearchTerm(e.target.value))}
                             className="w-full max-w-lg p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-400 focus:border-red-400 transition-colors"
                         />
-                        <button 
-                            onClick={handleRemovedSearch} 
+                        <button
+                            onClick={handleRemovedSearch}
                             style={{ backgroundColor: THEME.danger }}
                             className="text-white px-6 py-3 rounded-lg hover:opacity-90 transition-opacity font-semibold"
                         >
                             <i className="fas fa-search"></i> Search
                         </button>
                         {removedSearchTerm && (
-                            <button 
+                            <button
                                 onClick={() => {
                                     dispatch(setRemovedSearchTerm(''));
                                     fetchRemovedAccountsData();
@@ -550,7 +569,7 @@ const AdminManagement = () => {
                         {removedRolesList.map(role => (
                             <button
                                 key={`removed-${role}`}
-                                onClick={() => { 
+                                onClick={() => {
                                     dispatch(setRemovedRole(role));
                                 }}
                                 style={removedRole === role ? {
@@ -573,7 +592,7 @@ const AdminManagement = () => {
                     <div className="text-center text-base font-medium text-gray-600 mb-4">
                         {removedRolesList.map(role => (
                             <span key={`removed-count-${role}`} className="mx-2">
-                                Total Removed {role.charAt(0).toUpperCase() + role.slice(1)}s: 
+                                Total Removed {role.charAt(0).toUpperCase() + role.slice(1)}s:
                                 <span className="font-bold text-red-600 ml-1">
                                     {filteredRemovedAccounts.filter(a => a.accountType.toLowerCase() === role).length}
                                 </span>
@@ -591,7 +610,7 @@ const AdminManagement = () => {
                     )}
                 </div>
             </div>
-            
+
             {/* API Route References (Commented for clarity) */}
             {/*
                 // User/Client: /crud/users-list, /crud/users-list/search?q=..., /crud/users-list/:id (DELETE)

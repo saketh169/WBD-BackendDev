@@ -16,7 +16,6 @@ const roleRoutes = {
     user: '/user/home',
     admin: '/admin/home',
     organization: '/organization/home',
-    corporatepartner: '/corporatepartner/home',
     dietitian: '/dietitian/home',
 };
 
@@ -62,14 +61,6 @@ const buildValidationSchema = (role) => {
             });
             break;
 
-        case 'corporatepartner':
-            schema = schema.shape({
-                licenseNumber: Yup.string()
-                    .required('License Number is required.')
-                    .min(5, 'License Number must be at least 5 characters.')
-                    .max(20, 'License Number must not exceed 20 characters.'),
-            });
-            break;
 
         case 'admin':
             schema = schema.shape({
@@ -100,8 +91,6 @@ const getInitialValues = (role) => {
             return { ...base, licenseNumber: '' };
         case 'organization':
             return { ...base, licenseNumber: '' };
-        case 'corporatepartner':
-            return { ...base, licenseNumber: '' };
         case 'admin':
             return { ...base, adminKey: '' };
         default:
@@ -115,21 +104,11 @@ const Signin = () => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const [role, setRole] = useState('');
-    const [corporateType, setCorporateType] = useState('');
     const [message, setMessage] = useState('');
 
     // Get role and corporateType from URL on mount
     useEffect(() => {
-        const roleFromUrl = searchParams.get('role') || 'user';
-        const corporateTypeFromUrl = searchParams.get('corporateType');
-        
-        if (corporateTypeFromUrl === 'corporate_employee') {
-            setRole('user');
-            setCorporateType('corporate_employee');
-        } else {
-            setRole(roleFromUrl);
-            setCorporateType('');
-        }
+        setRole(roleFromUrl);
     }, [searchParams]);
 
     // Define the Formik submission handler
@@ -146,7 +125,6 @@ const Signin = () => {
         // Map role-specific fields to the API payload
         if (role === 'dietitian') formData.licenseNumber = values.licenseNumber;
         if (role === 'organization') formData.licenseNumber = values.licenseNumber;
-        if (role === 'corporatepartner') formData.licenseNumber = values.licenseNumber;
         if (role === 'admin') formData.adminKey = values.adminKey;
 
         const apiRoute = `/api/signin/${role}`; // e.g., /api/signin/user
@@ -236,8 +214,6 @@ const Signin = () => {
             roleFields.push(renderInputGroup('text', 'License Number', 'e.g., DLN123456', getFieldIdAndName('licenseNumber')));
         } else if (role === 'organization') {
             roleFields.push(renderInputGroup('text', 'License Number', 'Enter your License Number', getFieldIdAndName('licenseNumber')));
-        } else if (role === 'corporatepartner') {
-            roleFields.push(renderInputGroup('text', 'License Number', 'Enter your License Number', getFieldIdAndName('licenseNumber')));
         } else if (role === 'admin') {
             roleFields.push(renderInputGroup('password', 'Admin Key', 'Enter Admin Key', getFieldIdAndName('adminKey')));
         }
@@ -246,7 +222,7 @@ const Signin = () => {
             <>
                 {/* Email */}
                 {renderInputGroup('email', 'Email', 'Enter your email', getFieldIdAndName('email'))}
-              
+
                 {/* Password */}
                 {renderInputGroup('password', 'Password', 'Enter your password', getFieldIdAndName('password'))}
 
@@ -254,7 +230,7 @@ const Signin = () => {
                 {roleFields}
                 <div className="flex items-center justify-between">
                     <RememberMe />
-                    <Link to={`/forgot-password?role=${role}${corporateType === 'corporate_employee' ? '&corporateType=corporate_employee' : ''}`} className="text-sm font-medium text-[#1E6F5C] hover:text-[#155345]">
+                    <Link to={`/forgot-password?role=${role}`} className="text-sm font-medium text-[#1E6F5C] hover:text-[#155345]">
                         Forgot Password?
                     </Link>
                 </div>
@@ -294,20 +270,19 @@ const Signin = () => {
                     <i className="fas fa-times text-xl"></i>
                 </button>
                 <h2 className="text-center text-3xl font-bold text-[#1E6F5C] mb-6">
-                    LOG IN AS {corporateType === 'corporate_employee' ? 'CORPORATE EMPLOYEE' : role.toUpperCase()}
+                    LOG IN AS {role.toUpperCase()}
                 </h2>
 
                 {/* Global Alert */}
                 {message && (
                     <div
                         aria-live="polite"
-                        className={`p-3 mb-5 text-center text-base font-medium rounded-lg shadow-sm animate-slide-in w-full ${
-                            message.includes('successful') || message.includes('Redirecting')
+                        className={`p-3 mb-5 text-center text-base font-medium rounded-lg shadow-sm animate-slide-in w-full ${message.includes('successful') || message.includes('Redirecting')
                                 ? 'text-green-800 bg-green-100 border border-green-300'
                                 : message.includes('Verifying')
                                     ? 'text-blue-800 bg-blue-100 border border-blue-300'
                                     : 'text-red-800 bg-red-100 border border-red-300'
-                        }`}
+                            }`}
                         role="alert"
                     >
                         {message}
@@ -342,7 +317,7 @@ const Signin = () => {
 
                             <p className="text-center text-sm mt-4">
                                 Don't have an account?{' '}
-                                <Link to={`/signup?role=${role}${corporateType === 'corporate_employee' ? '&corporateType=corporate_employee' : ''}`} className={commonLinkClasses}>Sign Up</Link>
+                                <Link to={`/signup?role=${role}`} className={commonLinkClasses}>Sign Up</Link>
                             </p>
                         </Form>
                     )}
