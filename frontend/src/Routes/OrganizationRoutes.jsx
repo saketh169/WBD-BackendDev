@@ -14,6 +14,8 @@ import EditProfile from '../pages/EditProfile';
 import BlogModeration from '../pages/Blog/BlogModeration';
 import Blog from '../pages/Blog';
 import BlogPost from '../pages/Blog/BlogPost';
+import EmployeeManagement from '../pages/Admin/EmployeeManagement';
+import EmployeeMonitoring from '../pages/Admin/EmployeeMonitoring';
 
 export default function OrganizationRoutes() {
   return (
@@ -42,6 +44,10 @@ export default function OrganizationRoutes() {
           <Route path="blog-moderation" element={<BlogModeration />} />
           <Route path="blogs" element={<Blog />} />
           <Route path="blog/:id" element={<BlogPost />} />
+
+          {/* Employee Management Routes */}
+          <Route path="employee-management" element={<EmployeeManagement />} />
+          <Route path="employee-monitoring" element={<EmployeeMonitoring />} />
 
           <Route path="*" element={<NotFoundPage role="organization" />} />
         </Routes>
