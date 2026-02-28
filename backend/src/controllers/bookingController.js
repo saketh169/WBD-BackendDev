@@ -164,9 +164,10 @@ exports.createBooking = async (req, res) => {
     // Save to database
     const savedBooking = await booking.save();
 
-    // Send confirmation emails
+    // Send confirmation emails asynchronously (don't wait for them)
+    // Booking is saved first, then emails are sent in background (non-blocking)
+    // This ensures response time < 2 mins
     try {
-      // Prepare email data
       const emailData = {
         username,
         email,
@@ -183,16 +184,19 @@ exports.createBooking = async (req, res) => {
         bookingId: savedBooking._id,
       };
 
-      // Send to user
-      await sendBookingConfirmationToUser(emailData);
+      // Fire and forget - send emails in background without waiting
+      // This is a non-blocking async operation
+      sendBookingConfirmationToUser(emailData).catch(err => 
+        console.error("Error sending confirmation to user:", err)
+      );
+      sendBookingNotificationToDietitian(emailData).catch(err => 
+        console.error("Error sending notification to dietitian:", err)
+      );
 
-      // Send to dietitian
-      await sendBookingNotificationToDietitian(emailData);
-
-      console.log("Confirmation emails sent successfully");
+      console.log("Emails queued for sending in background");
     } catch (emailErr) {
-      console.error("Error sending confirmation emails:", emailErr);
-      // Don't fail the request if email fails
+      console.error("Error queueing emails:", emailErr);
+      // Don't fail the request if email queuing fails
     }
 
     res.status(201).json({

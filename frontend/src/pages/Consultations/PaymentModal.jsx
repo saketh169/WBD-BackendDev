@@ -89,10 +89,15 @@ const PaymentNotificationModal = ({
     return true;
   };
 
-  // Validate UPI ID
+  // Validate UPI ID - Accept multiple formats: 10-digit@bank, handle@app, email-format@upi, etc.
   const validateUpiId = (id) => {
-    const upiRegex = /^\d{10}@[\w.-]+$/;
-    return upiRegex.test(id);
+    // Multiple UPI formats supported:
+    // 1. Mobile@bank: 9876543210@paytm
+    // 2. Handle@app: myemail@ybl (Google Pay)
+    // 3. Username@upi: john.doe@okhdfcbank
+    // 4. VPA with special chars: user-name@upi
+    const upiRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+$/;
+    return id && id.includes('@') && upiRegex.test(id) && id.length >= 5 && id.length <= 60;
   };
 
   const handleVerifyUpi = () => {
@@ -101,7 +106,7 @@ const PaymentNotificationModal = ({
       return;
     }
     if (!validateUpiId(upiId)) {
-      alert('Invalid UPI ID format. Use 10-digit mobile number. Example: 9876543210@paytm');
+      alert('Invalid UPI ID format. Examples: 9876543210@paytm, username@ybl, name@okhdfcbank');
       return;
     }
     setIsProcessing(true);
