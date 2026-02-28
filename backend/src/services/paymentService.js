@@ -1,5 +1,6 @@
 const Payment = require('../models/paymentModel');
 const crypto = require('crypto');
+const { sendPaymentCancellationEmail } = require('./emailService');
 
 class PaymentService {
   /**
@@ -165,7 +166,21 @@ class PaymentService {
         };
       }
 
+      // Get subscription details before deactivating
+      const userEmail = subscription.userEmail;
+      const userName = subscription.userName;
+      const planType = subscription.planType;
+      const cancellationDate = new Date();
+
       await subscription.deactivateSubscription();
+
+      // Send cancellation email to user
+      try {
+        await sendPaymentCancellationEmail(userEmail, userName, planType, cancellationDate);
+      } catch (emailError) {
+        console.error('Error sending cancellation email:', emailError);
+        // Don't fail the subscription cancellation if email fails
+      }
       
       return {
         success: true,

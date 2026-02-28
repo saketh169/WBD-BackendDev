@@ -154,9 +154,42 @@ const sendLeaveNotificationEmail = async (dietitianName, dietitianEmail, dates, 
   await sendEmail(adminEmail, `Leave Request: ${dietitianName} — ${dates.length} day(s)`, htmlTemplate);
 };
 
+// Send payment cancellation email to user
+const sendPaymentCancellationEmail = async (userEmail, userName, planType, cancellationDate) => {
+  const htmlTemplate = `
+  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+    <div style="background-color: #1E6F5C; color: white; padding: 20px; text-align: center;">
+      <h1 style="margin:0;">NutriConnect</h1>
+      <p style="margin:4px 0 0;">Subscription Cancellation Confirmation</p>
+    </div>
+    <div style="padding: 24px; background-color: #f9f9f9;">
+      <h2 style="color:#2C3E50;">Hello, ${userName}</h2>
+      <p>We're sorry to see you go! Your <strong>NutriConnect subscription</strong> has been successfully cancelled.</p>
+
+      <div style="background-color: #e8f5e9; padding: 16px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #28B463;">
+        <h3 style="margin:0 0 8px; color:#1E6F5C;">Cancellation Details</h3>
+        <p style="margin:4px 0;"><strong>Plan Type:</strong> ${planType.charAt(0).toUpperCase() + planType.slice(1)}</p>
+        <p style="margin:4px 0;"><strong>Cancellation Date:</strong> ${new Date(cancellationDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+      </div>
+
+      <p>Your subscription access will be deactivated immediately. If you have any outstanding sessions or services scheduled, please contact our support team for assistance.</p>
+
+      <p>We'd love to hear your feedback on how we can improve. Feel free to reach out to us anytime if you'd like to reactivate your subscription or have any questions.</p>
+
+      <p style="margin-top:24px;">Best regards,<br><strong>The NutriConnect Team</strong></p>
+    </div>
+    <div style="background-color: #1E6F5C; color: white; padding: 12px; text-align: center; font-size: 13px;">
+      <p style="margin:0;">Contact Support: nutriconnect6@gmail.com | +91 70757 83143</p>
+    </div>
+  </div>`;
+
+  await sendEmail(userEmail, 'Your NutriConnect Subscription Has Been Cancelled', htmlTemplate);
+};
+
 module.exports = {
   sendEmail,
   sendPolicyChangeEmail,
   sendAccountRemovalEmail,
-  sendLeaveNotificationEmail
+  sendLeaveNotificationEmail,
+  sendPaymentCancellationEmail
 };
