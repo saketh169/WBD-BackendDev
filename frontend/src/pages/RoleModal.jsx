@@ -129,13 +129,7 @@ const RoleModal = ({ isModal = false, onClose }) => {
               <h2 className="text-3xl md:text-4xl font-bold bg-linear-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent mb-2">{isDeveloperMode ? 'Admin Access' : 'Choose Your Role'}</h2>
               <p className="text-gray-600 mb-10 text-lg">{isDeveloperMode ? 'Access administrative features and system management.' : 'Select the role that best describes you to continue.'}</p>
               {showOrgSubOptions ? (
-                <div className="animate-in fade-in-0 duration-200 relative">
-                  <button
-                    onClick={() => setShowOrgSubOptions(false)}
-                    className="absolute top-0 right-0 text-gray-400 hover:text-gray-600 hover:bg-gray-100/50 p-1.5 rounded-full transition-all duration-200"
-                  >
-                    <i className="fas fa-times text-lg"></i>
-                  </button>
+                <div className="animate-in fade-in-0 duration-200">
                   <h3 className="text-lg font-semibold text-gray-700 mb-6 mt-1">How are you accessing?</h3>
                   <div className="grid gap-4 grid-cols-1 md:grid-cols-2 mb-6">
                     <div
@@ -211,13 +205,7 @@ const RoleModal = ({ isModal = false, onClose }) => {
             <h2 className="text-3xl md:text-4xl font-bold bg-linear-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent mb-2">{isDeveloperMode ? 'Admin Access' : 'Choose Your Role'}</h2>
             <p className="text-gray-600 mb-10 text-lg">{isDeveloperMode ? 'Access administrative features and system management.' : 'Select the role that best describes you to continue.'}</p>
             {showOrgSubOptions ? (
-              <div className="animate-in fade-in-0 duration-200 relative">
-                <button
-                  onClick={() => setShowOrgSubOptions(false)}
-                  className="absolute top-0 right-0 text-gray-400 hover:text-gray-600 hover:bg-gray-100/50 p-1.5 rounded-full transition-all duration-200"
-                >
-                  <i className="fas fa-times text-lg"></i>
-                </button>
+              <div className="animate-in fade-in-0 duration-200">
                 <h3 className="text-lg font-semibold text-gray-700 mb-6 mt-1">How are you accessing?</h3>
                 <div className="grid gap-4 grid-cols-1 md:grid-cols-2 mb-6">
                   <div
