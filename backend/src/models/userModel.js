@@ -186,6 +186,8 @@ const EmployeeSchema = new Schema({
     name: { type: String, required: true, minlength: 3, trim: true },
     email: { type: String, required: true, lowercase: true, trim: true },
     passwordHash: { type: String, required: true },
+    // Format: first 3 letters of org name (uppercase) + 6 digits e.g. APO123456
+    licenseNumber: { type: String, required: true, unique: true, match: /^[A-Z]{3}[0-9]{6}$/ },
     organizationId: { type: Schema.Types.ObjectId, ref: 'Organization', required: true },
     employeeRole: {
         type: String,

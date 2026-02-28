@@ -129,21 +129,21 @@ const RoleModal = ({ isModal = false, onClose }) => {
               <h2 className="text-3xl md:text-4xl font-bold bg-linear-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent mb-2">{isDeveloperMode ? 'Admin Access' : 'Choose Your Role'}</h2>
               <p className="text-gray-600 mb-10 text-lg">{isDeveloperMode ? 'Access administrative features and system management.' : 'Select the role that best describes you to continue.'}</p>
               {showOrgSubOptions ? (
-                <div className="animate-in fade-in-0 duration-200">
+                <div className="animate-in fade-in-0 duration-200 relative">
                   <button
                     onClick={() => setShowOrgSubOptions(false)}
-                    className="flex items-center text-sm text-gray-500 hover:text-gray-700 mb-6 transition-colors"
+                    className="absolute top-0 right-0 text-gray-400 hover:text-gray-600 hover:bg-gray-100/50 p-1.5 rounded-full transition-all duration-200"
                   >
-                    <i className="fas fa-arrow-left mr-2"></i> Back to roles
+                    <i className="fas fa-times text-lg"></i>
                   </button>
-                  <h3 className="text-lg font-semibold text-gray-700 mb-4">How are you accessing?</h3>
+                  <h3 className="text-lg font-semibold text-gray-700 mb-6 mt-1">How are you accessing?</h3>
                   <div className="grid gap-4 grid-cols-1 md:grid-cols-2 mb-6">
                     <div
                       className="group bg-linear-to-br from-white via-gray-50 to-white p-4 rounded-2xl border-2 border-gray-200 cursor-pointer hover:from-emerald-50 hover:via-green-50 hover:to-emerald-100 hover:border-emerald-300/50 hover:shadow-lg active:scale-[0.98] transition-all duration-300 ease-out transform hover:-translate-y-1"
                       onClick={() => handleOrgSubClick('management')}
                     >
                       <div className="text-3xl text-emerald-600 mb-2 group-hover:scale-110 transition-all duration-300">
-                        <i className="fas fa-chart-pie"></i>
+                        <i className="fas fa-user-tie"></i>
                       </div>
                       <h3 className="text-lg font-bold text-gray-800 group-hover:text-emerald-800 mb-1">Management</h3>
                       <p className="text-sm text-gray-600 group-hover:text-gray-700 leading-relaxed">Manage employees, view reports and oversee dietitian verifications.</p>
@@ -153,7 +153,7 @@ const RoleModal = ({ isModal = false, onClose }) => {
                       onClick={() => handleOrgSubClick('employee')}
                     >
                       <div className="text-3xl text-emerald-600 mb-2 group-hover:scale-110 transition-all duration-300">
-                        <i className="fas fa-user-check"></i>
+                        <i className="fas fa-id-badge"></i>
                       </div>
                       <h3 className="text-lg font-bold text-gray-800 group-hover:text-emerald-800 mb-1">Employee</h3>
                       <p className="text-sm text-gray-600 group-hover:text-gray-700 leading-relaxed">Verify assigned dietitian documents and manage your tasks.</p>
@@ -211,21 +211,21 @@ const RoleModal = ({ isModal = false, onClose }) => {
             <h2 className="text-3xl md:text-4xl font-bold bg-linear-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent mb-2">{isDeveloperMode ? 'Admin Access' : 'Choose Your Role'}</h2>
             <p className="text-gray-600 mb-10 text-lg">{isDeveloperMode ? 'Access administrative features and system management.' : 'Select the role that best describes you to continue.'}</p>
             {showOrgSubOptions ? (
-              <div className="animate-in fade-in-0 duration-200">
+              <div className="animate-in fade-in-0 duration-200 relative">
                 <button
                   onClick={() => setShowOrgSubOptions(false)}
-                  className="flex items-center text-sm text-gray-500 hover:text-gray-700 mb-6 transition-colors"
+                  className="absolute top-0 right-0 text-gray-400 hover:text-gray-600 hover:bg-gray-100/50 p-1.5 rounded-full transition-all duration-200"
                 >
-                  <i className="fas fa-arrow-left mr-2"></i> Back to roles
+                  <i className="fas fa-times text-lg"></i>
                 </button>
-                <h3 className="text-lg font-semibold text-gray-700 mb-4">How are you accessing?</h3>
+                <h3 className="text-lg font-semibold text-gray-700 mb-6 mt-1">How are you accessing?</h3>
                 <div className="grid gap-4 grid-cols-1 md:grid-cols-2 mb-6">
                   <div
                     className="group bg-linear-to-br from-white via-gray-50 to-white p-4 rounded-2xl border-2 border-gray-200 cursor-pointer hover:from-emerald-50 hover:via-green-50 hover:to-emerald-100 hover:border-emerald-300/50 hover:shadow-lg active:scale-[0.98] transition-all duration-300 ease-out transform hover:-translate-y-1"
                     onClick={() => handleOrgSubClick('management')}
                   >
                     <div className="text-3xl text-emerald-600 mb-2 group-hover:scale-110 transition-all duration-300">
-                      <i className="fas fa-chart-pie"></i>
+                      <i className="fas fa-user-tie"></i>
                     </div>
                     <h3 className="text-lg font-bold text-gray-800 group-hover:text-emerald-800 mb-1">Management</h3>
                     <p className="text-sm text-gray-600 group-hover:text-gray-700 leading-relaxed">Manage employees, view reports and oversee dietitian verifications.</p>
@@ -235,7 +235,7 @@ const RoleModal = ({ isModal = false, onClose }) => {
                     onClick={() => handleOrgSubClick('employee')}
                   >
                     <div className="text-3xl text-emerald-600 mb-2 group-hover:scale-110 transition-all duration-300">
-                      <i className="fas fa-user-check"></i>
+                      <i className="fas fa-id-badge"></i>
                     </div>
                     <h3 className="text-lg font-bold text-gray-800 group-hover:text-emerald-800 mb-1">Employee</h3>
                     <p className="text-sm text-gray-600 group-hover:text-gray-700 leading-relaxed">Verify assigned dietitian documents and manage your tasks.</p>

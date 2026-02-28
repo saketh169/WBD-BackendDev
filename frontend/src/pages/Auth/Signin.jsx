@@ -20,7 +20,7 @@ const roleRoutes = {
 };
 
 // --- Formik & Yup Validation Schema Builder ---
-const buildValidationSchema = (role) => {
+const buildValidationSchema = (role, orgType = '') => {
     // Base schema for all roles
     let schema = Yup.object().shape({
         email: Yup.string()
@@ -53,12 +53,25 @@ const buildValidationSchema = (role) => {
             break;
 
         case 'organization':
-            schema = schema.shape({
-                licenseNumber: Yup.string()
-                    .required('License Number is required.')
-                    .min(5, 'License Number must be at least 5 characters.')
-                    .max(20, 'License Number must not exceed 20 characters.'),
-            });
+            if (orgType !== 'employee') {
+                schema = schema.shape({
+                    licenseNumber: Yup.string()
+                        .required('License Number is required.')
+                        .min(5, 'License Number must be at least 5 characters.')
+                        .max(20, 'License Number must not exceed 20 characters.'),
+                });
+            } else {
+                // Employee: 3 uppercase org letters + 6 digits e.g. APO123456
+                schema = schema.shape({
+                    licenseNumber: Yup.string()
+                        .required('Employee License Number is required.')
+                        .matches(
+                            /^[A-Z]{3}[0-9]{6}$/,
+                            'Format must be 3 uppercase org letters + 6 digits (e.g. APO123456).'
+                        )
+                        .length(9, 'Employee License Number must be exactly 9 characters.'),
+                });
+            }
             break;
 
 
@@ -128,7 +141,10 @@ const Signin = () => {
 
         // Map role-specific fields to the API payload
         if (role === 'dietitian') formData.licenseNumber = values.licenseNumber;
-        if (role === 'organization') { formData.licenseNumber = values.licenseNumber; formData.orgType = orgType; }
+        if (role === 'organization') {
+            formData.orgType = orgType;
+            formData.licenseNumber = values.licenseNumber; // required for both management and employee
+        }
         if (role === 'admin') formData.adminKey = values.adminKey;
 
         const apiRoute = `/api/signin/${role}`; // e.g., /api/signin/user
@@ -151,12 +167,18 @@ const Signin = () => {
                 }
             }
 
-            setMessage(`Sign-in successful! Redirecting to ${role} home page ...`);
+            setMessage(`Sign-in successful! Redirecting...`);
 
             // Redirect after a short delay
             setTimeout(() => {
                 setMessage('');
-                navigate(roleRoutes[role]);
+                // For organization, redirect based on orgType from API response
+                if (role === 'organization') {
+                    const returnedOrgType = data.orgType || orgType;
+                    navigate(returnedOrgType === 'employee' ? '/organization/employee/dashboard' : '/organization/management/dashboard');
+                } else {
+                    navigate(roleRoutes[role]);
+                }
             }, 1000);
 
         } catch (error) {
@@ -216,8 +238,10 @@ const Signin = () => {
         const renderRoleFields = () => {
             if (role === 'dietitian') {
                 return <div key="roleField">{renderInputGroup('text', 'License Number', 'e.g., DLN123456', getFieldIdAndName('licenseNumber'))}</div>;
-            } else if (role === 'organization') {
+            } else if (role === 'organization' && orgType !== 'employee') {
                 return <div key="roleField">{renderInputGroup('text', 'License Number', 'Enter your License Number', getFieldIdAndName('licenseNumber'))}</div>;
+            } else if (role === 'organization' && orgType === 'employee') {
+                return <div key="roleField">{renderInputGroup('text', 'Employee License Number', 'e.g. APO123456', getFieldIdAndName('licenseNumber'))}</div>;
             } else if (role === 'admin') {
                 return <div key="roleField">{renderInputGroup('password', 'Admin Key', 'Enter Admin Key', getFieldIdAndName('adminKey'))}</div>;
             }
@@ -297,7 +321,7 @@ const Signin = () => {
 
                 <Formik
                     initialValues={getInitialValues(role)}
-                    validationSchema={buildValidationSchema(role)}
+                    validationSchema={buildValidationSchema(role, orgType)}
                     onSubmit={handleFormikSubmit}
                     enableReinitialize={true}
                 >

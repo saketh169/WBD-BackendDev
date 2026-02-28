@@ -1,7 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 // Mongoose Models
-const { UserAuth, User, Admin, Dietitian, Organization } = require('../models/userModel');
+const { UserAuth, User, Admin, Dietitian, Organization, Employee } = require('../models/userModel');
 
 // Load environment variables
 require('dotenv').config();
@@ -77,6 +77,11 @@ exports.signupController = async (req, res) => {
             return res.status(400).json({ message: 'License Number is required for this role.' });
         }
 
+        // 4b. Check organizationType is provided for organization role
+        if (role === 'organization' && !profileData.organizationType) {
+            return res.status(400).json({ message: 'Organization type is required.' });
+        }
+
         // 6. HASH PASSWORD AND SAVE
         const hashedPassword = await bcrypt.hash(password, 12);
 
@@ -143,13 +148,56 @@ exports.signupController = async (req, res) => {
 
 exports.signinController = async (req, res) => {
     const role = req.params.role;
-    const { email, password, licenseNumber, adminKey, rememberMe } = req.body;
+    const { email, password, licenseNumber, adminKey, rememberMe, orgType } = req.body;
 
     if (!email || !password) {
         return res.status(400).json({ message: 'Email and password are required.' });
     }
 
     try {
+        // --- EMPLOYEE SIGNIN: check email + password + licenseNumber against Employee model ---
+        if (role === 'organization' && orgType === 'employee') {
+            if (!licenseNumber) {
+                return res.status(400).json({ message: 'Employee License Number is required.' });
+            }
+
+            const employee = await Employee.findOne({ email, isDeleted: false });
+            if (!employee) {
+                return res.status(401).json({ message: 'Invalid credentials.' });
+            }
+
+            if (employee.licenseNumber !== licenseNumber) {
+                return res.status(401).json({ message: 'Invalid Employee License Number.' });
+            }
+
+            const isMatch = await bcrypt.compare(password, employee.passwordHash);
+            if (!isMatch) {
+                return res.status(401).json({ message: 'Invalid password.' });
+            }
+
+            if (employee.status !== 'active') {
+                return res.status(403).json({ message: 'Your account is not active. Contact your organization admin.' });
+            }
+
+            employee.lastLogin = new Date();
+            await employee.save();
+
+            const expiresIn = rememberMe ? '7d' : '1d';
+            const token = jwt.sign(
+                { employeeId: employee._id, organizationId: employee.organizationId, role: 'organization', orgType: 'employee', employeeRole: employee.employeeRole },
+                JWT_SECRET,
+                { expiresIn }
+            );
+
+            return res.status(200).json({
+                message: 'Login successful!',
+                token,
+                role: 'organization',
+                orgType: 'employee',
+                employeeRole: employee.employeeRole,
+                expiresIn
+            });
+        }
         // 1. Find user in central Auth collection
         const authUser = await UserAuth.findOne({ email });
         if (!authUser || authUser.role !== role) {
