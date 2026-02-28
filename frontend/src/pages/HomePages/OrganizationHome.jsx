@@ -1,10 +1,23 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AuthContext from '../../contexts/AuthContext';
 
 const OrganizationHome = () => {
   const navigate = useNavigate();
-  const { orgType } = useContext(AuthContext);
+  
+  // Try to get orgType from AuthContext, fallback to localStorage
+  const context = useContext(AuthContext);
+  const [orgType, setOrgType] = useState(null);
+
+  useEffect(() => {
+    if (context?.orgType) {
+      setOrgType(context.orgType);
+    } else {
+      // Fallback to localStorage
+      const storedOrgType = localStorage.getItem('orgType_organization');
+      setOrgType(storedOrgType);
+    }
+  }, [context]);
 
   // === 1. Organization Duties Data (Focus on Governance & Oversight) ===
   const dutyItems = [

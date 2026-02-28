@@ -1,12 +1,25 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import AuthContext from '../../contexts/AuthContext';
 
 const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { orgType } = useContext(AuthContext);
   const currentPath = location.pathname;
+  
+  // Try to get orgType from AuthContext, fallback to localStorage
+  const context = useContext(AuthContext);
+  const [orgType, setOrgType] = useState(null);
+
+  useEffect(() => {
+    if (context?.orgType) {
+      setOrgType(context.orgType);
+    } else {
+      // Fallback to localStorage
+      const storedOrgType = localStorage.getItem('orgType_organization');
+      setOrgType(storedOrgType);
+    }
+  }, [context]);
 
   // Defined to be used in the CSS variable or direct styling
   const primaryGreen = '#28a745'; // Primary CTA Green (Lighter)

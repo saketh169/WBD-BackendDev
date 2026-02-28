@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
-import AuthContext from '../../contexts/AuthContext';
 
 // --- Color constants for UI consistency ---
 const primaryGreen = '#1E6F5C';
@@ -117,7 +116,6 @@ const getInitialValues = (role) => {
 const Signin = () => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
-    const { login } = useContext(AuthContext);
     const [role, setRole] = useState('');
     const [orgType, setOrgType] = useState(''); // 'management' or 'employee'
     const [message, setMessage] = useState('');
@@ -156,30 +154,35 @@ const Signin = () => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
 
         try {
-            const additionalData = {};
-            if (role === 'dietitian') additionalData.licenseNumber = values.licenseNumber;
-            if (role === 'organization') {
-                additionalData.orgType = orgType;
-                additionalData.licenseNumber = values.licenseNumber;
+            const response = await axios.post(apiRoute, formData);
+            const data = response.data;
+
+            // Handle token storage
+            if (data.token) {
+                // Store token with role-specific key so multiple roles can be logged in simultaneously
+                localStorage.setItem(`authToken_${data.role}`, data.token);
+                // Store orgType if present
+                if (data.orgType) {
+                    localStorage.setItem(`orgType_${data.role}`, data.orgType);
+                }
+                // Store userId for profile operations
+                if (data.roleId) {
+                    localStorage.setItem('userId', data.roleId);
+                }
             }
-            if (role === 'admin') additionalData.adminKey = values.adminKey;
 
-            const result = await login(values.email, values.password, role, additionalData);
+            setMessage(`Sign-in successful! Redirecting...`);
 
-            if (result.success) {
-                setMessage(`Sign-in successful! Redirecting...`);
-
-                // Redirect after a short delay
-                setTimeout(() => {
-                    setMessage('');
-                    // For organization, all go to home
-                    if (role === 'organization') {
-                        navigate('/organization/home');
-                    } else {
-                        navigate(roleRoutes[role]);
-                    }
-                }, 1000);
-            }
+            // Redirect after a short delay
+            setTimeout(() => {
+                setMessage('');
+                // For organization, all go to home
+                if (role === 'organization') {
+                    navigate('/organization/home');
+                } else {
+                    navigate(roleRoutes[role]);
+                }
+            }, 1000);
 
         } catch (error) {
             console.error('Sign-in Error:', error.response ? error.response.data : error.message);

@@ -4,8 +4,13 @@ import axios from 'axios';
 import AuthContext from '../contexts/AuthContext';
 
 const EmployeeManagement = () => {
-  const { orgType, token } = useContext(AuthContext);
   const navigate = useNavigate();
+  
+  // Try to get orgType and token from AuthContext, fallback to localStorage
+  const context = useContext(AuthContext);
+  const [orgType, setOrgType] = useState(null);
+  const [token, setToken] = useState(null);
+  
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
@@ -17,12 +22,27 @@ const EmployeeManagement = () => {
   });
 
   useEffect(() => {
+    if (context?.orgType && context?.token) {
+      setOrgType(context.orgType);
+      setToken(context.token);
+    } else {
+      // Fallback to localStorage
+      const storedOrgType = localStorage.getItem('orgType_organization');
+      const storedToken = localStorage.getItem('authToken_organization');
+      setOrgType(storedOrgType);
+      setToken(storedToken);
+    }
+  }, [context]);
+
+  useEffect(() => {
     if (orgType !== 'management') {
       navigate('/organization/home');
       return;
     }
-    fetchEmployees();
-  }, [orgType, navigate]);
+    if (token) {
+      fetchEmployees();
+    }
+  }, [orgType, token, navigate]);
 
   const fetchEmployees = async () => {
     try {
