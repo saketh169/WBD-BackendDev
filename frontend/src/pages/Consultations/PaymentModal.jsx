@@ -667,7 +667,7 @@ const PaymentNotificationModal = ({
                   <div className="flex gap-2">
                     <input
                       type="text"
-                      placeholder={`9876543210@${selectedUpiApp.toLowerCase().replace(' ', '')}`}
+                      placeholder="Enter your UPI ID here"
                       className={`flex-1 p-3 border-2 rounded-lg focus:ring-2 focus:outline-none ${validationErrors.upi ? 'border-red-500' : ''}`}
                       style={{ borderColor: validationErrors.upi ? '#ef4444' : '#27AE60', color: '#2F4F4F' }}
                       value={upiId}
