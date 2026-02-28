@@ -182,12 +182,6 @@ const Signin = () => {
             }
 
         } catch (error) {
-                } else {
-                    navigate(roleRoutes[role]);
-                }
-            }, 1000);
-
-        } catch (error) {
             console.error('Sign-in Error:', error.response ? error.response.data : error.message);
 
             const errorMessage = error.response?.data?.message || 'Login failed. Please check your credentials.';
