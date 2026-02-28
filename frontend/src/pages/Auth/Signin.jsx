@@ -172,13 +172,7 @@ const Signin = () => {
             // Redirect after a short delay
             setTimeout(() => {
                 setMessage('');
-                // For organization, redirect based on orgType from API response
-                if (role === 'organization') {
-                    const returnedOrgType = data.orgType || orgType;
-                    navigate(returnedOrgType === 'employee' ? '/organization/employee/dashboard' : '/organization/management/dashboard');
-                } else {
-                    navigate(roleRoutes[role]);
-                }
+                navigate(roleRoutes[role]);
             }, 1000);
 
         } catch (error) {

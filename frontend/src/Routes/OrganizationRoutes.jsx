@@ -11,11 +11,11 @@ import DietitianVerify from '../pages/Verify/DietitianVerify';
 
 import ChangePassword from '../pages/ChangePassword';
 import EditProfile from '../pages/EditProfile';
-import BlogModeration from '../pages/Blog/BlogModeration';
+import BlogModeration from '../pages/Organization/BlogModeration';
 import Blog from '../pages/Blog';
 import BlogPost from '../pages/Blog/BlogPost';
-import EmployeeManagement from '../pages/Admin/EmployeeManagement';
-import EmployeeMonitoring from '../pages/Admin/EmployeeMonitoring';
+import EmployeeManagement from '../pages/Organization/EmployeeManagement';
+import EmployeeMonitoring from '../pages/Organization/EmployeeMonitoring';
 
 export default function OrganizationRoutes() {
   return (

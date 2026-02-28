@@ -70,12 +70,9 @@ const Sidebar = () => {
     { name: 'Verify Dietitians', href: '/organization/verify-dietitian', icon: 'fas fa-user-md' },
     { name: 'Blog Moderation', href: '/organization/blog-moderation', icon: 'fas fa-flag' },
     { name: 'Blogs', href: '/organization/blogs', icon: 'fas fa-blog' },
+    { name: 'Manage Employees', href: '/organization/employee-management', icon: 'fas fa-users-cog' },
+    { name: 'Monitor Employees', href: '/organization/employee-monitoring', icon: 'fas fa-chart-line' },
   ];
-
-  // Add employee management link only for management users
-  if (orgType === 'management') {
-    organizationNavLinks.push({ name: 'Manage Employees', href: '/organization/employee-management', icon: 'fas fa-users-cog' });
-  }
 
   // --- Function to Select Links based on Path ---
   const getNavLinks = () => {
