@@ -161,10 +161,6 @@ const Signin = () => {
             if (data.token) {
                 // Store token with role-specific key so multiple roles can be logged in simultaneously
                 localStorage.setItem(`authToken_${data.role}`, data.token);
-                // Store orgType if present
-                if (data.orgType) {
-                    localStorage.setItem(`orgType_${data.role}`, data.orgType);
-                }
                 // Store userId for profile operations
                 if (data.roleId) {
                     localStorage.setItem('userId', data.roleId);
@@ -176,9 +172,10 @@ const Signin = () => {
             // Redirect after a short delay
             setTimeout(() => {
                 setMessage('');
-                // For organization, all go to home
+                // For organization, redirect based on orgType from API response
                 if (role === 'organization') {
-                    navigate('/organization/home');
+                    const returnedOrgType = data.orgType || orgType;
+                    navigate(returnedOrgType === 'employee' ? '/organization/employee/dashboard' : '/organization/management/dashboard');
                 } else {
                     navigate(roleRoutes[role]);
                 }

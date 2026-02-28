@@ -9,7 +9,6 @@ export const AuthProvider = ({ children, currentRole }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
   const [role, setRole] = useState(currentRole || null);
-  const [orgType, setOrgType] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -22,12 +21,10 @@ export const AuthProvider = ({ children, currentRole }) => {
         // If currentRole is provided, use it specifically
         const token = localStorage.getItem(`authToken_${currentRole}`);
         const user = localStorage.getItem(`authUser_${currentRole}`);
-        const orgType = localStorage.getItem(`orgType_${currentRole}`);
 
         if (token) {
           setToken(token);
           setRole(currentRole);
-          setOrgType(orgType);
           setIsAuthenticated(true);
           // Set axios default header
           axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
@@ -181,12 +178,10 @@ export const AuthProvider = ({ children, currentRole }) => {
         // Store in context
         setToken(data.token);
         setRole(loginRole);
-        setOrgType(additionalData.orgType || null);
         setIsAuthenticated(true);
 
         // Store in localStorage for persistence with role-specific keys
         localStorage.setItem(`authToken_${loginRole}`, data.token);
-        localStorage.setItem(`orgType_${loginRole}`, additionalData.orgType || '');
 
         // Set axios default header
         axios.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
@@ -206,7 +201,6 @@ export const AuthProvider = ({ children, currentRole }) => {
   const logout = () => {
     setToken(null);
     setRole(null);
-    setOrgType(null);
     setUser(null);
     setIsAuthenticated(false);
 
@@ -216,7 +210,6 @@ export const AuthProvider = ({ children, currentRole }) => {
       localStorage.removeItem(`authToken_${r}`);
       localStorage.removeItem(`authUser_${r}`);
       localStorage.removeItem(`profileImage_${r}`); // Clear any existing profile images
-      localStorage.removeItem(`orgType_${r}`);
     });
 
     // Clear axios header
@@ -235,7 +228,6 @@ export const AuthProvider = ({ children, currentRole }) => {
     user,
     token,
     role,
-    orgType,
     isAuthenticated,
     loading,
     login,
