@@ -5,6 +5,7 @@ import axios from 'axios';
 const RoleModal = ({ isModal = false, onClose }) => {
   const navigate = useNavigate();
   const [isDeveloperMode, setIsDeveloperMode] = useState(false);
+  const [showOrgSubOptions, setShowOrgSubOptions] = useState(false);
 
   useEffect(() => {
     console.log('[RoleModal] Component mounted');
@@ -58,6 +59,11 @@ const RoleModal = ({ isModal = false, onClose }) => {
   };
 
   const handleRoleClick = async (role) => {
+    // Certifying Organization needs sub-option selection first
+    if (role.slug === 'organization') {
+      setShowOrgSubOptions(true);
+      return;
+    }
 
     // Close modal first when in modal mode
     if (isModal && onClose) {
@@ -77,6 +83,14 @@ const RoleModal = ({ isModal = false, onClose }) => {
     if (await verifyToken(token, role)) {
       navigate(role.dashboardRoute);
     }
+  };
+
+  const handleOrgSubClick = (type) => {
+    if (isModal && onClose) {
+      onClose();
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    navigate(`/signin?role=organization&type=${type}`);
   };
 
 
@@ -114,21 +128,64 @@ const RoleModal = ({ isModal = false, onClose }) => {
             <div className="text-center">
               <h2 className="text-3xl md:text-4xl font-bold bg-linear-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent mb-2">{isDeveloperMode ? 'Admin Access' : 'Choose Your Role'}</h2>
               <p className="text-gray-600 mb-10 text-lg">{isDeveloperMode ? 'Access administrative features and system management.' : 'Select the role that best describes you to continue.'}</p>
-              <div className={`grid gap-6 ${isDeveloperMode ? 'grid-cols-1 max-w-md mx-auto' : 'grid-cols-1 md:grid-cols-2'}`}>
-                {getRoles().map((role, index) => (
-                  <div
-                    key={index}
-                    className="group bg-linear-to-br from-white via-gray-50 to-white p-4 rounded-2xl border-2 border-gray-200 cursor-pointer hover:from-emerald-50 hover:via-green-50 hover:to-emerald-100 hover:border-emerald-300/50 hover:shadow-lg hover:shadow-emerald-500/10 active:scale-[0.98] transition-all duration-300 ease-out transform hover:-translate-y-1"
-                    onClick={() => handleRoleClick(role)}
+              {showOrgSubOptions ? (
+                <div className="animate-in fade-in-0 duration-200">
+                  <button
+                    onClick={() => setShowOrgSubOptions(false)}
+                    className="flex items-center text-sm text-gray-500 hover:text-gray-700 mb-6 transition-colors"
                   >
-                    <div className="text-3xl text-emerald-600 mb-2 group-hover:text-emerald-700 group-hover:scale-110 transition-all duration-300">
-                      <i className={role.icon}></i>
+                    <i className="fas fa-arrow-left mr-2"></i> Back to roles
+                  </button>
+                  <h3 className="text-lg font-semibold text-gray-700 mb-4">How are you accessing?</h3>
+                  <div className="grid gap-4 grid-cols-1 md:grid-cols-2 mb-6">
+                    <div
+                      className="group bg-linear-to-br from-white via-gray-50 to-white p-4 rounded-2xl border-2 border-gray-200 cursor-pointer hover:from-emerald-50 hover:via-green-50 hover:to-emerald-100 hover:border-emerald-300/50 hover:shadow-lg active:scale-[0.98] transition-all duration-300 ease-out transform hover:-translate-y-1"
+                      onClick={() => handleOrgSubClick('management')}
+                    >
+                      <div className="text-3xl text-emerald-600 mb-2 group-hover:scale-110 transition-all duration-300">
+                        <i className="fas fa-chart-pie"></i>
+                      </div>
+                      <h3 className="text-lg font-bold text-gray-800 group-hover:text-emerald-800 mb-1">Management</h3>
+                      <p className="text-sm text-gray-600 group-hover:text-gray-700 leading-relaxed">Manage employees, view reports and oversee dietitian verifications.</p>
                     </div>
-                    <h3 className="text-lg font-bold text-gray-800 group-hover:text-emerald-800 mb-1">{role.name}</h3>
-                    <p className="text-sm text-gray-600 group-hover:text-gray-700 leading-relaxed">{role.description}</p>
+                    <div
+                      className="group bg-linear-to-br from-white via-gray-50 to-white p-4 rounded-2xl border-2 border-gray-200 cursor-pointer hover:from-emerald-50 hover:via-green-50 hover:to-emerald-100 hover:border-emerald-300/50 hover:shadow-lg active:scale-[0.98] transition-all duration-300 ease-out transform hover:-translate-y-1"
+                      onClick={() => handleOrgSubClick('employee')}
+                    >
+                      <div className="text-3xl text-emerald-600 mb-2 group-hover:scale-110 transition-all duration-300">
+                        <i className="fas fa-user-check"></i>
+                      </div>
+                      <h3 className="text-lg font-bold text-gray-800 group-hover:text-emerald-800 mb-1">Employee</h3>
+                      <p className="text-sm text-gray-600 group-hover:text-gray-700 leading-relaxed">Verify assigned dietitian documents and manage your tasks.</p>
+                    </div>
                   </div>
-                ))}
-              </div>
+                  <p className="text-sm text-center text-gray-500">
+                    New organization?{' '}
+                    <span
+                      className="text-emerald-600 font-medium cursor-pointer hover:underline"
+                      onClick={() => { if (isModal && onClose) onClose(); navigate('/signup?role=organization'); }}
+                    >
+                      Sign up here
+                    </span>
+                  </p>
+                </div>
+              ) : (
+                <div className={`grid gap-6 ${isDeveloperMode ? 'grid-cols-1 max-w-md mx-auto' : 'grid-cols-1 md:grid-cols-2'}`}>
+                  {getRoles().map((role, index) => (
+                    <div
+                      key={index}
+                      className="group bg-linear-to-br from-white via-gray-50 to-white p-4 rounded-2xl border-2 border-gray-200 cursor-pointer hover:from-emerald-50 hover:via-green-50 hover:to-emerald-100 hover:border-emerald-300/50 hover:shadow-lg hover:shadow-emerald-500/10 active:scale-[0.98] transition-all duration-300 ease-out transform hover:-translate-y-1"
+                      onClick={() => handleRoleClick(role)}
+                    >
+                      <div className="text-3xl text-emerald-600 mb-2 group-hover:text-emerald-700 group-hover:scale-110 transition-all duration-300">
+                        <i className={role.icon}></i>
+                      </div>
+                      <h3 className="text-lg font-bold text-gray-800 group-hover:text-emerald-800 mb-1">{role.name}</h3>
+                      <p className="text-sm text-gray-600 group-hover:text-gray-700 leading-relaxed">{role.description}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -153,21 +210,64 @@ const RoleModal = ({ isModal = false, onClose }) => {
           <div className="text-center">
             <h2 className="text-3xl md:text-4xl font-bold bg-linear-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent mb-2">{isDeveloperMode ? 'Admin Access' : 'Choose Your Role'}</h2>
             <p className="text-gray-600 mb-10 text-lg">{isDeveloperMode ? 'Access administrative features and system management.' : 'Select the role that best describes you to continue.'}</p>
-            <div className={`grid gap-6 ${isDeveloperMode ? 'grid-cols-1 max-w-md mx-auto' : 'grid-cols-1 md:grid-cols-2'}`}>
-              {getRoles().map((role, index) => (
-                <div
-                  key={index}
-                  className="group bg-linear-to-br from-white via-gray-50 to-white p-4 rounded-2xl border-2 border-gray-200 cursor-pointer hover:from-emerald-50 hover:via-green-50 hover:to-emerald-100 hover:border-emerald-300/50 hover:shadow-lg hover:shadow-emerald-500/10 active:scale-[0.98] transition-all duration-300 ease-out transform hover:-translate-y-1"
-                  onClick={() => handleRoleClick(role)}
+            {showOrgSubOptions ? (
+              <div className="animate-in fade-in-0 duration-200">
+                <button
+                  onClick={() => setShowOrgSubOptions(false)}
+                  className="flex items-center text-sm text-gray-500 hover:text-gray-700 mb-6 transition-colors"
                 >
-                  <div className="text-3xl text-emerald-600 mb-2 group-hover:text-emerald-700 group-hover:scale-110 transition-all duration-300">
-                    <i className={role.icon}></i>
+                  <i className="fas fa-arrow-left mr-2"></i> Back to roles
+                </button>
+                <h3 className="text-lg font-semibold text-gray-700 mb-4">How are you accessing?</h3>
+                <div className="grid gap-4 grid-cols-1 md:grid-cols-2 mb-6">
+                  <div
+                    className="group bg-linear-to-br from-white via-gray-50 to-white p-4 rounded-2xl border-2 border-gray-200 cursor-pointer hover:from-emerald-50 hover:via-green-50 hover:to-emerald-100 hover:border-emerald-300/50 hover:shadow-lg active:scale-[0.98] transition-all duration-300 ease-out transform hover:-translate-y-1"
+                    onClick={() => handleOrgSubClick('management')}
+                  >
+                    <div className="text-3xl text-emerald-600 mb-2 group-hover:scale-110 transition-all duration-300">
+                      <i className="fas fa-chart-pie"></i>
+                    </div>
+                    <h3 className="text-lg font-bold text-gray-800 group-hover:text-emerald-800 mb-1">Management</h3>
+                    <p className="text-sm text-gray-600 group-hover:text-gray-700 leading-relaxed">Manage employees, view reports and oversee dietitian verifications.</p>
                   </div>
-                  <h3 className="text-lg font-bold text-gray-800 group-hover:text-emerald-800 mb-1">{role.name}</h3>
-                  <p className="text-sm text-gray-600 group-hover:text-gray-700 leading-relaxed">{role.description}</p>
+                  <div
+                    className="group bg-linear-to-br from-white via-gray-50 to-white p-4 rounded-2xl border-2 border-gray-200 cursor-pointer hover:from-emerald-50 hover:via-green-50 hover:to-emerald-100 hover:border-emerald-300/50 hover:shadow-lg active:scale-[0.98] transition-all duration-300 ease-out transform hover:-translate-y-1"
+                    onClick={() => handleOrgSubClick('employee')}
+                  >
+                    <div className="text-3xl text-emerald-600 mb-2 group-hover:scale-110 transition-all duration-300">
+                      <i className="fas fa-user-check"></i>
+                    </div>
+                    <h3 className="text-lg font-bold text-gray-800 group-hover:text-emerald-800 mb-1">Employee</h3>
+                    <p className="text-sm text-gray-600 group-hover:text-gray-700 leading-relaxed">Verify assigned dietitian documents and manage your tasks.</p>
+                  </div>
                 </div>
-              ))}
-            </div>
+                <p className="text-sm text-center text-gray-500">
+                  New organization?{' '}
+                  <span
+                    className="text-emerald-600 font-medium cursor-pointer hover:underline"
+                    onClick={() => navigate('/signup?role=organization')}
+                  >
+                    Sign up here
+                  </span>
+                </p>
+              </div>
+            ) : (
+              <div className={`grid gap-6 ${isDeveloperMode ? 'grid-cols-1 max-w-md mx-auto' : 'grid-cols-1 md:grid-cols-2'}`}>
+                {getRoles().map((role, index) => (
+                  <div
+                    key={index}
+                    className="group bg-linear-to-br from-white via-gray-50 to-white p-4 rounded-2xl border-2 border-gray-200 cursor-pointer hover:from-emerald-50 hover:via-green-50 hover:to-emerald-100 hover:border-emerald-300/50 hover:shadow-lg hover:shadow-emerald-500/10 active:scale-[0.98] transition-all duration-300 ease-out transform hover:-translate-y-1"
+                    onClick={() => handleRoleClick(role)}
+                  >
+                    <div className="text-3xl text-emerald-600 mb-2 group-hover:text-emerald-700 group-hover:scale-110 transition-all duration-300">
+                      <i className={role.icon}></i>
+                    </div>
+                    <h3 className="text-lg font-bold text-gray-800 group-hover:text-emerald-800 mb-1">{role.name}</h3>
+                    <p className="text-sm text-gray-600 group-hover:text-gray-700 leading-relaxed">{role.description}</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </main>

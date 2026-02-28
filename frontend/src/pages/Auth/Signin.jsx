@@ -104,12 +104,15 @@ const Signin = () => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const [role, setRole] = useState('');
+    const [orgType, setOrgType] = useState(''); // 'management' or 'employee'
     const [message, setMessage] = useState('');
 
     // Get role from URL on mount
     useEffect(() => {
         const roleFromUrl = searchParams.get('role') || 'user';
+        const typeFromUrl = searchParams.get('type') || '';
         setRole(roleFromUrl);
+        setOrgType(typeFromUrl);
     }, [searchParams]);
 
     // Define the Formik submission handler
@@ -125,7 +128,7 @@ const Signin = () => {
 
         // Map role-specific fields to the API payload
         if (role === 'dietitian') formData.licenseNumber = values.licenseNumber;
-        if (role === 'organization') formData.licenseNumber = values.licenseNumber;
+        if (role === 'organization') { formData.licenseNumber = values.licenseNumber; formData.orgType = orgType; }
         if (role === 'admin') formData.adminKey = values.adminKey;
 
         const apiRoute = `/api/signin/${role}`; // e.g., /api/signin/user
@@ -273,7 +276,7 @@ const Signin = () => {
                     <i className="fas fa-times text-xl"></i>
                 </button>
                 <h2 className="text-center text-3xl font-bold text-[#1E6F5C] mb-6">
-                    LOG IN AS {role.toUpperCase()}
+                    LOG IN AS {role === 'organization' && orgType ? `ORGANIZATION - ${orgType.toUpperCase()}` : role.toUpperCase()}
                 </h2>
 
                 {/* Global Alert */}
