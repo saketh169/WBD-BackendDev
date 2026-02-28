@@ -19,6 +19,7 @@ const labReportRoutes = require('./routes/labReportRoutes');
 const analyticsRoutes = require('./routes/analyticsRoutes');
 const settingsRoutes = require('./routes/settingsRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const organizationRoutes = require('./routes/organizationRoutes');
 
 // Middleware imports
 const { helmetMiddleware, rateLimiter, sanitizeInput } = require('./middlewares/securityMiddleware');
@@ -109,6 +110,9 @@ app.use('/api/settings', settingsRoutes);
 
 // Notification routes mounted at '/api/analytics'
 app.use('/api/analytics', notificationRoutes);
+
+// Organization routes mounted at '/api/organization'
+app.use('/api/organization', organizationRoutes);
 
 // Health check endpoint for frontend error handling
 app.get('/api/health', (req, res) => {

@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const { User, Dietitian, Admin, Organization } = require('../models/userModel');
+const { User, Dietitian, Admin, Organization, Employee } = require('../models/userModel');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-for-development';
 
@@ -28,45 +28,72 @@ const verifyBlogAuth = async (req, res, next) => {
             });
         }
 
-        // JWT contains roleId (the actual user/dietitian ID), not userId (which is UserAuth ID)
-        const actualUserId = decoded.roleId || decoded.userId;
-
-        if (!actualUserId) {
-            return res.status(401).json({
-                success: false,
-                message: 'Invalid token structure. Please login again.'
-            });
-        }
-
-        // Get user details based on role
+        // Handle employee tokens differently
+        let actualUserId;
         let user = null;
-        const models = {
-            user: User,
-            dietitian: Dietitian,
-            admin: Admin,
-            organization: Organization
-        };
+        
+        if (decoded.employeeId) {
+            // This is an employee token
+            actualUserId = decoded.employeeId;
+            user = await Employee.findById(actualUserId).select('name email organizationId');
+            
+            if (!user) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Employee not found. Please login again.'
+                });
+            }
+            
+            // Attach employee info to request with organization role
+            req.user = {
+                userId: actualUserId,
+                userName: user.name,
+                userRole: 'organization',
+                userEmail: user.email,
+                isEmployee: true,
+                organizationId: user.organizationId
+            };
+        } else {
+            // Regular user token
+            actualUserId = decoded.roleId || decoded.userId;
 
-        const Model = models[decoded.role];
+            if (!actualUserId) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Invalid token structure. Please login again.'
+                });
+            }
 
-        if (Model) {
-            user = await Model.findById(actualUserId).select('name email');
+            // Get user details based on role
+            const models = {
+                user: User,
+                dietitian: Dietitian,
+                admin: Admin,
+                organization: Organization
+            };
+
+            const Model = models[decoded.role];
+
+            if (Model) {
+                user = await Model.findById(actualUserId).select('name email');
+            }
+
+            if (!user) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'User not found. Please login again.'
+                });
+            }
+
+            // Attach user info to request
+            req.user = {
+                userId: actualUserId,
+                userName: user.name,
+                userRole: decoded.role,
+                userEmail: user.email,
+                isEmployee: false
+            };
         }
-
-        if (!user) {
-            return res.status(401).json({
-                success: false,
-                message: 'User not found. Please login again.'
-            });
-        }
-
-        // Attach user info to request
-        req.user = {
-            userId: actualUserId,
-            userName: user.name,
-            userRole: decoded.role,
-            userEmail: user.email
-        };
 
         next();
     } catch (error) {
@@ -105,26 +132,45 @@ const optionalAuth = async (req, res, next) => {
         const token = authHeader.split(' ')[1];
         const decoded = jwt.verify(token, JWT_SECRET);
 
-        if (decoded && decoded.role) {
-            const actualUserId = decoded.roleId || decoded.userId;
-
-            const models = {
-                user: User,
-                dietitian: Dietitian,
-                admin: Admin,
-                organization: Organization
-            };
-
-            const Model = models[decoded.role];
-            if (Model && actualUserId) {
-                const user = await Model.findById(actualUserId).select('name email');
+        if (decoded) {
+            let actualUserId;
+            let user = null;
+            
+            if (decoded.employeeId) {
+                actualUserId = decoded.employeeId;
+                user = await Employee.findById(actualUserId).select('name email organizationId');
                 if (user) {
                     req.user = {
                         userId: actualUserId,
                         userName: user.name,
-                        userRole: decoded.role,
-                        userEmail: user.email
+                        userRole: 'organization',
+                        userEmail: user.email,
+                        isEmployee: true,
+                        organizationId: user.organizationId
                     };
+                }
+            } else if (decoded.role) {
+                actualUserId = decoded.roleId || decoded.userId;
+
+                const models = {
+                    user: User,
+                    dietitian: Dietitian,
+                    admin: Admin,
+                    organization: Organization
+                };
+
+                const Model = models[decoded.role];
+                if (Model && actualUserId) {
+                    user = await Model.findById(actualUserId).select('name email');
+                    if (user) {
+                        req.user = {
+                            userId: actualUserId,
+                            userName: user.name,
+                            userRole: decoded.role,
+                            userEmail: user.email,
+                            isEmployee: false
+                        };
+                    }
                 }
             }
         }

@@ -250,6 +250,7 @@ exports.signinController = async (req, res) => {
             message: 'Login successful!',
             token,
             role: authUser.role,
+            orgType: orgType || null,
             expiresIn
         });
 

@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
+import AuthContext from '../../contexts/AuthContext';
 
 const OrganizationHome = () => {
   const navigate = useNavigate();
+  const { orgType } = useContext(AuthContext);
 
   // === 1. Organization Duties Data (Focus on Governance & Oversight) ===
   const dutyItems = [
@@ -10,6 +12,10 @@ const OrganizationHome = () => {
     { title: 'Manage Blog Content', icon: 'fas fa-blog', text: 'Moderate and approve community-submitted blogs; remove inappropriate or low-quality content.', slug: 'content_blogs', route: '/organization/blog-moderation' },
     { title: 'Audit Diet Plans', icon: 'fas fa-trash-can', text: 'Review reported or expired diet plans and remove/edit non-compliant content.', slug: 'content_plans', route: '/organization/profile' },
   ];
+
+  if (orgType === 'management') {
+    dutyItems.push({ title: 'Manage Employees', icon: 'fas fa-users', text: 'Upload CSV to add employees, update their status, and monitor their activities.', slug: 'employee_management', route: '/organization/employee-management' });
+  }
 
   // === 2. Verification/Action Queues Mock Data ===
   const dashboardQueues = [

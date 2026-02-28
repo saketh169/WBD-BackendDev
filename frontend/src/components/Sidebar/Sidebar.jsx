@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import AuthContext from '../../contexts/AuthContext';
 
 const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { orgType } = useContext(AuthContext);
   const currentPath = location.pathname;
 
   // Defined to be used in the CSS variable or direct styling
@@ -56,6 +58,11 @@ const Sidebar = () => {
     { name: 'Blog Moderation', href: '/organization/blog-moderation', icon: 'fas fa-flag' },
     { name: 'Blogs', href: '/organization/blogs', icon: 'fas fa-blog' },
   ];
+
+  // Add employee management link only for management users
+  if (orgType === 'management') {
+    organizationNavLinks.push({ name: 'Manage Employees', href: '/organization/employee-management', icon: 'fas fa-users-cog' });
+  }
 
   // --- Function to Select Links based on Path ---
   const getNavLinks = () => {

@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
+import AuthContext from '../../contexts/AuthContext';
 
 // --- Color constants for UI consistency ---
 const primaryGreen = '#1E6F5C';
@@ -116,6 +117,7 @@ const getInitialValues = (role) => {
 const Signin = () => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
+    const { login } = useContext(AuthContext);
     const [role, setRole] = useState('');
     const [orgType, setOrgType] = useState(''); // 'management' or 'employee'
     const [message, setMessage] = useState('');
@@ -154,28 +156,32 @@ const Signin = () => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
 
         try {
-            const response = await axios.post(apiRoute, formData);
-            const data = response.data;
+            const additionalData = {};
+            if (role === 'dietitian') additionalData.licenseNumber = values.licenseNumber;
+            if (role === 'organization') {
+                additionalData.orgType = orgType;
+                additionalData.licenseNumber = values.licenseNumber;
+            }
+            if (role === 'admin') additionalData.adminKey = values.adminKey;
 
-            // Handle token storage
-            if (data.token) {
-                // Store token with role-specific key so multiple roles can be logged in simultaneously
-                localStorage.setItem(`authToken_${data.role}`, data.token);
-                // Store userId for profile operations
-                if (data.roleId) {
-                    localStorage.setItem('userId', data.roleId);
-                }
+            const result = await login(values.email, values.password, role, additionalData);
+
+            if (result.success) {
+                setMessage(`Sign-in successful! Redirecting...`);
+
+                // Redirect after a short delay
+                setTimeout(() => {
+                    setMessage('');
+                    // For organization, all go to home
+                    if (role === 'organization') {
+                        navigate('/organization/home');
+                    } else {
+                        navigate(roleRoutes[role]);
+                    }
+                }, 1000);
             }
 
-            setMessage(`Sign-in successful! Redirecting...`);
-
-            // Redirect after a short delay
-            setTimeout(() => {
-                setMessage('');
-                // For organization, redirect based on orgType from API response
-                if (role === 'organization') {
-                    const returnedOrgType = data.orgType || orgType;
-                    navigate(returnedOrgType === 'employee' ? '/organization/employee/dashboard' : '/organization/management/dashboard');
+        } catch (error) {
                 } else {
                     navigate(roleRoutes[role]);
                 }
