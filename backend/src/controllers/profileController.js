@@ -1,4 +1,4 @@
-﻿const { User, Admin, Dietitian, Organization } = require('../models/userModel');
+﻿const { User, Admin, Dietitian, Organization, Employee } = require('../models/userModel');
 const jwt = require('jsonwebtoken');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-for-development';
@@ -343,10 +343,40 @@ const getRoleFromToken = (req) => {
 
 /**
  * Generic function to get user details based on the role in the token
- * Works for all roles: User, Dietitian, Admin, Organization
+ * Works for all roles: User, Dietitian, Admin, Organization, Employee
  */
 async function getUserDetailsGeneric(req, res) {
     try {
+        // Decode token once to check orgType (employee vs org admin)
+        const authHeader = req.headers['authorization'];
+        const rawToken = authHeader && authHeader.split(' ')[1];
+        let decoded = null;
+        try { decoded = rawToken && jwt.verify(rawToken, JWT_SECRET); } catch (_) {}
+
+        // --- Employee path ---
+        if (decoded && decoded.orgType === 'employee') {
+            const employee = await Employee.findById(decoded.employeeId);
+            if (!employee) {
+                return res.status(404).json({ success: false, message: 'Employee not found' });
+            }
+            const org = decoded.organizationId
+                ? await Organization.findById(decoded.organizationId).select('name')
+                : null;
+            return res.status(200).json({
+                success: true,
+                role: 'organization',
+                orgType: 'employee',
+                id: employee._id,
+                name: employee.name,
+                email: employee.email,
+                org_name: org ? org.name : '',
+                licenseNumber: employee.licenseNumber,
+                address: employee.address || '',
+                phone: employee.contact || '',
+            });
+        }
+
+        // --- Org admin / other roles path ---
         const userId = getUserIdFromToken(req);
         const userRole = getRoleFromToken(req);
 

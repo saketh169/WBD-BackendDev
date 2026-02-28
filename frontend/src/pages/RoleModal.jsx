@@ -85,12 +85,43 @@ const RoleModal = ({ isModal = false, onClose }) => {
     }
   };
 
-  const handleOrgSubClick = (type) => {
+  const handleOrgSubClick = async (type) => {
     if (isModal && onClose) {
       onClose();
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    navigate(`/signin?role=organization&type=${type}`);
+
+    const token = localStorage.getItem('authToken_organization');
+    const userData = JSON.parse(localStorage.getItem('authUser_organization') || '{}');
+
+    if (type === 'management') {
+      // If a management session already exists, verify and redirect
+      if (token && userData.orgType !== 'employee') {
+        try {
+          await axios.get('/api/verify-token', { headers: { Authorization: `Bearer ${token}` } });
+          navigate('/organization/home');
+          return;
+        } catch {
+          localStorage.removeItem('authToken_organization');
+          localStorage.removeItem('authUser_organization');
+        }
+      }
+      navigate('/signin?role=organization&type=management');
+    } else {
+      // Employee: check for their own separate session token
+      const empToken = localStorage.getItem('authToken_employee');
+      if (empToken) {
+        try {
+          await axios.get('/api/verify-token', { headers: { Authorization: `Bearer ${empToken}` } });
+          navigate('/employee/home');
+          return;
+        } catch {
+          localStorage.removeItem('authToken_employee');
+          localStorage.removeItem('authUser_employee');
+        }
+      }
+      navigate('/signin?role=organization&type=employee');
+    }
   };
 
 

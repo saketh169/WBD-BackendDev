@@ -34,7 +34,23 @@ export const VerifyProvider = ({
       setError(null);
 
       // Check authentication first
-      const storedToken = localStorage.getItem(`authToken_${requiredRole}`);
+      let storedToken = localStorage.getItem(`authToken_${requiredRole}`);
+
+      // Backward-compat migration: old employee sessions stored under authToken_organization
+      if (!storedToken && requiredRole === 'employee') {
+        const orgUser = JSON.parse(localStorage.getItem('authUser_organization') || '{}');
+        if (orgUser.orgType === 'employee') {
+          const oldToken = localStorage.getItem('authToken_organization');
+          if (oldToken) {
+            localStorage.setItem('authToken_employee', oldToken);
+            localStorage.setItem('authUser_employee', JSON.stringify(orgUser));
+            localStorage.removeItem('authToken_organization');
+            localStorage.removeItem('authUser_organization');
+            storedToken = oldToken;
+          }
+        }
+      }
+
       if (!storedToken) {
         setToken(null);
         setIsAuthenticated(false);
@@ -44,6 +60,15 @@ export const VerifyProvider = ({
 
       setToken(storedToken);
       setIsAuthenticated(true);
+
+      // Employees have their own auth token (authToken_employee) and are always verified
+      // — they inherit their org's verified status so no status API call is needed.
+      if (requiredRole === 'employee') {
+        setVerificationStatus('verified');
+        setIsVerified(true);
+        setLoading(false);
+        return;
+      }
 
       // Check verification status
       try {
@@ -98,6 +123,13 @@ export const VerifyProvider = ({
         setToken(storedToken);
         setIsAuthenticated(true);
 
+        // Employees are always verified — no status API needed
+        if (requiredRole === 'employee') {
+          setVerificationStatus('verified');
+          setIsVerified(true);
+          return;
+        }
+
         // Re-fetch verification status
         axios.get(`/api/status/${requiredRole}-status`, {
           headers: {
@@ -150,6 +182,11 @@ export const VerifyProvider = ({
   if (!isAuthenticated) {
     console.warn(`[VerifyProvider] User not authenticated for role: ${requiredRole}`);
 
+    // Employees sign in through the organization form with orgType=employee
+    const signinHref = requiredRole === 'employee'
+      ? '/signin?role=organization&type=employee'
+      : `/signin?role=${requiredRole}`;
+
     return (
       <VerifyContext.Provider value={value}>
         {/* Backdrop with blur */}
@@ -166,7 +203,7 @@ export const VerifyProvider = ({
               You need to sign in to access this page. Your session has expired or you haven't logged in yet.
             </p>
             <a
-              href={`/signin?role=${requiredRole}`}
+              href={signinHref}
               className="inline-block bg-red-500 hover:bg-red-600 text-white font-semibold px-6 py-3 rounded-lg transition-colors duration-300"
             >
               Go to Sign In

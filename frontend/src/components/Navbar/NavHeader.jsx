@@ -42,9 +42,16 @@ const NavHeader = ({ renderActionButtons, handleScrollToTop }) => {
 
   const organizationNavLinks = [
     { name: 'Home', href: '/organization/home' },
-    { name: 'Verify Dietitians', href: '/organization/verify-dietitian' },
-    { name: 'Blog Moderation', href: '/organization/blog-moderation' },
     { name: 'Blogs', href: '/organization/blogs' },
+    { name: 'Manage Employees', href: '/organization/employee-management' },
+    { name: 'Staff Overview', href: '/organization/employee-monitoring' },
+  ];
+
+  const employeeNavLinks = [
+    { name: 'Home', href: '/employee/home' },
+    { name: 'Verify Dietitians', href: '/employee/verify-dietitian' },
+    { name: 'Blog Moderation', href: '/employee/blog-moderation' },
+    { name: 'Blogs', href: '/employee/blogs' },
   ];
 
   const adminNavLinks = [
@@ -67,6 +74,7 @@ const NavHeader = ({ renderActionButtons, handleScrollToTop }) => {
       return [];  // No nav links on dashboards
     }
 
+    if (currentPath.startsWith('/employee')) return employeeNavLinks;
     if (currentPath.startsWith('/admin')) return adminNavLinks;
     if (currentPath.startsWith('/organization')) return organizationNavLinks;
     if (currentPath.startsWith('/dietitian')) return dietitianNavLinks;

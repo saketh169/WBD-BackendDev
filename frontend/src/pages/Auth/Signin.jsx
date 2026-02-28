@@ -159,8 +159,20 @@ const Signin = () => {
 
             // Handle token storage
             if (data.token) {
+                // Employees get their own separate token key so they don't share with org management
+                const storageRole = (data.role === 'organization' && data.orgType === 'employee')
+                    ? 'employee'
+                    : data.role;
+
                 // Store token with role-specific key so multiple roles can be logged in simultaneously
-                localStorage.setItem(`authToken_${data.role}`, data.token);
+                localStorage.setItem(`authToken_${storageRole}`, data.token);
+                // Store user info; for employees also persist name & email immediately
+                const existingUser = JSON.parse(localStorage.getItem(`authUser_${storageRole}`) || '{}');
+                const userUpdate = { ...existingUser };
+                if (data.orgType) userUpdate.orgType = data.orgType;
+                if (data.name)    userUpdate.name  = data.name;
+                if (data.email)   userUpdate.email = data.email;
+                localStorage.setItem(`authUser_${storageRole}`, JSON.stringify(userUpdate));
                 // Store userId for profile operations
                 if (data.roleId) {
                     localStorage.setItem('userId', data.roleId);
@@ -172,7 +184,12 @@ const Signin = () => {
             // Redirect after a short delay
             setTimeout(() => {
                 setMessage('');
-                navigate(roleRoutes[role]);
+                // Employees go to their own home page
+                if (role === 'organization' && (orgType === 'employee' || data.orgType === 'employee')) {
+                    navigate('/employee/home');
+                } else {
+                    navigate(roleRoutes[role]);
+                }
             }, 1000);
 
         } catch (error) {

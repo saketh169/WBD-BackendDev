@@ -6,6 +6,7 @@ import UserLayout from './Routes/UserRoutes.jsx';
 import AdminLayout from './Routes/AdminRoutes.jsx';
 import OrganizationLayout from './Routes/OrganizationRoutes.jsx';
 import DietitianLayout from './Routes/DietitianRoutes.jsx';
+import EmployeeLayout from './Routes/EmployeeRoutes.jsx';
 import NotFoundPage from './pages/Error/NotFoundPage.jsx';
 
 export default function Layout() {
@@ -32,6 +33,11 @@ export default function Layout() {
             <Route path="/dietitian/*" element={
               <ProtectedProvider requiredRole="dietitian">
                 <DietitianLayout />
+              </ProtectedProvider>
+            } />
+            <Route path="/employee/*" element={
+              <ProtectedProvider requiredRole="employee">
+                <EmployeeLayout />
               </ProtectedProvider>
             } />
             <Route path="*" element={<NotFoundPage />} />

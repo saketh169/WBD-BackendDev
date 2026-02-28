@@ -44,7 +44,7 @@ const App = () => {
         <Routes>
           {/* Error Routes - NO Header/Footer */}
           <Route path="/rate-limit" element={<RateLimit429 />} />
-            
+                        
             {/* All other routes with normal layout */}
             <Route path="*" element={
               <div className="app-container">

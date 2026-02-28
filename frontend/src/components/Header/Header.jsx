@@ -9,6 +9,7 @@ import RoleModal from '../../pages/RoleModal';
 const getBasePath = (currentPath) => {
   if (currentPath.startsWith('/admin')) return '/admin';
   if (currentPath.startsWith('/organization')) return '/organization';
+  if (currentPath.startsWith('/employee')) return '/employee';
   if (currentPath.startsWith('/dietitian')) return '/dietitian';
   if (currentPath.startsWith('/user')) return '/user';
   return ''; // Base path for non-logged-in users
@@ -58,6 +59,7 @@ const Header = () => {
   const getCurrentRoleFromPath = () => {
     if (currentPath.startsWith('/admin')) return 'admin';
     if (currentPath.startsWith('/organization')) return 'organization';
+    if (currentPath.startsWith('/employee')) return 'organization'; // employees use org auth
     if (currentPath.startsWith('/dietitian')) return 'dietitian';
     if (currentPath.startsWith('/user')) return 'user';
     return null;
@@ -122,7 +124,8 @@ const Header = () => {
     currentPath.startsWith('/user') ||
     currentPath.startsWith('/dietitian') ||
     currentPath.startsWith('/admin') ||
-    currentPath.startsWith('/organization');
+    currentPath.startsWith('/organization') ||
+    currentPath.startsWith('/employee');
 
   // Check if user is on a profile page
   const isProfilePage =
@@ -164,22 +167,20 @@ const Header = () => {
     let currentRole = null;
     if (currentPath.startsWith('/admin')) currentRole = 'admin';
     else if (currentPath.startsWith('/organization')) currentRole = 'organization';
+    else if (currentPath.startsWith('/employee')) currentRole = 'employee';
     else if (currentPath.startsWith('/dietitian')) currentRole = 'dietitian';
     else if (currentPath.startsWith('/user')) currentRole = 'user';
 
     if (currentRole) {
-      // Remove only the current role's token
       localStorage.removeItem(`authToken_${currentRole}`);
+      localStorage.removeItem(`authUser_${currentRole}`);
       console.log(`[Header] Removed authToken_${currentRole}`);
     }
 
     // Clear profile image for this session
     localStorage.removeItem('profileImage');
 
-    console.log('[Header] Logging out from:', currentRole || 'unknown role');
     console.log('[Header] Redirecting to home...');
-
-    // Redirect to home
     navigate('/');
   };
   // --- END Logout Handler ---
@@ -255,6 +256,50 @@ const Header = () => {
     );
   };
 
+  // Minimal header for employee routes — logo + profile + logout
+  if (currentPath.startsWith('/employee')) {
+    const iconButtonBaseClass = "relative flex items-center justify-center p-2 rounded-full transition-all duration-300 group";
+    const tooltipTextClass = "absolute top-full mt-2 px-3 py-1 bg-gray-700 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap z-10";
+    return (
+      <>
+        <header className="bg-white shadow-sm py-2 sticky top-0 z-50 border-b-2 border-[#28B463]">
+          <FontAwesomeLink />
+          <div className="flex items-center justify-between">
+            {/* Logo with left padding */}
+            <div className="pl-4 md:pl-8 lg:pl-16">
+              <NavLink
+                to="/employee/home"
+                onClick={handleScrollToTop}
+                className="flex items-center font-bold text-2xl md:text-3xl text-[#1E6F5C] select-none group cursor-pointer"
+              >
+                <div className="flex items-center justify-center w-10 h-10 md:w-12 md:h-12 bg-[#28B463] rounded-full mr-2 md:mr-3 group-hover:bg-[#1E6F5C] group-hover:scale-110 transition-all duration-300">
+                  <i className="fas fa-leaf text-xl text-white animate-pulse"></i>
+                </div>
+                <span className="font-poppins group-hover:text-[#28B463] transition-colors duration-300">
+                  <span className="text-[#28B463] group-hover:text-[#1E6F5C]">N</span>utri
+                  <span className="text-[#28B463] group-hover:text-[#1E6F5C]">C</span>onnect
+                </span>
+              </NavLink>
+            </div>
+            {/* Logout button with right padding */}
+            <div className="pr-4 md:pr-8 lg:pr-16">
+              <button
+                onClick={handleLogout}
+                className={`${iconButtonBaseClass} bg-[#28B463] text-white hover:bg-[#1E6F5C]`}
+                aria-label="Log Out"
+              >
+                <i className="fas fa-sign-out-alt text-3xl"></i>
+                <span className={tooltipTextClass}>Log Out</span>
+              </button>
+            </div>
+          </div>
+        </header>
+        {/* Floating Contact Us button */}
+        <FloatingContactButton handleScrollToTop={handleScrollToTop} contactPath="/employee/contact-us" />
+      </>
+    );
+  }
+
   return (
     <>
       <header className={`${isProfilePage ? 'bg-[#E8F5E9]' : 'bg-white'} shadow-sm ${isLoggedInArea ? 'py-2' : 'py-3'} px-4 md:px-8 lg:px-16 sticky top-0 z-50 border-b-2 border-[#28B463]`}>
@@ -285,7 +330,7 @@ const Header = () => {
       </header>
 
       {/* Show floating Contact Us button only for user and dietitian pages */}
-      {(currentPath.startsWith('/user') || currentPath.startsWith('/dietitian')) && (
+      {(currentPath.startsWith('/user') || currentPath.startsWith('/dietitian') || currentPath.startsWith('/organization')) && (
         <FloatingContactButton
           handleScrollToTop={handleScrollToTop}
           // **PASSING the dynamic contact path to the FloatingContactButton**

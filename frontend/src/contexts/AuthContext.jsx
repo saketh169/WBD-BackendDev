@@ -19,7 +19,23 @@ export const AuthProvider = ({ children, currentRole }) => {
 
       if (currentRole) {
         // If currentRole is provided, use it specifically
-        const token = localStorage.getItem(`authToken_${currentRole}`);
+        let token = localStorage.getItem(`authToken_${currentRole}`);
+
+        // Backward-compat migration: old employee sessions stored under authToken_organization
+        if (!token && currentRole === 'employee') {
+          const orgUser = JSON.parse(localStorage.getItem('authUser_organization') || '{}');
+          if (orgUser.orgType === 'employee') {
+            const oldToken = localStorage.getItem('authToken_organization');
+            if (oldToken) {
+              // Migrate to dedicated employee keys
+              localStorage.setItem('authToken_employee', oldToken);
+              localStorage.setItem('authUser_employee', JSON.stringify(orgUser));
+              localStorage.removeItem('authToken_organization');
+              localStorage.removeItem('authUser_organization');
+              token = oldToken;
+            }
+          }
+        }
         const user = localStorage.getItem(`authUser_${currentRole}`);
 
         if (token) {
@@ -46,7 +62,8 @@ export const AuthProvider = ({ children, currentRole }) => {
         }
       } else {
         // Fallback: check all roles if no currentRole provided
-        const roles = ['user', 'admin', 'organization', 'dietitian'];
+        // employee must come before organization to avoid picking org token for employee sessions
+        const roles = ['user', 'admin', 'employee', 'organization', 'dietitian'];
         let foundToken = null;
         let foundRole = null;
 
@@ -97,6 +114,7 @@ export const AuthProvider = ({ children, currentRole }) => {
         user: '/api/getuserdetails',
         dietitian: '/api/getdietitiandetails',
         organization: '/api/getorganizationdetails',
+        employee: '/api/getorganizationdetails',
         admin: '/api/getadmindetails'
       };
 
@@ -205,7 +223,7 @@ export const AuthProvider = ({ children, currentRole }) => {
     setIsAuthenticated(false);
 
     // Clear all role-specific localStorage
-    const roles = ['user', 'admin', 'organization', 'dietitian'];
+    const roles = ['user', 'admin', 'organization', 'employee', 'dietitian'];
     roles.forEach(r => {
       localStorage.removeItem(`authToken_${r}`);
       localStorage.removeItem(`authUser_${r}`);

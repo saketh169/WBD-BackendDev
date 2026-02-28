@@ -5,6 +5,7 @@ import NotFoundPage from '../pages/Error/NotFoundPage';
 
 import OrganizationHome from '../pages/HomePages/OrganizationHome';
 import OrganizationDashboard from '../pages/Dashboards/Organization';
+import Contact from '../pages/Contactus';
 
 import OrgDocStatus from '../pages/Status/OrgDocStatus';
 import DietitianVerify from '../pages/Verify/DietitianVerify';
@@ -48,6 +49,7 @@ export default function OrganizationRoutes() {
           {/* Employee Management Routes */}
           <Route path="employee-management" element={<EmployeeManagement />} />
           <Route path="employee-monitoring" element={<EmployeeMonitoring />} />
+          <Route path="contact-us" element={<Contact />} />
 
           <Route path="*" element={<NotFoundPage role="organization" />} />
         </Routes>

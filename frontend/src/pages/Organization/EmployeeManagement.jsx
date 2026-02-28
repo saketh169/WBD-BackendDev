@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 
 const EmployeeManagement = () => {
@@ -10,6 +10,14 @@ const EmployeeManagement = () => {
     const [selectedEmployee, setSelectedEmployee] = useState(null);
     const [csvFile, setCsvFile] = useState(null);
     const [uploadResult, setUploadResult] = useState(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 10;
+    const tableRef = useRef(null);
+
+    const handlePageChange = (page) => {
+        setCurrentPage(page);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
 
     // Derive license prefix from stored org name (first 3 uppercase letters)
     const authUser = JSON.parse(localStorage.getItem('authUser_organization') || '{}');
@@ -41,6 +49,7 @@ const EmployeeManagement = () => {
     // Fetch all employees
     const fetchEmployees = async () => {
         setLoading(true);
+        setCurrentPage(1);
         try {
             const token = localStorage.getItem('authToken_organization');
             const response = await axios.get(`/api/employees`, {
@@ -272,15 +281,44 @@ const EmployeeManagement = () => {
         }
     };
 
-    // Download CSV template
+    // Download employees list as CSV
     const downloadTemplate = () => {
+        const headers = 'name,email,age,address,contact,licenseNumber,status';
+        const rows = (employees || []).map(emp =>
+            [
+                `"${(emp.name || '').replace(/"/g, '""')}"`,
+                `"${(emp.email || '').replace(/"/g, '""')}"`,
+                emp.age || '',
+                `"${(emp.address || '').replace(/"/g, '""')}"`,
+                emp.contact || '',
+                emp.licenseNumber || '',
+                emp.status || ''
+            ].join(',')
+        );
+        const csvContent = [headers, ...rows].join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const date = new Date().toISOString().slice(0, 10);
+        a.download = `${orgName.replace(/\s+/g, '_') || 'org'}_employees_${date}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+    };
+
+    // Download blank CSV template for bulk upload
+    const downloadUploadTemplate = () => {
         const csvContent = 'name,email,password,age,address,contact\nJohn Doe,john@example.com,password123,28,123 Main St,9876543210\nJane Smith,jane@example.com,pass456,32,456 Park Ave,9123456780';
         const blob = new Blob([csvContent], { type: 'text/csv' });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
         a.download = 'employee_upload_template.csv';
+        document.body.appendChild(a);
         a.click();
+        document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
     };
 
@@ -350,16 +388,17 @@ const EmployeeManagement = () => {
                             {showAddForm ? 'Cancel' : 'Add Employee'}
                         </button>
                         <button
-                            onClick={() => setShowBulkUpload(true)}
-                            className="bg-[#2980B9] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[#1A5276] transition-all duration-200 shadow-md"
+                            onClick={() => setShowBulkUpload(!showBulkUpload)}
+                            className={`${showBulkUpload ? 'bg-red-500 hover:bg-red-600' : 'bg-[#2980B9] hover:bg-[#1A5276]'} text-white px-6 py-3 rounded-lg font-semibold transition-all duration-200 shadow-md`}
                         >
-                            <i className="fas fa-upload mr-2"></i>Bulk Upload
+                            <i className={`fas ${showBulkUpload ? 'fa-times' : 'fa-upload'} mr-2`}></i>
+                            {showBulkUpload ? 'Cancel' : 'Bulk Upload'}
                         </button>
                         <button
                             onClick={downloadTemplate}
                             className="bg-gray-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-700 transition-all duration-200 shadow-md"
                         >
-                            <i className="fas fa-download mr-2"></i>Download Template
+                            <i className="fas fa-file-export mr-2"></i>Export Employees
                         </button>
                         <button
                             onClick={fetchEmployees}
@@ -479,8 +518,8 @@ const EmployeeManagement = () => {
                                     {errors.licenseNumber && <p className="text-red-500 text-sm mt-1">{errors.licenseNumber}</p>}
                                 </div>
 
-                                {/* LEFT — Address (full width) */}
-                                <div className="md:col-span-2">
+                                {/* LEFT — Address */}
+                                <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-2">Address</label>
                                     <textarea
                                         name="address"
@@ -535,8 +574,112 @@ const EmployeeManagement = () => {
                     </div>
                 )}
 
+                {/* Bulk Upload Form - Inline */}
+                {showBulkUpload && (
+                    <div className="bg-white rounded-2xl shadow-lg p-8 mb-6 border-t-4 border-[#2980B9]">
+                        <h2 className="text-2xl font-bold text-[#1A4A40] mb-6">
+                            <i className="fas fa-file-upload mr-3"></i>Bulk Upload Employees
+                        </h2>
+
+                        <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 rounded">
+                            <h3 className="font-semibold text-blue-900 mb-2">CSV Format Instructions:</h3>
+                            <ul className="text-sm text-blue-800 space-y-1 ml-4">
+                                <li>• Headers: name, email, password, age, address, contact</li>
+                                <li>• Required: name, email, password — age/address/contact are optional</li>
+                                <li>• Duplicate emails are automatically skipped</li>
+                                <li>• Download the template below for reference</li>
+                            </ul>
+                        </div>
+
+                        <form onSubmit={handleBulkUpload}>
+                            <div className="mb-6">
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                    Select CSV File <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    type="file"
+                                    accept=".csv"
+                                    onChange={handleFileChange}
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2980B9] focus:border-transparent"
+                                />
+                                {csvFile && (
+                                    <p className="text-sm text-green-600 mt-2">
+                                        <i className="fas fa-check-circle mr-1"></i>
+                                        {csvFile.name}
+                                    </p>
+                                )}
+                            </div>
+
+                            {uploadResult && (
+                                <div className="mb-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                    <h4 className="font-semibold text-gray-900 mb-3">Upload Results:</h4>
+                                    <div className="space-y-2">
+                                        <p className="text-green-600">
+                                            <i className="fas fa-check-circle mr-2"></i>
+                                            Successfully added: {uploadResult.added} employees
+                                        </p>
+                                        {uploadResult.skipped > 0 && (
+                                            <p className="text-yellow-600">
+                                                <i className="fas fa-forward mr-2"></i>
+                                                Skipped (already exist): {uploadResult.skipped}
+                                            </p>
+                                        )}
+                                        {uploadResult.errors > 0 && (
+                                            <div>
+                                                <p className="text-red-600">
+                                                    <i className="fas fa-exclamation-circle mr-2"></i>
+                                                    Errors: {uploadResult.errors}
+                                                </p>
+                                                <div className="ml-6 mt-2 text-sm text-red-700 max-h-40 overflow-y-auto">
+                                                    {uploadResult.errorDetails.map((error, index) => (
+                                                        <p key={index}>• {error}</p>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="flex justify-between gap-4 mt-4">
+                                <button
+                                    type="button"
+                                    onClick={downloadUploadTemplate}
+                                    className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 font-semibold transition-colors shadow-md"
+                                >
+                                    <i className="fas fa-download mr-2"></i>Download Template
+                                </button>
+                                <div className="flex gap-4">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setShowBulkUpload(false);
+                                            setCsvFile(null);
+                                            setUploadResult(null);
+                                        }}
+                                        className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-semibold transition-colors"
+                                    >
+                                        <i className="fas fa-times mr-2"></i>Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={loading || !csvFile}
+                                        className="px-6 py-3 bg-[#2980B9] text-white rounded-lg hover:bg-[#1A5276] font-semibold transition-colors disabled:opacity-50 shadow-md"
+                                    >
+                                        {loading ? (
+                                            <><i className="fas fa-spinner fa-spin mr-2"></i>Uploading...</>
+                                        ) : (
+                                            <><i className="fas fa-upload mr-2"></i>Upload & Add</>
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                )}
+
                 {/* Employees Table */}
-                <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+                <div ref={tableRef} className="bg-white rounded-lg shadow-lg overflow-hidden">
                     <div className="p-6 border-b border-gray-200">
                         <h2 className="text-xl font-bold text-[#1A4A40]">
                             All Employees ({employees?.length || 0})
@@ -569,7 +712,7 @@ const EmployeeManagement = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200">
-                                    {employees.map((employee) => (
+                                    {employees.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map((employee) => (
                                         <tr key={employee._id} className="hover:bg-gray-50 transition-colors">
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <div className="font-medium text-gray-900">{employee.name}</div>
@@ -638,6 +781,55 @@ const EmployeeManagement = () => {
                                     ))}
                                 </tbody>
                             </table>
+                            {/* Pagination */}
+                            <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-white">
+                                    <p className="text-sm text-gray-600">
+                                        Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, employees.length)} of {employees.length} employees
+                                    </p>
+                                    <div className="flex items-center gap-1">
+                                        <button
+                                            onClick={() => handlePageChange(1)}
+                                            disabled={currentPage === 1}
+                                            className="px-2 py-1 rounded text-sm border border-gray-300 disabled:opacity-40 hover:bg-gray-100"
+                                        >«</button>
+                                        <button
+                                            onClick={() => handlePageChange(Math.max(currentPage - 1, 1))}
+                                            disabled={currentPage === 1}
+                                            className="px-3 py-1 rounded text-sm border border-gray-300 disabled:opacity-40 hover:bg-gray-100"
+                                        >‹</button>
+                                        {Array.from({ length: Math.ceil(employees.length / ITEMS_PER_PAGE) }, (_, i) => i + 1)
+                                            .filter(p => p === 1 || p === Math.ceil(employees.length / ITEMS_PER_PAGE) || Math.abs(p - currentPage) <= 1)
+                                            .reduce((acc, p, idx, arr) => {
+                                                if (idx > 0 && p - arr[idx - 1] > 1) acc.push('...');
+                                                acc.push(p);
+                                                return acc;
+                                            }, [])
+                                            .map((p, i) => p === '...' ? (
+                                                <span key={`ellipsis-${i}`} className="px-2 py-1 text-gray-400">…</span>
+                                            ) : (
+                                                <button
+                                                    key={p}
+                                                    onClick={() => handlePageChange(p)}
+                                                    className={`px-3 py-1 rounded text-sm border ${
+                                                        currentPage === p
+                                                            ? 'bg-[#27AE60] text-white border-[#27AE60]'
+                                                            : 'border-gray-300 hover:bg-gray-100'
+                                                    }`}
+                                                >{p}</button>
+                                            ))
+                                        }
+                                        <button
+                                            onClick={() => handlePageChange(Math.min(currentPage + 1, Math.ceil(employees.length / ITEMS_PER_PAGE)))}
+                                            disabled={currentPage === Math.ceil(employees.length / ITEMS_PER_PAGE)}
+                                            className="px-3 py-1 rounded text-sm border border-gray-300 disabled:opacity-40 hover:bg-gray-100"
+                                        >›</button>
+                                        <button
+                                            onClick={() => handlePageChange(Math.ceil(employees.length / ITEMS_PER_PAGE))}
+                                            disabled={currentPage === Math.ceil(employees.length / ITEMS_PER_PAGE)}
+                                            className="px-2 py-1 rounded text-sm border border-gray-300 disabled:opacity-40 hover:bg-gray-100"
+                                        >»</button>
+                                    </div>
+                                </div>
                         </div>
                     )}
                 </div>
@@ -761,110 +953,6 @@ const EmployeeManagement = () => {
                     </div>
                 )}
 
-                {/* Bulk Upload Modal */}
-                {showBulkUpload && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                        <div className="bg-white rounded-lg shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-                            <div className="bg-[#2980B9] text-white p-6 rounded-t-lg">
-                                <h2 className="text-2xl font-bold">
-                                    <i className="fas fa-file-upload mr-2"></i>Bulk Upload Employees
-                                </h2>
-                            </div>
-                            <div className="p-6">
-                                <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
-                                    <h3 className="font-semibold text-blue-900 mb-2">CSV Format Instructions:</h3>
-                                    <ul className="text-sm text-blue-800 space-y-1 ml-4">
-                                        <li>• Headers: name, email, password, age, address, contact</li>
-                                        <li>• Required: name, email, password — age/address/contact are optional</li>
-                                        <li>• Duplicate emails are automatically skipped</li>
-                                        <li>• Download the template below for reference</li>
-                                    </ul>
-                                </div>
-
-                                <form onSubmit={handleBulkUpload}>
-                                    <div className="mb-6">
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                            Select CSV File <span className="text-red-500">*</span>
-                                        </label>
-                                        <input
-                                            type="file"
-                                            accept=".csv"
-                                            onChange={handleFileChange}
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2980B9] focus:border-transparent"
-                                        />
-                                        {csvFile && (
-                                            <p className="text-sm text-green-600 mt-2">
-                                                <i className="fas fa-check-circle mr-1"></i>
-                                                {csvFile.name}
-                                            </p>
-                                        )}
-                                    </div>
-
-                                    {uploadResult && (
-                                        <div className="mb-6 bg-gray-50 p-4 rounded-lg">
-                                            <h4 className="font-semibold text-gray-900 mb-3">Upload Results:</h4>
-                                            <div className="space-y-2">
-                                                <p className="text-green-600">
-                                                    <i className="fas fa-check-circle mr-2"></i>
-                                                    Successfully added: {uploadResult.added} employees
-                                                </p>
-                                                {uploadResult.skipped > 0 && (
-                                                    <p className="text-yellow-600">
-                                                        <i className="fas fa-skip-forward mr-2"></i>
-                                                        Skipped (already exist): {uploadResult.skipped}
-                                                    </p>
-                                                )}
-                                                {uploadResult.errors > 0 && (
-                                                    <div>
-                                                        <p className="text-red-600">
-                                                            <i className="fas fa-exclamation-circle mr-2"></i>
-                                                            Errors: {uploadResult.errors}
-                                                        </p>
-                                                        <div className="ml-6 mt-2 text-sm text-red-700 max-h-40 overflow-y-auto">
-                                                            {uploadResult.errorDetails.map((error, index) => (
-                                                                <p key={index}>• {error}</p>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    <div className="flex justify-between gap-4">
-                                        <button
-                                            type="button"
-                                            onClick={downloadTemplate}
-                                            className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-                                        >
-                                            <i className="fas fa-download mr-2"></i>Download Template
-                                        </button>
-                                        <div className="flex gap-4">
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    setShowBulkUpload(false);
-                                                    setCsvFile(null);
-                                                    setUploadResult(null);
-                                                }}
-                                                className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                                            >
-                                                Close
-                                            </button>
-                                            <button
-                                                type="submit"
-                                                disabled={loading || !csvFile}
-                                                className="px-6 py-2 bg-[#2980B9] text-white rounded-lg hover:bg-[#1A5276] transition-colors disabled:opacity-50"
-                                            >
-                                                {loading ? 'Uploading...' : 'Upload & Add'}
-                                            </button>
-                                        </div>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                )}
             </div>
         </div>
     );

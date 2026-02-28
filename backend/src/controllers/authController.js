@@ -194,6 +194,9 @@ exports.signinController = async (req, res) => {
                 token,
                 role: 'organization',
                 orgType: 'employee',
+                roleId: employee._id,
+                name: employee.name,
+                email: employee.email,
                 expiresIn
             });
         }
