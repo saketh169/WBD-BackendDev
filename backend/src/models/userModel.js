@@ -189,21 +189,14 @@ const EmployeeSchema = new Schema({
     // Format: first 3 letters of org name (uppercase) + 6 digits e.g. APO123456
     licenseNumber: { type: String, required: true, unique: true, match: /^[A-Z]{3}[0-9]{6}$/ },
     organizationId: { type: Schema.Types.ObjectId, ref: 'Organization', required: true },
-    employeeRole: {
-        type: String,
-        enum: ['admin', 'manager', 'verifier'],
-        default: 'verifier'
-    },
-    department: {
-        type: String,
-        enum: ['Document Review', 'Verification', 'Quality Assurance', 'Management'],
-        default: 'Document Review'
-    },
     status: {
         type: String,
         enum: ['active', 'inactive', 'pending-activation'],
         default: 'pending-activation'
     },
+    age: { type: Number, default: null },
+    address: { type: String, default: null, trim: true },
+    contact: { type: String, default: null, trim: true },
     inviteSentAt: { type: Date, default: null },
     activatedAt: { type: Date, default: null },
     lastLogin: { type: Date, default: null },

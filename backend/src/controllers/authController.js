@@ -184,7 +184,7 @@ exports.signinController = async (req, res) => {
 
             const expiresIn = rememberMe ? '7d' : '1d';
             const token = jwt.sign(
-                { employeeId: employee._id, organizationId: employee.organizationId, role: 'organization', orgType: 'employee', employeeRole: employee.employeeRole },
+                { employeeId: employee._id, organizationId: employee.organizationId, role: 'organization', orgType: 'employee' },
                 JWT_SECRET,
                 { expiresIn }
             );
@@ -194,7 +194,6 @@ exports.signinController = async (req, res) => {
                 token,
                 role: 'organization',
                 orgType: 'employee',
-                employeeRole: employee.employeeRole,
                 expiresIn
             });
         }

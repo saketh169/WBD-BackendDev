@@ -6,19 +6,19 @@ const EmployeeMonitoring = () => {
     const [employees, setEmployees] = useState([]);
     const [loading, setLoading] = useState(false);
     const [filter, setFilter] = useState('all'); // all, active, inactive, pending
-    const [selectedDepartment, setSelectedDepartment] = useState('all');
 
     // Fetch employee statistics
     const fetchStats = async () => {
         setLoading(true);
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/employees/stats`, {
+            const response = await axios.get(`/api/employees/stats`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setStats(response.data.data);
         } catch (error) {
             console.error('Error fetching stats:', error);
+            setStats(null); // Ensure stats is explicitly set on error
         } finally {
             setLoading(false);
         }
@@ -29,12 +29,13 @@ const EmployeeMonitoring = () => {
         setLoading(true);
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/employees`, {
+            const response = await axios.get(`/api/employees`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setEmployees(response.data.data);
         } catch (error) {
             console.error('Error fetching employees:', error);
+            setEmployees([]); // Ensure employees is always an array
         } finally {
             setLoading(false);
         }
@@ -45,11 +46,9 @@ const EmployeeMonitoring = () => {
         fetchEmployees();
     }, []);
 
-    // Filter employees based on status and department
-    const filteredEmployees = employees.filter(emp => {
-        const statusMatch = filter === 'all' || emp.status === filter;
-        const deptMatch = selectedDepartment === 'all' || emp.department === selectedDepartment;
-        return statusMatch && deptMatch;
+    // Filter employees based on status
+    const filteredEmployees = (employees || []).filter(emp => {
+        return filter === 'all' || emp.status === filter;
     });
 
     // Format date
@@ -147,90 +146,6 @@ const EmployeeMonitoring = () => {
                             </div>
                         )}
 
-                        {/* Role Distribution & Department Distribution */}
-                        {stats && (
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                                {/* By Role */}
-                                <div className="bg-white rounded-lg shadow-lg p-6">
-                                    <h2 className="text-xl font-bold text-[#1A4A40] mb-4">
-                                        <i className="fas fa-user-tag mr-2"></i>Distribution by Role
-                                    </h2>
-                                    <div className="space-y-4">
-                                        {stats.byRole && stats.byRole.length > 0 ? (
-                                            stats.byRole.map((role, index) => {
-                                                const percentage = stats.total > 0 ? (role.count / stats.total) * 100 : 0;
-                                                const colors = {
-                                                    admin: 'bg-purple-500',
-                                                    manager: 'bg-indigo-500',
-                                                    verifier: 'bg-green-500'
-                                                };
-                                                return (
-                                                    <div key={index}>
-                                                        <div className="flex items-center justify-between mb-2">
-                                                            <span className="text-gray-700 font-semibold capitalize">
-                                                                {role._id}
-                                                            </span>
-                                                            <span className="text-gray-600 font-medium">
-                                                                {role.count} ({percentage.toFixed(0)}%)
-                                                            </span>
-                                                        </div>
-                                                        <div className="w-full bg-gray-200 rounded-full h-3">
-                                                            <div
-                                                                className={`${colors[role._id] || 'bg-gray-500'} h-3 rounded-full transition-all duration-500`}
-                                                                style={{ width: `${percentage}%` }}
-                                                            ></div>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })
-                                        ) : (
-                                            <p className="text-gray-500 text-center py-4">No role data available</p>
-                                        )}
-                                    </div>
-                                </div>
-
-                                {/* By Department */}
-                                <div className="bg-white rounded-lg shadow-lg p-6">
-                                    <h2 className="text-xl font-bold text-[#1A4A40] mb-4">
-                                        <i className="fas fa-building mr-2"></i>Distribution by Department
-                                    </h2>
-                                    <div className="space-y-4">
-                                        {stats.byDepartment && stats.byDepartment.length > 0 ? (
-                                            stats.byDepartment.map((dept, index) => {
-                                                const percentage = stats.total > 0 ? (dept.count / stats.total) * 100 : 0;
-                                                const colors = [
-                                                    'bg-blue-500',
-                                                    'bg-teal-500',
-                                                    'bg-pink-500',
-                                                    'bg-orange-500'
-                                                ];
-                                                return (
-                                                    <div key={index}>
-                                                        <div className="flex items-center justify-between mb-2">
-                                                            <span className="text-gray-700 font-semibold">
-                                                                {dept._id}
-                                                            </span>
-                                                            <span className="text-gray-600 font-medium">
-                                                                {dept.count} ({percentage.toFixed(0)}%)
-                                                            </span>
-                                                        </div>
-                                                        <div className="w-full bg-gray-200 rounded-full h-3">
-                                                            <div
-                                                                className={`${colors[index % colors.length]} h-3 rounded-full transition-all duration-500`}
-                                                                style={{ width: `${percentage}%` }}
-                                                            ></div>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })
-                                        ) : (
-                                            <p className="text-gray-500 text-center py-4">No department data available</p>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
                         {/* Filters */}
                         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
                             <div className="flex flex-wrap items-center gap-4">
@@ -250,28 +165,10 @@ const EmployeeMonitoring = () => {
                                     </select>
                                 </div>
 
-                                <div className="flex-1 min-w-[200px]">
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                        Filter by Department
-                                    </label>
-                                    <select
-                                        value={selectedDepartment}
-                                        onChange={(e) => setSelectedDepartment(e.target.value)}
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#27AE60] focus:border-transparent"
-                                    >
-                                        <option value="all">All Departments</option>
-                                        <option value="Document Review">Document Review</option>
-                                        <option value="Verification">Verification</option>
-                                        <option value="Quality Assurance">Quality Assurance</option>
-                                        <option value="Management">Management</option>
-                                    </select>
-                                </div>
-
                                 <div className="flex-1 min-w-[200px] flex items-end">
                                     <button
                                         onClick={() => {
                                             setFilter('all');
-                                            setSelectedDepartment('all');
                                         }}
                                         className="w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
                                     >
@@ -312,8 +209,7 @@ const EmployeeMonitoring = () => {
                                             <tr>
                                                 <th className="px-6 py-3 text-left text-xs font-semibold text-[#1A4A40] uppercase tracking-wider">Employee</th>
                                                 <th className="px-6 py-3 text-left text-xs font-semibold text-[#1A4A40] uppercase tracking-wider">License</th>
-                                                <th className="px-6 py-3 text-left text-xs font-semibold text-[#1A4A40] uppercase tracking-wider">Role</th>
-                                                <th className="px-6 py-3 text-left text-xs font-semibold text-[#1A4A40] uppercase tracking-wider">Department</th>
+
                                                 <th className="px-6 py-3 text-left text-xs font-semibold text-[#1A4A40] uppercase tracking-wider">Status</th>
                                                 <th className="px-6 py-3 text-left text-xs font-semibold text-[#1A4A40] uppercase tracking-wider">Last Login</th>
                                                 <th className="px-6 py-3 text-left text-xs font-semibold text-[#1A4A40] uppercase tracking-wider">Joined</th>
@@ -337,18 +233,6 @@ const EmployeeMonitoring = () => {
                                                         <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-mono">
                                                             {employee.licenseNumber}
                                                         </span>
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                                                            employee.employeeRole === 'admin' ? 'bg-purple-100 text-purple-800' :
-                                                            employee.employeeRole === 'manager' ? 'bg-indigo-100 text-indigo-800' :
-                                                            'bg-green-100 text-green-800'
-                                                        }`}>
-                                                            {employee.employeeRole}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                                        {employee.department}
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap">
                                                         <span className={`px-3 py-1 rounded-full text-sm font-semibold inline-flex items-center ${

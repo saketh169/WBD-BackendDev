@@ -37,7 +37,7 @@ const getInitialValues = (role) => {
         case 'dietitian':
             return { ...base, age: '', licenseNumber: '' };
         case 'organization':
-            return { ...base, organizationLicenseNumber: '' };
+            return { ...base, organizationLicenseNumber: '', address: '', organizationType: '' };
         default:
             return {};
     }
@@ -135,6 +135,9 @@ const buildSignupValidationSchema = (role) => {
                     .required('License Number is required.')
                     .matches(/^OLN[0-9]{6}$/, 'License Number must be in the format OLN followed by 6 digits (e.g., OLN123456).')
                     .length(9, 'License Number must be 9 characters (e.g., OLN123456).'),
+                organizationType: Yup.string()
+                    .required('Organization Type is required.')
+                    .oneOf(['private', 'ppo', 'freelancing', 'ngo', 'government', 'other'], 'Invalid organization type.'),
                 address: Yup.string()
                     .required('Address is required.')
                     .min(5, 'Address must be at least 5 characters.')
@@ -495,7 +498,25 @@ const Signup = () => {
                             {renderInputGroup('password', 'Password', 'Create a password', 'password', true, 6, 20)}
                             {renderInputGroup('text', 'License Number', 'e.g., OLN123456', 'organizationLicenseNumber', true, 9, 9)}
 
-                            <div className="relative"></div> {/* Placeholder for grid alignment */}
+                            <div className="relative">
+                                <label htmlFor="organizationType" className="block text-sm font-medium text-gray-700 mb-1">
+                                    Organization Type <span className="text-red-500">*</span>
+                                </label>
+                                <select
+                                    id="organizationType"
+                                    className={`${commonInputClasses} ${errors.organizationType ? 'border-red-500' : ''}`}
+                                    {...register('organizationType')}
+                                >
+                                    <option value="">Select organization type</option>
+                                    <option value="private">Private</option>
+                                    <option value="ppo">PPO (Preferred Provider Organization)</option>
+                                    <option value="freelancing">Freelancing</option>
+                                    <option value="ngo">NGO (Non-Governmental Organization)</option>
+                                    <option value="government">Government</option>
+                                    <option value="other">Other</option>
+                                </select>
+                                {errors.organizationType && <div className={errorClasses}>{errors.organizationType.message}</div>}
+                            </div>
 
                             <div className="relative lg:col-span-2">
                                 <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">Address</label>

@@ -70,13 +70,21 @@ exports.getAllEmployees = async (req, res) => {
 exports.addEmployee = async (req, res) => {
     try {
         const organizationId = req.user.roleId;
-        const { name, email, employeeRole, department, password } = req.body;
+        const { name, email, password, licenseNumber: providedLicense, age, address, contact } = req.body;
 
         // Validate required fields
         if (!name || !email || !password) {
             return res.status(400).json({
                 success: false,
                 message: 'Name, email, and password are required'
+            });
+        }
+
+        // Validate provided license number format if given
+        if (providedLicense && !/^[A-Z]{3}[0-9]{6}$/.test(providedLicense)) {
+            return res.status(400).json({
+                success: false,
+                message: 'License number must be 3 uppercase letters followed by 6 digits (e.g. APO123456)'
             });
         }
 
@@ -94,7 +102,18 @@ exports.addEmployee = async (req, res) => {
             });
         }
 
-        // Get organization details for license generation
+        // Check if provided license number is already taken
+        if (providedLicense) {
+            const licenseExists = await Employee.findOne({ licenseNumber: providedLicense });
+            if (licenseExists) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'License number already in use. Please choose a different one.'
+                });
+            }
+        }
+
+        // Get organization details for license generation (fallback)
         const organization = await Organization.findById(organizationId);
         if (!organization) {
             return res.status(404).json({
@@ -103,8 +122,8 @@ exports.addEmployee = async (req, res) => {
             });
         }
 
-        // Generate license number
-        const licenseNumber = await generateLicenseNumber(organization.name);
+        // Use provided license number or auto-generate
+        const licenseNumber = providedLicense || await generateLicenseNumber(organization.name);
 
         // Hash password
         const passwordHash = await bcrypt.hash(password, 10);
@@ -116,9 +135,10 @@ exports.addEmployee = async (req, res) => {
             passwordHash,
             licenseNumber,
             organizationId,
-            employeeRole: employeeRole || 'verifier',
-            department: department || 'Document Review',
             status: 'active',
+            age: age ? Number(age) : null,
+            address: address || null,
+            contact: contact || null,
             inviteSentAt: new Date(),
             activatedAt: new Date()
         });
@@ -147,7 +167,7 @@ exports.addEmployee = async (req, res) => {
 /**
  * POST /api/organization/employees/bulk-upload
  * Add multiple employees from CSV file
- * CSV Format: name,email,password,employeeRole,department
+ * CSV Format: name,email,password,age,address,contact
  */
 exports.bulkUploadEmployees = async (req, res) => {
     try {
@@ -195,6 +215,7 @@ exports.bulkUploadEmployees = async (req, res) => {
 
         // Process each employee
         const addedEmployees = [];
+        let skippedCount = 0;
         
         for (let i = 0; i < employees.length; i++) {
             const row = employees[i];
@@ -215,12 +236,27 @@ exports.bulkUploadEmployees = async (req, res) => {
                 });
 
                 if (existingEmployee) {
-                    errors.push(`Row ${rowNum}: Employee with email ${row.email} already exists`);
-                    continue;
+                    skippedCount++;
+                    continue; // silently skip duplicate emails
                 }
 
-                // Generate license number
-                const licenseNumber = await generateLicenseNumber(organization.name);
+                // Validate and use provided licenseNumber, or auto-generate
+                let licenseNumber;
+                if (row.licenseNumber) {
+                    const cleaned = row.licenseNumber.trim();
+                    if (!/^[A-Z]{3}[0-9]{6}$/.test(cleaned)) {
+                        errors.push(`Row ${rowNum}: Invalid license number format "${cleaned}" — must be 3 uppercase letters + 6 digits`);
+                        continue;
+                    }
+                    const licenseExists = await Employee.findOne({ licenseNumber: cleaned });
+                    if (licenseExists) {
+                        errors.push(`Row ${rowNum}: License number "${cleaned}" is already in use`);
+                        continue;
+                    }
+                    licenseNumber = cleaned;
+                } else {
+                    licenseNumber = await generateLicenseNumber(organization.name);
+                }
 
                 // Hash password
                 const passwordHash = await bcrypt.hash(row.password, 10);
@@ -232,9 +268,10 @@ exports.bulkUploadEmployees = async (req, res) => {
                     passwordHash,
                     licenseNumber,
                     organizationId,
-                    employeeRole: row.employeeRole || 'verifier',
-                    department: row.department || 'Document Review',
-                    status: 'active',
+                    status: row.status || 'active',
+                    age: row.age ? Number(row.age) : null,
+                    address: row.address ? row.address.trim() : null,
+                    contact: row.contact ? row.contact.trim() : null,
                     inviteSentAt: new Date(),
                     activatedAt: new Date()
                 });
@@ -252,9 +289,10 @@ exports.bulkUploadEmployees = async (req, res) => {
 
         res.status(201).json({
             success: true,
-            message: `Successfully added ${addedEmployees.length} employees`,
+            message: `Successfully added ${addedEmployees.length} employees${skippedCount > 0 ? `, skipped ${skippedCount} duplicates` : ''}`,
             data: {
                 added: addedEmployees.length,
+                skipped: skippedCount,
                 errors: errors.length,
                 employees: addedEmployees,
                 errorDetails: errors
@@ -279,7 +317,7 @@ exports.updateEmployee = async (req, res) => {
     try {
         const { id } = req.params;
         const organizationId = req.user.roleId;
-        const { name, email, employeeRole, department, status } = req.body;
+        const { name, email, status, age, address, contact } = req.body;
 
         // Find employee
         const employee = await Employee.findOne({
@@ -315,9 +353,10 @@ exports.updateEmployee = async (req, res) => {
         // Update fields
         if (name) employee.name = name;
         if (email) employee.email = email.toLowerCase().trim();
-        if (employeeRole) employee.employeeRole = employeeRole;
-        if (department) employee.department = department;
         if (status) employee.status = status;
+        if (age !== undefined) employee.age = age ? Number(age) : null;
+        if (address !== undefined) employee.address = address || null;
+        if (contact !== undefined) employee.contact = contact || null;
 
         await employee.save();
 
@@ -349,7 +388,45 @@ exports.deleteEmployee = async (req, res) => {
         const { id } = req.params;
         const organizationId = req.user.roleId;
 
-        // Find employee
+        // Find employee (must belong to this org)
+        const employee = await Employee.findOne({
+            _id: id,
+            organizationId
+        });
+
+        if (!employee) {
+            return res.status(404).json({
+                success: false,
+                message: 'Employee not found'
+            });
+        }
+
+        // Hard delete — completely remove from DB
+        await Employee.deleteOne({ _id: id });
+
+        res.status(200).json({
+            success: true,
+            message: 'Employee permanently deleted'
+        });
+    } catch (error) {
+        console.error('Error deleting employee:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to delete employee',
+            error: error.message
+        });
+    }
+};
+
+/**
+ * PATCH /api/employees/:id/inactive
+ * Mark an employee as inactive (not available, but record kept)
+ */
+exports.inactivateEmployee = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const organizationId = req.user.roleId;
+
         const employee = await Employee.findOne({
             _id: id,
             organizationId,
@@ -363,20 +440,57 @@ exports.deleteEmployee = async (req, res) => {
             });
         }
 
-        // Soft delete
-        employee.isDeleted = true;
         employee.status = 'inactive';
         await employee.save();
 
         res.status(200).json({
             success: true,
-            message: 'Employee deleted successfully'
+            message: 'Employee marked as inactive'
         });
     } catch (error) {
-        console.error('Error deleting employee:', error);
+        console.error('Error inactivating employee:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to delete employee',
+            message: 'Failed to inactivate employee',
+            error: error.message
+        });
+    }
+};
+
+/**
+ * PATCH /api/employees/:id/active
+ * Mark an employee as active
+ */
+exports.activateEmployee = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const organizationId = req.user.roleId;
+
+        const employee = await Employee.findOne({
+            _id: id,
+            organizationId,
+            isDeleted: false
+        });
+
+        if (!employee) {
+            return res.status(404).json({
+                success: false,
+                message: 'Employee not found'
+            });
+        }
+
+        employee.status = 'active';
+        await employee.save();
+
+        res.status(200).json({
+            success: true,
+            message: 'Employee marked as active'
+        });
+    } catch (error) {
+        console.error('Error activating employee:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to activate employee',
             error: error.message
         });
     }
@@ -449,47 +563,13 @@ exports.getEmployeeStats = async (req, res) => {
             status: 'pending-activation'
         });
 
-        // Count by role
-        const roleStats = await Employee.aggregate([
-            {
-                $match: {
-                    organizationId: require('mongoose').Types.ObjectId(organizationId),
-                    isDeleted: false
-                }
-            },
-            {
-                $group: {
-                    _id: '$employeeRole',
-                    count: { $sum: 1 }
-                }
-            }
-        ]);
-
-        // Count by department
-        const departmentStats = await Employee.aggregate([
-            {
-                $match: {
-                    organizationId: require('mongoose').Types.ObjectId(organizationId),
-                    isDeleted: false
-                }
-            },
-            {
-                $group: {
-                    _id: '$department',
-                    count: { $sum: 1 }
-                }
-            }
-        ]);
-
         res.status(200).json({
             success: true,
             data: {
                 total: totalEmployees,
                 active: activeEmployees,
                 inactive: inactiveEmployees,
-                pending: pendingEmployees,
-                byRole: roleStats,
-                byDepartment: departmentStats
+                pending: pendingEmployees
             }
         });
     } catch (error) {

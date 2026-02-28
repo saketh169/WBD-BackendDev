@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const employeeController = require('../controllers/employeeController');
-const authenticate = require('../middlewares/authMiddleware');
+const { authenticateJWT } = require('../middlewares/authMiddleware');
 const multer = require('multer');
 
 // Configure multer for CSV file upload
@@ -23,7 +23,7 @@ const upload = multer({
 });
 
 // All routes require authentication and organization role
-router.use(authenticate);
+router.use(authenticateJWT);
 
 // Middleware to check if user is organization
 const requireOrganization = (req, res, next) => {
@@ -58,7 +58,13 @@ router.post('/bulk-upload', upload.single('csvFile'), employeeController.bulkUpl
 // PUT /api/employees/:id - Update employee
 router.put('/:id', employeeController.updateEmployee);
 
-// DELETE /api/employees/:id - Delete employee
+// PATCH /api/employees/:id/inactive - Mark employee as inactive
+router.patch('/:id/inactive', employeeController.inactivateEmployee);
+
+// PATCH /api/employees/:id/active - Mark employee as active
+router.patch('/:id/active', employeeController.activateEmployee);
+
+// DELETE /api/employees/:id - Permanently remove employee
 router.delete('/:id', employeeController.deleteEmployee);
 
 module.exports = router;

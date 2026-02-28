@@ -111,9 +111,6 @@ app.use('/api/settings', settingsRoutes);
 // Notification routes mounted at '/api/analytics'
 app.use('/api/analytics', notificationRoutes);
 
-// Organization routes mounted at '/api/organization'
-app.use('/api/organization', organizationRoutes);
-
 // Employee routes mounted at '/api/employees'
 app.use('/api/employees', employeeRoutes);
 
