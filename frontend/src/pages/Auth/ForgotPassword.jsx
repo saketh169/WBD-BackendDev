@@ -53,20 +53,11 @@ const ForgotPassword = () => {
     const [currentStep, setCurrentStep] = useState('email'); // 'email' or 'reset'
     const [userEmail, setUserEmail] = useState('');
     const [userRole, setUserRole] = useState('');
-    const [corporateType, setCorporateType] = useState('');
 
-    // Get role and corporateType from URL on mount
+    // Get role from URL on mount
     useEffect(() => {
         const roleFromUrl = searchParams.get('role') || 'user';
-        const corporateTypeFromUrl = searchParams.get('corporateType');
-        
-        if (corporateTypeFromUrl === 'corporate_employee') {
-            setUserRole('user');
-            setCorporateType('corporate_employee');
-        } else {
-            setUserRole(roleFromUrl);
-            setCorporateType('');
-        }
+        setUserRole(roleFromUrl);
     }, [searchParams]);
 
     // Email submission handler
@@ -121,7 +112,7 @@ const ForgotPassword = () => {
 
             // Redirect to sign in after a delay
             setTimeout(() => {
-                navigate(`/signin?role=${userRole}${corporateType === 'corporate_employee' ? '&corporateType=corporate_employee' : ''}`);
+                navigate(`/signin?role=${userRole}`);
             }, 2000);
 
         } catch (error) {
@@ -244,7 +235,7 @@ const ForgotPassword = () => {
         <section className="flex items-center justify-center bg-gray-100 p-4 min-h-150">
             <div className="w-full max-w-[40%] p-8 mx-auto rounded-3xl shadow-2xl bg-white animate-fade-in relative">
                 <button
-                    onClick={() => navigate(`/signin?role=${userRole}${corporateType === 'corporate_employee' ? '&corporateType=corporate_employee' : ''}`)}
+                    onClick={() => navigate(`/signin?role=${userRole}`)}
                     className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition-colors"
                     title="Back to Sign In"
                 >
@@ -258,7 +249,7 @@ const ForgotPassword = () => {
                     </h2>
                     <p className="text-gray-600 mt-2">
                         {currentStep === 'email' 
-                            ? `Reset your password for ${corporateType === 'corporate_employee' ? 'Corporate Employee' : userRole.charAt(0).toUpperCase() + userRole.slice(1)} account` 
+                            ? `Reset your password for ${userRole.charAt(0).toUpperCase() + userRole.slice(1)} account` 
                             : 'Enter the OTP sent to your email'
                         }
                     </p>
@@ -367,7 +358,7 @@ const ForgotPassword = () => {
                                         </button>
                                     </p>
                                     <p className="text-sm">
-                                        <Link to={`/signin?role=${userRole}${corporateType === 'corporate_employee' ? '&corporateType=corporate_employee' : ''}`} className={commonLinkClasses}>
+                                        <Link to={`/signin?role=${userRole}`} className={commonLinkClasses}>
                                             Back to Sign In
                                         </Link>
                                     </p>

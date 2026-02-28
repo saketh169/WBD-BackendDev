@@ -40,7 +40,6 @@ const CreateBlog = () => {
         if (path.startsWith('/dietitian')) return 'dietitian';
         if (path.startsWith('/organization')) return 'organization';
         if (path.startsWith('/admin')) return 'admin';
-        if (path.startsWith('/corporatepartner')) return 'corporatepartner';
         return 'user'; // fallback
     }, [location.pathname]);
 

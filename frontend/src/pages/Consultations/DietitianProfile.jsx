@@ -474,7 +474,7 @@ export default function DietitianProfile() {
       
       // Show success notification
       showNotification(
-        "✨ Your consultation has been booked successfully! Confirmation email sent to " + paymentData.email,
+        "✨ Consultation booked successfully!\nConfirmation email sent to " + paymentData.email,
         "success"
       );
       

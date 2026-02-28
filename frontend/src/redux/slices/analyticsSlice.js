@@ -85,13 +85,12 @@ export const fetchUserStats = createAsyncThunk(
       totalUsers: 0,
       totalDietitians: 0,
       totalOrganizations: 0,
-      totalCorporatePartners: 0,
       activeDietPlans: 0,
       totalRegistered: 0
     };
 
     const data = await handleApiCall(async (token) => {
-      const [usersRes, dietitiansRes, organizationsRes, corporatePartnersRes, dietPlansRes] = await Promise.all([
+      const [usersRes, dietitiansRes, organizationsRes, dietPlansRes] = await Promise.all([
         axios.get('/api/users-list', {
           headers: { Authorization: `Bearer ${token}` },
           withCredentials: true,
@@ -104,10 +103,6 @@ export const fetchUserStats = createAsyncThunk(
           headers: { Authorization: `Bearer ${token}` },
           withCredentials: true,
         }),
-        axios.get('/api/corporate-partners-list', {
-          headers: { Authorization: `Bearer ${token}` },
-          withCredentials: true,
-        }),
         axios.get('/api/active-diet-plans', {
           headers: { Authorization: `Bearer ${token}` },
           withCredentials: true,
@@ -115,15 +110,13 @@ export const fetchUserStats = createAsyncThunk(
       ]);
 
       const totalRegistered = (usersRes.data.data || usersRes.data || []).length +
-                            (dietitiansRes.data.data || dietitiansRes.data || []).length +
-                            (organizationsRes.data.data || organizationsRes.data || []).length +
-                            (corporatePartnersRes.data.data || corporatePartnersRes.data || []).length;
+        (dietitiansRes.data.data || dietitiansRes.data || []).length +
+        (organizationsRes.data.data || organizationsRes.data || []).length;
 
       return {
         totalUsers: (usersRes.data.data || usersRes.data || []).length,
         totalDietitians: (dietitiansRes.data.data || dietitiansRes.data || []).length,
         totalOrganizations: (organizationsRes.data.data || organizationsRes.data || []).length,
-        totalCorporatePartners: (corporatePartnersRes.data.data || corporatePartnersRes.data || []).length,
         activeDietPlans: (dietPlansRes.data.data || dietPlansRes.data || []).length,
         totalRegistered
       };
@@ -176,9 +169,9 @@ export const fetchConsultationRevenue = createAsyncThunk(
       });
 
       // Check if backend already calculated the periods with revenue
-      if (response.data.dailyPeriods && Array.isArray(response.data.dailyPeriods) && 
-          response.data.dailyPeriods.length > 0 && 
-          response.data.dailyPeriods[0].hasOwnProperty('revenue')) {
+      if (response.data.dailyPeriods && Array.isArray(response.data.dailyPeriods) &&
+        response.data.dailyPeriods.length > 0 &&
+        response.data.dailyPeriods[0].hasOwnProperty('revenue')) {
         // Backend already calculated everything with revenue, use it directly
         return {
           dailyPeriods: response.data.dailyPeriods,
@@ -388,7 +381,6 @@ const initialState = {
     totalUsers: 0,
     totalDietitians: 0,
     totalOrganizations: 0,
-    totalCorporatePartners: 0,
     activeDietPlans: 0,
   },
   userGrowth: {

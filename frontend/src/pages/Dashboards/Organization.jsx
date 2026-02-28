@@ -236,13 +236,6 @@ const OrganizationDashboard = () => {
               </button>
 
               <button
-                onClick={() => navigate("/organization/verify-corporate")}
-                className="w-full bg-purple-600 text-white font-semibold py-3 rounded-full hover:bg-purple-700 transition shadow flex items-center justify-center gap-2"
-              >
-                <i className="fas fa-building"></i> Verify Corporate Partner
-              </button>
-
-              <button
                 onClick={handleLogout}
                 className="w-full bg-red-600 text-white font-semibold py-3 rounded-full hover:bg-red-700 transition shadow flex items-center justify-center gap-2 mt-4"
               >

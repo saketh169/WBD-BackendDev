@@ -8,7 +8,6 @@ import OrganizationDashboard from '../pages/Dashboards/Organization';
 
 import OrgDocStatus from '../pages/Status/OrgDocStatus';
 import DietitianVerify from '../pages/Verify/DietitianVerify';
-import CorporateVerify from '../pages/Verify/CorporateVerify';
 
 import ChangePassword from '../pages/ChangePassword';
 import EditProfile from '../pages/EditProfile';
@@ -38,17 +37,10 @@ export default function OrganizationRoutes() {
                 <DietitianVerify />
               </VerifyProvider>
             } />
-          <Route
-            path="verify-corporate"
-            element={
-              <VerifyProvider requiredRole="organization" redirectTo="/organization/doc-status">
-                <CorporateVerify />
-              </VerifyProvider>
-            } />
 
           {/* Blog Moderation Routes */}
           <Route path="blog-moderation" element={<BlogModeration />} />
-          <Route path="blogs" element={<Blog/>} />
+          <Route path="blogs" element={<Blog />} />
           <Route path="blog/:id" element={<BlogPost />} />
 
           <Route path="*" element={<NotFoundPage role="organization" />} />

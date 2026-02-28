@@ -2,9 +2,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import moment from 'moment';
-import { 
-    FaHeart, FaRegHeart, FaComment, FaEye, FaEdit, FaTrash, 
-    FaArrowLeft, FaFlag, FaShare, FaPaperPlane 
+import {
+    FaHeart, FaRegHeart, FaComment, FaEye, FaEdit, FaTrash,
+    FaArrowLeft, FaFlag, FaShare, FaPaperPlane
 } from 'react-icons/fa';
 
 // Redux imports
@@ -30,14 +30,14 @@ const BlogPost = () => {
     const location = useLocation();
     const dispatch = useDispatch();
     const { id } = useParams();
-    
+
     // Redux state
     const blog = useSelector(selectCurrentBlog);
     const loading = useSelector(selectIsLoadingCurrentBlog);
     const isSubmitting = useSelector(selectIsSubmitting);
     const reduxError = useSelector(selectError);
     const reduxSuccessMessage = useSelector(selectSuccessMessage);
-    
+
     // Local state
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [userId, setUserId] = useState(null);
@@ -59,23 +59,22 @@ const BlogPost = () => {
         if (path.startsWith('/dietitian')) return 'dietitian';
         if (path.startsWith('/organization')) return 'organization';
         if (path.startsWith('/admin')) return 'admin';
-        if (path.startsWith('/corporatepartner')) return 'corporatepartner';
         return null;
     }, [location.pathname]);
 
     // Initialize and fetch blog
     useEffect(() => {
         window.scrollTo(0, 0);
-        
+
         const roleFromUrl = getRoleFromPath();
         const token = roleFromUrl ? localStorage.getItem(`authToken_${roleFromUrl}`) : null;
-        
+
         let actualUserId = null;
-        
+
         if (token) {
             setIsAuthenticated(true);
             setUserRole(roleFromUrl);
-            
+
             // Decode JWT to get roleId (actual user ID)
             try {
                 const parts = token.split('.');
@@ -86,16 +85,16 @@ const BlogPost = () => {
             } catch (e) {
                 console.error('Error decoding token:', e);
             }
-            
+
             setUserId(actualUserId);
         } else {
             setIsAuthenticated(false);
             setUserRole(roleFromUrl);
         }
-        
+
         // Fetch blog using Redux
         dispatch(fetchBlogById({ blogId: id, role: roleFromUrl }));
-        
+
         // Cleanup on unmount
         return () => {
             dispatch(clearCurrentBlog());
@@ -145,7 +144,7 @@ const BlogPost = () => {
 
     const handleComment = async (e) => {
         e.preventDefault();
-        
+
         if (!isAuthenticated) {
             navigate('/signin');
             return;
@@ -153,12 +152,12 @@ const BlogPost = () => {
 
         if (!commentText.trim()) return;
 
-        const result = await dispatch(addComment({ 
-            blogId: id, 
-            content: commentText, 
-            role: userRole 
+        const result = await dispatch(addComment({
+            blogId: id,
+            content: commentText,
+            role: userRole
         }));
-        
+
         if (addComment.fulfilled.match(result)) {
             setCommentText('');
             setShowSuccessMessage('Comment posted successfully!');
@@ -174,17 +173,17 @@ const BlogPost = () => {
     const confirmDeleteComment = async () => {
         if (!commentToDelete) return;
 
-        const result = await dispatch(deleteComment({ 
-            blogId: id, 
-            commentId: commentToDelete, 
-            role: userRole 
+        const result = await dispatch(deleteComment({
+            blogId: id,
+            commentId: commentToDelete,
+            role: userRole
         }));
-        
+
         if (deleteComment.fulfilled.match(result)) {
             setShowSuccessMessage('Comment deleted successfully!');
             setTimeout(() => setShowSuccessMessage(''), 3000);
         }
-        
+
         setShowCommentDeleteConfirm(false);
         setCommentToDelete(null);
     };
@@ -196,12 +195,12 @@ const BlogPost = () => {
             return;
         }
 
-        const result = await dispatch(reportBlog({ 
-            blogId: id, 
-            reason: reportReason, 
-            role: userRole 
+        const result = await dispatch(reportBlog({
+            blogId: id,
+            reason: reportReason,
+            role: userRole
         }));
-        
+
         if (reportBlog.fulfilled.match(result)) {
             setShowReportModal(false);
             setReportReason('');
@@ -216,16 +215,16 @@ const BlogPost = () => {
 
     const confirmDeleteBlog = async () => {
         const result = await dispatch(deleteBlog({ blogId: id, role: userRole }));
-        
+
         if (deleteBlog.fulfilled.match(result)) {
-            const blogsPath = userRole === 'dietitian' 
-                ? '/dietitian/blogs' 
+            const blogsPath = userRole === 'dietitian'
+                ? '/dietitian/blogs'
                 : userRole === 'organization'
-                ? '/organization/blogs'
-                : '/user/blogs';
+                    ? '/organization/blogs'
+                    : '/user/blogs';
             navigate(blogsPath);
         }
-        
+
         setShowDeleteConfirm(false);
     };
 
@@ -242,8 +241,8 @@ const BlogPost = () => {
     };
 
     const getRoleBadgeColor = (role) => {
-        return role === 'dietitian' 
-            ? 'bg-[#1E6F5C] text-white' 
+        return role === 'dietitian'
+            ? 'bg-[#1E6F5C] text-white'
             : 'bg-[#E8B86D] text-gray-800';
     };
 
@@ -253,7 +252,6 @@ const BlogPost = () => {
             'dietitian': 'Dietitian',
             'admin': 'Admin',
             'organization': 'Organization',
-            'corporatepartner': 'Corporate Partner'
         };
         return roleLabels[role] || 'Unknown';
     };
@@ -280,11 +278,11 @@ const BlogPost = () => {
                     <p className="text-gray-600 mb-4">{error || 'Blog post not found'}</p>
                     <button
                         onClick={() => {
-                            const blogsPath = userRole === 'dietitian' 
-                                ? '/dietitian/blogs' 
+                            const blogsPath = userRole === 'dietitian'
+                                ? '/dietitian/blogs'
                                 : userRole === 'organization'
-                                ? '/organization/blogs'
-                                : '/user/blogs';
+                                    ? '/organization/blogs'
+                                    : '/user/blogs';
                             navigate(blogsPath);
                         }}
                         className="bg-[#1E6F5C] text-white px-6 py-2 rounded-lg hover:bg-green-700"
@@ -304,7 +302,7 @@ const BlogPost = () => {
                     <div className="flex items-center">
                         <div className="py-1">
                             <svg className="fill-current h-6 w-6 text-green-500 mr-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                                <path d="M2.93 17.07A10 10 0 1 1 17.07 2.93 10 10 0 0 1 2.93 17.07zm12.73-1.41A8 8 0 1 0 4.34 4.34a8 8 0 0 0 11.32 11.32zM15 9a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V7a1 1 0 0 1 2 0v1h4a1 1 0 0 1 1 1z"/>
+                                <path d="M2.93 17.07A10 10 0 1 1 17.07 2.93 10 10 0 0 1 2.93 17.07zm12.73-1.41A8 8 0 1 0 4.34 4.34a8 8 0 0 0 11.32 11.32zM15 9a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V7a1 1 0 0 1 2 0v1h4a1 1 0 0 1 1 1z" />
                             </svg>
                         </div>
                         <div>
@@ -320,7 +318,7 @@ const BlogPost = () => {
                     <div className="flex items-center">
                         <div className="py-1">
                             <svg className="fill-current h-6 w-6 text-red-500 mr-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                                <path d="M2.93 17.07A10 10 0 1 1 17.07 2.93 10 10 0 0 1 2.93 17.07zm12.73-1.41A8 8 0 1 0 4.34 4.34a8 8 0 0 0 11.32 11.32zM13.41 12l1.42 1.41a1 1 0 1 1-1.42 1.42L12 13.4l-1.41 1.42a1 1 0 1 1-1.42-1.42L10.59 12l-1.42-1.41a1 1 0 1 1 1.42-1.42L12 10.59l1.41-1.42a1 1 0 1 1 1.42 1.42L13.41 12z"/>
+                                <path d="M2.93 17.07A10 10 0 1 1 17.07 2.93 10 10 0 0 1 2.93 17.07zm12.73-1.41A8 8 0 1 0 4.34 4.34a8 8 0 0 0 11.32 11.32zM13.41 12l1.42 1.41a1 1 0 1 1-1.42 1.42L12 13.4l-1.41 1.42a1 1 0 1 1-1.42-1.42L10.59 12l-1.42-1.41a1 1 0 1 1 1.42-1.42L12 10.59l1.41-1.42a1 1 0 1 1 1.42 1.42L13.41 12z" />
                             </svg>
                         </div>
                         <div>
@@ -334,11 +332,11 @@ const BlogPost = () => {
             <div className="max-w-4xl mx-auto px-4 pt-8">
                 <button
                     onClick={() => {
-                        const blogsPath = userRole === 'dietitian' 
-                            ? '/dietitian/blogs' 
+                        const blogsPath = userRole === 'dietitian'
+                            ? '/dietitian/blogs'
                             : userRole === 'organization'
-                            ? '/organization/blogs'
-                            : '/user/blogs';
+                                ? '/organization/blogs'
+                                : '/user/blogs';
                         navigate(blogsPath);
                     }}
                     className="flex items-center gap-2 text-[#1E6F5C] hover:text-green-700 font-medium"
@@ -384,7 +382,7 @@ const BlogPost = () => {
                                 <p className="font-semibold text-lg">{blog.author.name}</p>
                                 <p className="text-sm">{moment(blog.createdAt).format('MMMM DD, YYYY')}</p>
                             </div>
-                            
+
                             {/* Stats */}
                             <div className="flex items-center gap-4 text-sm">
                                 <span className="flex items-center gap-1">
@@ -405,11 +403,10 @@ const BlogPost = () => {
                         {/* Like Button */}
                         <button
                             onClick={handleLike}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
-                                isLiked
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${isLiked
                                     ? 'bg-red-100 text-red-600 hover:bg-red-200'
                                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                            }`}
+                                }`}
                         >
                             {isLiked ? <FaHeart /> : <FaRegHeart />}
                             {isLiked ? 'Liked' : 'Like'}
@@ -419,8 +416,8 @@ const BlogPost = () => {
                         {isAuthor && (
                             <button
                                 onClick={() => {
-                                    const editPath = userRole === 'dietitian' 
-                                        ? `/dietitian/edit-blog/${id}` 
+                                    const editPath = userRole === 'dietitian'
+                                        ? `/dietitian/edit-blog/${id}`
                                         : `/user/edit-blog/${id}`;
                                     navigate(editPath);
                                 }}
@@ -452,7 +449,7 @@ const BlogPost = () => {
                     </div>
 
                     {/* Content */}
-                    <div 
+                    <div
                         className="prose prose-lg max-w-none mb-8"
                         dangerouslySetInnerHTML={{ __html: blog.content }}
                     />
@@ -525,7 +522,7 @@ const BlogPost = () => {
                                                     {moment(comment.createdAt).fromNow()}
                                                 </span>
                                             </div>
-                                            
+
                                             {/* Delete comment button (for comment author or blog author) */}
                                             {isAuthenticated && (comment.userId === userId || isAuthor) && (
                                                 <button

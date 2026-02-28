@@ -7,12 +7,11 @@ import RoleModal from '../../pages/RoleModal';
 
 // Utility function to get the base role path (e.g., '/user', '/dietitian', or '/')
 const getBasePath = (currentPath) => {
-    if (currentPath.startsWith('/admin')) return '/admin';
-    if (currentPath.startsWith('/organization')) return '/organization';
-    if (currentPath.startsWith('/corporatepartner')) return '/corporatepartner';
-    if (currentPath.startsWith('/dietitian')) return '/dietitian';
-    if (currentPath.startsWith('/user')) return '/user';
-    return ''; // Base path for non-logged-in users
+  if (currentPath.startsWith('/admin')) return '/admin';
+  if (currentPath.startsWith('/organization')) return '/organization';
+  if (currentPath.startsWith('/dietitian')) return '/dietitian';
+  if (currentPath.startsWith('/user')) return '/user';
+  return ''; // Base path for non-logged-in users
 };
 
 // Font Awesome: inject once on script start (moved outside component)
@@ -37,7 +36,7 @@ const FontAwesomeLink = () => {
 const FloatingContactButton = ({ handleScrollToTop, contactPath }) => (
   <Link
     // **USING dynamic contactPath**
-    to={contactPath} 
+    to={contactPath}
     onClick={handleScrollToTop}
     // positioned 180px below top of viewport; brighter green background, slightly darker on hover
     className="fixed hidden md:flex items-center right-4 top-21 bg-[#059669] text-white p-3 rounded-full shadow-lg hover:bg-[#047857] transition-all duration-300 transform hover:scale-105 z-50 group cursor-pointer"
@@ -59,7 +58,6 @@ const Header = () => {
   const getCurrentRoleFromPath = () => {
     if (currentPath.startsWith('/admin')) return 'admin';
     if (currentPath.startsWith('/organization')) return 'organization';
-    if (currentPath.startsWith('/corporatepartner')) return 'corporatepartner';
     if (currentPath.startsWith('/dietitian')) return 'dietitian';
     if (currentPath.startsWith('/user')) return 'user';
     return null;
@@ -84,8 +82,7 @@ const Header = () => {
           user: '/api/getuserdetails',
           dietitian: '/api/getdietitiandetails',
           organization: '/api/getorganizationdetails',
-          admin: '/api/getadmindetails',
-          corporatepartner: '/api/getcorporatepartnerdetails'
+          admin: '/api/getadmindetails'
         };
 
         const endpoint = apiEndpoints[currentRole];
@@ -121,16 +118,15 @@ const Header = () => {
   }, [isAuthenticated, token, currentRole]);
 
   // Check if we're in a logged-in area first
-  const isLoggedInArea = 
-    currentPath.startsWith('/user') || 
+  const isLoggedInArea =
+    currentPath.startsWith('/user') ||
     currentPath.startsWith('/dietitian') ||
     currentPath.startsWith('/admin') ||
-    currentPath.startsWith('/organization') ||
-    currentPath.startsWith('/corporatepartner');
+    currentPath.startsWith('/organization');
 
   // Check if user is on a profile page
-  const isProfilePage = 
-    currentPath.endsWith('/profile') || 
+  const isProfilePage =
+    currentPath.endsWith('/profile') ||
     currentPath.includes('/profile/');
 
   // **NEW LOGIC: Determine the correct Contact Us path**
@@ -150,43 +146,39 @@ const Header = () => {
     if (currentPath.startsWith('/organization')) {
       return '/organization/profile';
     }
-    if (currentPath.startsWith('/corporatepartner')) {
-      return '/corporatepartner/profile';
-    }
     if (currentPath.startsWith('/dietitian')) {
       return '/dietitian/profile';
     }
     if (currentPath.startsWith('/user')) {
       return '/user/profile';
     }
-    return '/role'; 
+    return '/role';
   };
   // --- END getProfilePath ---
 
   // --- Logout Handler ---
   const handleLogout = () => {
     console.log('[Header] Logging out user...');
-    
+
     // Determine current role from path
     let currentRole = null;
     if (currentPath.startsWith('/admin')) currentRole = 'admin';
     else if (currentPath.startsWith('/organization')) currentRole = 'organization';
-    else if (currentPath.startsWith('/corporatepartner')) currentRole = 'corporatepartner';
     else if (currentPath.startsWith('/dietitian')) currentRole = 'dietitian';
     else if (currentPath.startsWith('/user')) currentRole = 'user';
-    
+
     if (currentRole) {
       // Remove only the current role's token
       localStorage.removeItem(`authToken_${currentRole}`);
       console.log(`[Header] Removed authToken_${currentRole}`);
     }
-    
+
     // Clear profile image for this session
     localStorage.removeItem('profileImage');
-    
+
     console.log('[Header] Logging out from:', currentRole || 'unknown role');
     console.log('[Header] Redirecting to home...');
-    
+
     // Redirect to home
     navigate('/');
   };
@@ -195,7 +187,7 @@ const Header = () => {
   // --- Action Buttons Renderer ---
   const renderActionButtons = (isMobile = false) => {
     const contactPath = getContactPath(); // Get the correct contact path
-    
+
     const contactUsClass = `bg-[#28B463] text-white ${isMobile ? 'w-28' : 'px-5'} py-2 rounded-full font-semibold hover:bg-[#1E6F5C] transition-all duration-300 cursor-pointer text-center`;
     const outlineButtonClass = `bg-transparent border border-[#28B463] text-[#28B463] ${isMobile ? 'w-28' : 'px-5'} py-2 rounded-full font-semibold hover:bg-[#28B463] hover:text-white transition-all duration-300 cursor-pointer text-center`;
 
@@ -205,9 +197,9 @@ const Header = () => {
 
       // If in any role area, show Profile, Payment (for users), and Logout buttons
       return (
-        
+
         <div className="flex space-x-3 items-center -mr-20">
-          
+
           <button
             onClick={() => navigate(getProfilePath())}
             className={`${iconButtonBaseClass} border border-[#28B463] text-[#28B463] hover:bg-[#28B463] hover:text-white overflow-visible`}
@@ -238,7 +230,7 @@ const Header = () => {
             <span className={tooltipTextClass}>Log Out</span>
           </button>
         </div>
-        
+
       );
     }
 
@@ -269,31 +261,31 @@ const Header = () => {
         <FontAwesomeLink />
 
         <div className="max-w-7xl mx-auto  flex items-center justify-between">
-        {/* Logo */}
-        <NavLink
-          to="/"
-          onClick={handleScrollToTop}
-          className="flex items-center font-bold text-2xl md:text-3xl text-[#1E6F5C] select-none group cursor-pointer"
-        >
-          <div className="flex items-center justify-center w-10 h-10 md:w-12 md:h-12 bg-[#28B463] rounded-full mr-2 md:mr-3 group-hover:bg-[#1E6F5C] group-hover:scale-110 transition-all duration-300">
-            <i className="fas fa-leaf text-xl text-white animate-pulse"></i>
-          </div>
-          <span className="font-poppins group-hover:text-[#28B463] transition-colors duration-300">
-            <span className="text-[#28B463] group-hover:text-[#1E6F5C]">N</span>utri
-            <span className="text-[#28B463] group-hover:text-[#1E6F5C]">C</span>onnect
-          </span>
-        </NavLink>
+          {/* Logo */}
+          <NavLink
+            to="/"
+            onClick={handleScrollToTop}
+            className="flex items-center font-bold text-2xl md:text-3xl text-[#1E6F5C] select-none group cursor-pointer"
+          >
+            <div className="flex items-center justify-center w-10 h-10 md:w-12 md:h-12 bg-[#28B463] rounded-full mr-2 md:mr-3 group-hover:bg-[#1E6F5C] group-hover:scale-110 transition-all duration-300">
+              <i className="fas fa-leaf text-xl text-white animate-pulse"></i>
+            </div>
+            <span className="font-poppins group-hover:text-[#28B463] transition-colors duration-300">
+              <span className="text-[#28B463] group-hover:text-[#1E6F5C]">N</span>utri
+              <span className="text-[#28B463] group-hover:text-[#1E6F5C]">C</span>onnect
+            </span>
+          </NavLink>
 
-        {/* NavHeader handles navigation and mobile menu */}
-        <NavHeader  
-          renderActionButtons={renderActionButtons} 
-          handleScrollToTop={handleScrollToTop}
-        />
-      </div>
+          {/* NavHeader handles navigation and mobile menu */}
+          <NavHeader
+            renderActionButtons={renderActionButtons}
+            handleScrollToTop={handleScrollToTop}
+          />
+        </div>
       </header>
 
-      {/* Show floating Contact Us button only for user, dietitian, and corporate partner pages */}
-      {(currentPath.startsWith('/user') || currentPath.startsWith('/dietitian') || currentPath.startsWith('/corporatepartner')) && (
+      {/* Show floating Contact Us button only for user and dietitian pages */}
+      {(currentPath.startsWith('/user') || currentPath.startsWith('/dietitian')) && (
         <FloatingContactButton
           handleScrollToTop={handleScrollToTop}
           // **PASSING the dynamic contact path to the FloatingContactButton**

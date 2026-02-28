@@ -38,8 +38,7 @@ const AdminSettings = () => {
       message: 'Dear user,\n\nWe have updated our policies. Please review the changes.\n\nBest regards,\nNutriConnect Team',
       sendToUsers: true,
       sendToDietitians: true,
-      sendToOrganizations: true,
-      sendToCorporatePartners: true
+      sendToOrganizations: true
     }
   });
 
@@ -164,7 +163,6 @@ const AdminSettings = () => {
       if (settings.policyChangeEmail.sendToUsers) recipients.push('users');
       if (settings.policyChangeEmail.sendToDietitians) recipients.push('dietitians');
       if (settings.policyChangeEmail.sendToOrganizations) recipients.push('organizations');
-      if (settings.policyChangeEmail.sendToCorporatePartners) recipients.push('corporate_partners');
 
       const response = await axios.post('/api/settings/send-email', {
         recipients,
@@ -556,8 +554,7 @@ const AdminSettings = () => {
                       {[
                         { key: 'sendToUsers', label: 'Regular Users' },
                         { key: 'sendToDietitians', label: 'Dietitians' },
-                        { key: 'sendToOrganizations', label: 'Organizations' },
-                        { key: 'sendToCorporatePartners', label: 'Corporate Partners' }
+                        { key: 'sendToOrganizations', label: 'Organizations' }
                       ].map(({ key, label }) => (
                         <label key={key} className="flex items-center">
                           <input

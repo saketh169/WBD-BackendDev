@@ -124,7 +124,6 @@ This project frontend consists of the following structure:
       - **`Chat/`**: Chat interface pages.
       - **`ChatBot/`**: AI ChatBot page.
       - **`Consultations/`**: Consultation booking pages.
-      - **`Corporate/`**: Corporate/Organization pages.
       - **`Dashboards/`**: User and admin dashboards.
       - **`Error/`**: Error pages (404, 500, etc.).
       - **`HomePages/`**: Home landing pages.

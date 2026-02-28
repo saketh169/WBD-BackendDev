@@ -131,7 +131,7 @@ router.get('/dietitians/:id/clients', async (req, res) => {
       const bookingDateTime = new Date(`${booking.date}T${booking.time}`);
       const now = new Date();
       const hoursSinceAppointment = (now - bookingDateTime) / (1000 * 60 * 60);
-      
+
       // Skip only if appointment was more than 12 hours ago
       if (hoursSinceAppointment > 12 && bookingDateTime < now) {
         return; // Skip old past appointments (more than 12 hours ago)
@@ -140,12 +140,12 @@ router.get('/dietitians/:id/clients', async (req, res) => {
       if (clientMap.has(clientId)) {
         const existing = clientMap.get(clientId);
         existing.totalSessions += 1;
-        
+
         // Update next appointment if this booking is in the future and earlier
         if (bookingDateTime > now && (!existing.nextAppointment || bookingDateTime < new Date(existing.nextAppointment))) {
           existing.nextAppointment = `${booking.date} ${booking.time}`;
         }
-        
+
         // Update last consultation if this is more recent
         if (new Date(booking.date) > new Date(existing.lastConsultation)) {
           existing.lastConsultation = booking.date;
@@ -153,7 +153,7 @@ router.get('/dietitians/:id/clients', async (req, res) => {
       } else {
         const isUpcoming = bookingDateTime > now;
         const isPast = bookingDateTime < now;
-        
+
         // Determine status: Active for upcoming/current, Completed for past
         let clientStatus = 'Active';
         if (isPast && booking.status === 'completed') {
@@ -163,7 +163,7 @@ router.get('/dietitians/:id/clients', async (req, res) => {
         } else if (booking.status === 'cancelled') {
           clientStatus = 'Completed';
         }
-        
+
         clientMap.set(clientId, {
           id: clientId,
           name: booking.username,
@@ -382,9 +382,9 @@ router.get('/dietitians/:id/slots', authenticateJWT, async (req, res) => {
 
     // Filter to only show slots associated with this user and dietitian
     const filteredSlots = slotsWithStatus.filter(slot => {
-      return slot.status === 'available' || 
-             slot.status === 'booked_with_this_dietitian' || 
-             slot.status === 'you_are_booked';
+      return slot.status === 'available' ||
+        slot.status === 'booked_with_this_dietitian' ||
+        slot.status === 'you_are_booked';
     });
 
     res.json({
@@ -409,9 +409,9 @@ router.post('/dietitians/:id/testimonials', authenticateJWT, async (req, res) =>
     const { id } = req.params;
     const { text, rating } = req.body;
     const userId = req.user.roleId || req.user.userId;
-    
+
     console.log('Adding testimonial - userId:', userId, 'dietitianId:', id);
-    
+
     // Validate required fields
     if (!text || text.trim().length === 0) {
       return res.status(400).json({
@@ -475,7 +475,7 @@ router.post('/dietitians/:id/testimonials', authenticateJWT, async (req, res) =>
 
     // Mark the testimonials array as modified to ensure Mongoose saves it
     dietitian.markModified('testimonials');
-    
+
     await dietitian.save();
 
     res.status(201).json({
@@ -517,7 +517,7 @@ router.delete('/dietitians/:id/testimonials/:testimonialIndex', authenticateJWT,
     }
 
     const testimonial = dietitian.testimonials[index];
-    
+
     // Check if the user is the author
     if (testimonial.authorId && testimonial.authorId.toString() !== userId.toString()) {
       return res.status(403).json({
@@ -872,6 +872,39 @@ router.post('/dietitians/:id/unblock-day', authenticateJWT, async (req, res) => 
       success: false,
       message: 'Error unblocking entire day'
     });
+  }
+});
+
+// Notify admin about dietitian leave with a reason
+router.post('/dietitians/:id/notify-leave', authenticateJWT, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { dates, reason } = req.body;
+
+    if (!dates || !Array.isArray(dates) || dates.length === 0) {
+      return res.status(400).json({ success: false, message: 'At least one date is required' });
+    }
+    if (!reason || !reason.trim()) {
+      return res.status(400).json({ success: false, message: 'A reason is required' });
+    }
+
+    const dietitian = await Dietitian.findById(id).select('name email');
+    if (!dietitian) {
+      return res.status(404).json({ success: false, message: 'Dietitian not found' });
+    }
+
+    const { sendLeaveNotificationEmail } = require('../services/emailService');
+    try {
+      await sendLeaveNotificationEmail(dietitian.name, dietitian.email, dates, reason.trim());
+    } catch (emailErr) {
+      console.error('Failed to send leave notification email:', emailErr.message);
+      // Non-fatal — blocking already happened, just warn
+    }
+
+    res.json({ success: true, message: 'Leave notification sent to admin' });
+  } catch (error) {
+    console.error('Error sending leave notification:', error);
+    res.status(500).json({ success: false, message: 'Error sending leave notification' });
   }
 });
 

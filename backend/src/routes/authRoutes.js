@@ -13,64 +13,54 @@ const injectRole = (role) => (req, res, next) => {
 };
 
 // 1. User Signup Route: POST /api/signup/user
-router.post('/signup/user', 
-    injectRole('user'), 
+router.post('/signup/user',
+    injectRole('user'),
     authController.signupController
 );
 
 // 2. Admin Signup Route: POST /api/signup/admin
-router.post('/signup/admin', 
-    injectRole('admin'), 
+router.post('/signup/admin',
+    injectRole('admin'),
     authController.signupController
 );
 
 // 3. Dietitian Signup Route: POST /api/signup/dietitian
-router.post('/signup/dietitian', 
-    injectRole('dietitian'), 
+router.post('/signup/dietitian',
+    injectRole('dietitian'),
     authController.signupController
 );
 
 // 4. Organization Signup Route: POST /api/signup/organization
-router.post('/signup/organization', 
-    injectRole('organization'), 
+router.post('/signup/organization',
+    injectRole('organization'),
     authController.signupController
 );
 
-// 5. Corporate Partner Signup Route: POST /api/signup/corporatepartner
-router.post('/signup/corporatepartner', 
-    injectRole('corporatepartner'), 
-    authController.signupController
-);
 
 // 6. User Signin Route: POST /api/signin/user
-router.post('/signin/user', 
-    injectRole('user'), 
+router.post('/signin/user',
+    injectRole('user'),
     authController.signinController
 );
 
 // 7. Admin Signin Route: POST /api/signin/admin
-router.post('/signin/admin', 
-    injectRole('admin'), 
+router.post('/signin/admin',
+    injectRole('admin'),
     authController.signinController
 );
 
 // 8. Dietitian Signin Route: POST /api/signin/dietitian
-router.post('/signin/dietitian', 
-    injectRole('dietitian'), 
+router.post('/signin/dietitian',
+    injectRole('dietitian'),
     authController.signinController
 );
 
 // 9. Organization Signin Route: POST /api/signin/organization
-router.post('/signin/organization', 
-    injectRole('organization'), 
+router.post('/signin/organization',
+    injectRole('organization'),
     authController.signinController
 );
 
-// 10. Corporate Partner Signin Route: POST /api/signin/corporatepartner
-router.post('/signin/corporatepartner', 
-    injectRole('corporatepartner'), 
-    authController.signinController
-);
 
 // 11. Dietitian Document Upload: POST /api/documents/upload/dietitian
 router.post('/documents/upload/dietitian',
@@ -86,12 +76,6 @@ router.post('/documents/upload/organization',
     authController.docUploadController
 );
 
-// 13. Corporate Partner Document Upload: POST /api/documents/upload/corporatepartner
-router.post('/documents/upload/corporatepartner',
-    injectRole('corporatepartner'),
-    upload.any(),
-    authController.docUploadController
-);
 
 // 14. Verify Token: GET /api/verify-token (Check if JWT is valid/expired)
 router.get('/verify-token', authController.verifyTokenController);

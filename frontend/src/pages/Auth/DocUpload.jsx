@@ -16,9 +16,8 @@ const SelectField = ({ label, options, required, error, field, colSpan }) => (
       <select
         {...field}
         id={field.name}
-        className={`w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#6a994e] transition-all duration-300 appearance-none bg-white shadow-sm hover:shadow-md ${
-          error ? 'border-red-500' : ''
-        }`}
+        className={`w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#6a994e] transition-all duration-300 appearance-none bg-white shadow-sm hover:shadow-md ${error ? 'border-red-500' : ''
+          }`}
         required={required}
         aria-invalid={!!error}
         aria-describedby={`${field.name}-error`}
@@ -140,13 +139,13 @@ const FileUploadField = ({
     if (extension === 'pdf') {
       return (
         <svg className="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M6 2a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6H6zm4 14h-2v-2h2v2zm0-4h-2v-2h2v2zm4 4h-2v-2h2v2zm0-4h-2v-2h2v2zm4 4h-2v-4h2v4z"/>
+          <path d="M6 2a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6H6zm4 14h-2v-2h2v2zm0-4h-2v-2h2v2zm4 4h-2v-2h2v2zm0-4h-2v-2h2v2zm4 4h-2v-4h2v4z" />
         </svg>
       );
     } else if (['jpg', 'jpeg', 'png'].includes(extension)) {
       return (
         <svg className="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M4 4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2H4zm14 12H6v-2h12v2zm0-4H6v-2h12v2zm0-4V6H6v2h12z"/>
+          <path d="M4 4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2H4zm14 12H6v-2h12v2zm0-4H6v-2h12v2zm0-4V6H6v2h12z" />
         </svg>
       );
     }
@@ -160,9 +159,8 @@ const FileUploadField = ({
         {!required && <span className="ml-1 text-xs text-gray-500 font-medium">(Optional)</span>}
       </label>
       <div
-        className={`w-full p-4 border-2 border-dashed rounded-lg transition-all duration-300 ${
-          isDragging && !disabled ? 'border-[#6a994e] bg-green-50' : 'border-gray-300 bg-white'
-        } ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:border-[#6a994e] hover:shadow-md'} 
+        className={`w-full p-4 border-2 border-dashed rounded-lg transition-all duration-300 ${isDragging && !disabled ? 'border-[#6a994e] bg-green-50' : 'border-gray-300 bg-white'
+          } ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:border-[#6a994e] hover:shadow-md'} 
         ${localError || error ? 'border-red-400' : ''}`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -176,7 +174,7 @@ const FileUploadField = ({
               <>
                 {getFileIcon(field.value.name)}
                 <span className="text-sm text-gray-700 truncate max-w-xs">{field.value.name}</span>
-                <span className="text-xs text-gray-500">({(field.value.size / (1024*1024)).toFixed(2)} MB)</span>
+                <span className="text-xs text-gray-500">({(field.value.size / (1024 * 1024)).toFixed(2)} MB)</span>
               </>
             ) : (
               <span className="text-sm text-gray-500">
@@ -187,11 +185,10 @@ const FileUploadField = ({
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              disabled
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${disabled
                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 : 'bg-[#28B463] text-white hover:bg-[#1E8449]'
-            }`}
+              }`}
             disabled={disabled}
           >
             Browse
@@ -242,7 +239,7 @@ const RoleSelector = ({ validRoles, navigate }) => (
         </button>
       ))}
     </div>
- _formatted
+    _formatted
   </div>
 );
 
@@ -256,8 +253,8 @@ const FormFields = ({ role, formConfig, control, errors, watch }) => (
         control={control}
         render={({ field: fieldProps }) => {
           // For dependent fields, check if the parent field has a value
-          const isDependentDisabled = field.dependsOn 
-            ? !watch(field.dependsOn) 
+          const isDependentDisabled = field.dependsOn
+            ? !watch(field.dependsOn)
             : field.disabled;
 
           return field.type === 'select' ? (
@@ -337,7 +334,7 @@ const DocUpload = () => {
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const validRoles = useMemo(() => ['dietitian', 'organization', 'corporatepartner'], []);
+  const validRoles = useMemo(() => ['dietitian', 'organization'], []);
 
   const formConfig = useMemo(
     () => ({
@@ -369,18 +366,6 @@ const DocUpload = () => {
         { id: 'authorizedRepId', label: 'Identity Proof (PDF/Image, max 20MB)', type: 'file', accept: '.pdf,.jpg,.png', maxSize: 20 * 1024 * 1024, required: true, disabled: false, dependsOn: 'authorizedRepIdType' },
         { id: 'addressProofType', label: 'Proof of Address Type', type: 'select', options: [{ value: '', label: 'Choose Address Proof Type', disabled: true }, { value: 'utilityBill', label: 'Utility Bill' }, { value: 'leaseAgreement', label: 'Lease Agreement' }, { value: 'propertyTaxReceipt', label: 'Property Tax Receipt' }], required: false },
         { id: 'addressProof', label: 'Proof of Address (PDF/Image, max 20MB)', type: 'file', accept: '.pdf,.jpg,.png', maxSize: 20 * 1024 * 1024, required: false, disabled: false, dependsOn: 'addressProofType' },
-        { id: 'bankDocumentType', label: 'Bank Document Type', type: 'select', options: [{ value: '', label: 'Choose Bank Document Type', disabled: true }, { value: 'cancelledCheque', label: 'Cancelled Cheque' }, { value: 'bankStatement', label: 'Bank Statement' }], required: false },
-        { id: 'bankDocument', label: 'Bank Document (PDF, max 20MB)', type: 'file', accept: '.pdf', maxSize: 20 * 1024 * 1024, required: false, disabled: false, dependsOn: 'bankDocumentType' },
-      ],
-      corporatepartner: [
-        { id: 'partnershipAgreement', label: 'Partnership Agreement (PDF, max 20MB)', type: 'file', accept: '.pdf', maxSize: 20 * 1024 * 1024, required: true },
-        { id: 'companyBrochure', label: 'Company Brochure (PDF, max 20MB)', type: 'file', accept: '.pdf', maxSize: 20 * 1024 * 1024, required: false },
-        { id: 'businessLicenseType', label: 'Business License Type', type: 'select', options: [{ value: '', label: 'Choose Business License Type', disabled: true }, { value: 'generalLicense', label: 'General Business License' }, { value: 'industrySpecificLicense', label: 'Industry-Specific License' }], required: true },
-        { id: 'businessLicense', label: 'Business License (PDF, max 20MB)', type: 'file', accept: '.pdf', maxSize: 20 * 1024 * 1024, required: true, disabled: false, dependsOn: 'businessLicenseType' },
-        { id: 'taxDocumentType', label: 'Tax Document Type', type: 'select', options: [{ value: '', label: 'Choose Tax Document Type', disabled: true }, { value: 'gstCertificate', label: 'GST Certificate' }, { value: 'panCard', label: 'PAN Card' }, { value: 'tinCertificate', label: 'TIN Certificate' }], required: true },
-        { id: 'taxDocument', label: 'Tax Document (PDF, max 20MB)', type: 'file', accept: '.pdf', maxSize: 20 * 1024 * 1024, required: true, disabled: false, dependsOn: 'taxDocumentType' },
-        { id: 'authorizedRepIdType', label: 'Identity Proof Type', type: 'select', options: [{ value: '', label: 'Choose Identity Proof Type', disabled: true }, { value: 'aadhaarCard', label: 'Aadhaar Card' }, { value: 'passport', label: 'Passport' }, { value: 'driversLicense', label: "Driver's License" }], required: true },
-        { id: 'authorizedRepId', label: 'Identity Proof (PDF/Image, max 20MB)', type: 'file', accept: '.pdf,.jpg,.png', maxSize: 20 * 1024 * 1024, required: true, disabled: false, dependsOn: 'authorizedRepIdType' },
         { id: 'bankDocumentType', label: 'Bank Document Type', type: 'select', options: [{ value: '', label: 'Choose Bank Document Type', disabled: true }, { value: 'cancelledCheque', label: 'Cancelled Cheque' }, { value: 'bankStatement', label: 'Bank Statement' }], required: false },
         { id: 'bankDocument', label: 'Bank Document (PDF, max 20MB)', type: 'file', accept: '.pdf', maxSize: 20 * 1024 * 1024, required: false, disabled: false, dependsOn: 'bankDocumentType' },
       ],
@@ -427,12 +412,12 @@ const DocUpload = () => {
 
   // Initialize form with React Hook Form
   const validationSchema = buildDocUploadValidationSchema(role);
-  const { 
-    control, 
-    handleSubmit, 
-    formState: { errors }, 
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
     watch,
-    reset 
+    reset
   } = useForm({
     resolver: yupResolver(validationSchema),
     mode: 'onBlur',
@@ -485,7 +470,6 @@ const DocUpload = () => {
   const roleRoutes = {
     dietitian: '/dietitian/home',
     organization: '/organization/home',
-    corporatepartner: '/corporatepartner/home',
   };
 
   const onSubmit = async (formData) => {
@@ -546,7 +530,7 @@ const DocUpload = () => {
       }
     } catch (error) {
       console.error('Upload Error:', error);
-      
+
       const errorMessage = error.response?.data?.message
         || error.message
         || 'Error uploading documents. Please try again.';
@@ -568,13 +552,12 @@ const DocUpload = () => {
           {message && (
             <div
               aria-live="polite"
-              className={`p-3 mb-5 text-center text-base font-medium rounded-lg shadow-sm animate-slide-in w-full ${
-                message.includes('successfully') || message.includes('Redirecting')
+              className={`p-3 mb-5 text-center text-base font-medium rounded-lg shadow-sm animate-slide-in w-full ${message.includes('successfully') || message.includes('Redirecting')
                   ? 'text-green-800 bg-green-100 border border-green-300'
                   : message.includes('Uploading')
-                  ? 'text-blue-800 bg-blue-100 border border-blue-300'
-                  : 'text-red-800 bg-red-100 border border-red-300'
-              }`}
+                    ? 'text-blue-800 bg-blue-100 border border-blue-300'
+                    : 'text-red-800 bg-red-100 border border-red-300'
+                }`}
               role="alert"
             >
               {message}

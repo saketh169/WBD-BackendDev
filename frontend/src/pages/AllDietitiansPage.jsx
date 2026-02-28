@@ -15,33 +15,32 @@ const Notification = ({ show, message, type, onClose }) => {
 
   if (!show) return null;
 
-  const bgColor = type === "success" ? "bg-[#28B463]" : "bg-red-600";
-  const textColor = "text-white";
-  const borderColor = type === "success" ? "border-[#1E6F5C]" : "border-red-700";
+  const bgColor = type === "success" ? "bg-green-50" : "bg-red-50";
+  const borderColor = type === "success" ? "border-green-300" : "border-red-300";
   const icon = type === "success" ? "✓" : "✕";
-  const iconBg = type === "success" ? "bg-[#1E6F5C]" : "bg-red-700";
+  const iconColor = type === "success" ? "text-green-600" : "text-red-600";
+  const textColor = type === "success" ? "text-green-900" : "text-red-900";
+  const messageColor = type === "success" ? "text-green-700" : "text-red-700";
 
   return (
     <div
-      className={`fixed top-16 right-6 max-w-sm w-full md:w-96 z-9999`}
+      className={`fixed top-6 right-6 max-w-md w-full z-9999`}
       role="alert"
       aria-live="polite"
       aria-atomic="true"
     >
       <div
-        className={`${bgColor} ${borderColor} ${textColor} border-2 px-6 py-4 rounded-xl shadow-2xl flex items-center gap-4 animate-slide-in-right`}
+        className={`${bgColor} ${borderColor} border-2 px-5 py-4 rounded-lg shadow-md flex items-start gap-3 animate-slide-in-right backdrop-blur-sm`}
       >
-        <div className={`${iconBg} rounded-full w-8 h-8 flex items-center justify-center shrink-0`}>
-          <span className="text-lg font-bold">
-            {icon}
-          </span>
+        <div className={`${iconColor} text-xl font-bold pt-0.5`}>
+          {icon}
         </div>
         <div className="flex-1">
-          <p className="text-sm md:text-base font-semibold">{message}</p>
+          <p className={`${messageColor} text-sm leading-relaxed`}>{message}</p>
         </div>
         <button
           onClick={onClose}
-          className="text-white hover:text-gray-200 transition-colors shrink-0"
+          className={`${textColor} hover:opacity-70 transition-opacity shrink-0 pt-0.5`}
           aria-label="Close notification"
         >
           <i className="fas fa-times text-lg"></i>
@@ -314,7 +313,7 @@ const AllDietitiansPage = () => {
       
       // Show success notification
       showNotification(
-        "✨ Your consultation has been booked successfully! Confirmation email sent to " + paymentData.email,
+        `✨ Consultation booked successfully!\nConfirmation email sent to ${paymentData.email}`,
         "success"
       );
       

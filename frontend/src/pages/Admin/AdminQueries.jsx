@@ -44,12 +44,12 @@ const mockQueries = [
   },
   {
     _id: "5",
-    name: "TechCorp Solutions",
-    email: "admin@techcorp.com",
-    role: "corporatepartner",
-    query: "We would like to discuss partnership opportunities for our employee wellness program.",
+    name: "Certification Center",
+    email: "admin@certcenter.com",
+    role: "organization",
+    query: "We need to discuss our account status and certification processes.",
     status: "replied",
-    admin_reply: "Thank you for your interest in partnership opportunities. We'd be happy to discuss how NutriConnect can support your employee wellness program. Please schedule a call with our business development team.",
+    admin_reply: "Thank you for reaching out. Our team will contact you soon regarding your certification status. Please keep your account updated.",
     replied_at: "2025-11-06T13:45:00Z",
     created_at: "2025-11-06T10:15:00Z"
   }
@@ -129,7 +129,6 @@ const AdminQueries = () => {
       case 'dietitian': return 'bg-green-100 text-green-800';
       case 'certifyingorganization':
       case 'organization': return 'bg-purple-100 text-purple-800';
-      case 'corporatepartner': return 'bg-orange-100 text-orange-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -141,7 +140,6 @@ const AdminQueries = () => {
       case 'dietitian': return 'Dietitian';
       case 'certifyingorganization':
       case 'organization': return 'Organization';
-      case 'corporatepartner': return 'Corporate Partner';
       default: return role;
     }
   };

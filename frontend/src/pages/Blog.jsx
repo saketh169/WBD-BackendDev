@@ -55,7 +55,6 @@ const BlogPage = () => {
         if (path.startsWith('/dietitian')) return 'dietitian';
         if (path.startsWith('/organization')) return 'organization';
         if (path.startsWith('/admin')) return 'admin';
-        if (path.startsWith('/corporatepartner')) return 'corporatepartner';
         return null;
     }, [location.pathname]);
 
@@ -142,8 +141,7 @@ const BlogPage = () => {
             'user': 'Client',
             'dietitian': 'Dietitian',
             'admin': 'Admin',
-            'organization': 'Organization',
-            'corporatepartner': 'Corporate Partner'
+            'organization': 'Organization'
         };
         return roleLabels[role] || 'Unknown';
     };

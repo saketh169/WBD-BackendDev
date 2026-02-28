@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
-  fetchUserStats,
-  fetchMembershipRevenue,
-  fetchConsultationRevenue,
-  fetchSubscriptions,
-  fetchRevenueAnalytics,
-  fetchDietitianRevenue,
-  fetchUserRevenue,
-  setExpandedSubscriptionId,
+    fetchUserStats,
+    fetchMembershipRevenue,
+    fetchConsultationRevenue,
+    fetchSubscriptions,
+    fetchRevenueAnalytics,
+    fetchDietitianRevenue,
+    fetchUserRevenue,
+    setExpandedSubscriptionId,
 } from '../../redux/slices/analyticsSlice';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 
@@ -19,11 +19,11 @@ const Pagination = ({ currentPage, totalPages, onPageChange, theme }) => {
         const showPages = 5;
         let startPage = Math.max(1, currentPage - Math.floor(showPages / 2));
         let endPage = Math.min(totalPages, startPage + showPages - 1);
-        
+
         if (endPage - startPage < showPages - 1) {
             startPage = Math.max(1, endPage - showPages + 1);
         }
-        
+
         for (let i = startPage; i <= endPage; i++) {
             pages.push(i);
         }
@@ -43,7 +43,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange, theme }) => {
             >
                 <i className="fas fa-chevron-left"></i>
             </button>
-            
+
             {getPageNumbers()[0] > 1 && (
                 <>
                     <button
@@ -56,7 +56,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange, theme }) => {
                     {getPageNumbers()[0] > 2 && <span className="px-2">...</span>}
                 </>
             )}
-            
+
             {getPageNumbers().map(page => (
                 <button
                     key={page}
@@ -71,7 +71,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange, theme }) => {
                     {page}
                 </button>
             ))}
-            
+
             {getPageNumbers()[getPageNumbers().length - 1] < totalPages && (
                 <>
                     {getPageNumbers()[getPageNumbers().length - 1] < totalPages - 1 && <span className="px-2">...</span>}
@@ -84,7 +84,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange, theme }) => {
                     </button>
                 </>
             )}
-            
+
             <button
                 onClick={() => onPageChange(currentPage + 1)}
                 disabled={currentPage === totalPages}
@@ -102,17 +102,17 @@ const Pagination = ({ currentPage, totalPages, onPageChange, theme }) => {
 
 // --- Constants ---
 const THEME = {
-  primary: '#27AE60',      // Primary green
-  secondary: '#1E6F5C',    // Darker green
-  light: '#E8F5E9',        // Light green background
-  lightBg: '#F0F9F7',      // Very light green
-  success: '#27AE60',      // Success green
-  danger: '#DC3545',       // Red for errors
-  warning: '#FFC107',      // Yellow for warning
-  info: '#17A2B8',         // Blue for info
-  dark: '#1A4A40',         // Dark gray
-  lightGray: '#F8F9FA',    // Light gray background
-  borderColor: '#E0E0E0',  // Border color
+    primary: '#27AE60',      // Primary green
+    secondary: '#1E6F5C',    // Darker green
+    light: '#E8F5E9',        // Light green background
+    lightBg: '#F0F9F7',      // Very light green
+    success: '#27AE60',      // Success green
+    danger: '#DC3545',       // Red for errors
+    warning: '#FFC107',      // Yellow for warning
+    info: '#17A2B8',         // Blue for info
+    dark: '#1A4A40',         // Dark gray
+    lightGray: '#F8F9FA',    // Light gray background
+    borderColor: '#E0E0E0',  // Border color
 };// --- Dashboard Component ---
 
 const Analytics = () => {
@@ -235,8 +235,7 @@ const Analytics = () => {
             let currentMonth = new Date();
             for (let i = 0; i < 6; i++) {
                 const monthKey = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}`;
-                const yearShort = currentMonth.getFullYear().toString().slice(-2);
-                const displayMonth = `${currentMonth.toLocaleDateString('en-US', { month: 'long' })} ${yearShort}`;
+                const displayMonth = `${currentMonth.toLocaleDateString('en-US', { month: 'long' })} ${currentMonth.getFullYear()}`;
                 allMonths.push({ key: monthKey, display: displayMonth });
                 currentMonth.setMonth(currentMonth.getMonth() - 1);
             }
@@ -251,23 +250,24 @@ const Analytics = () => {
             for (let i = 0; i < 4; i++) {
                 allYears.push(currentYear - i);
             }
-            const yearWiseWithZeros = allYears.reduce((acc, year) => {
-                acc[year] = (yearWiseLast4Years[year] || []).reduce((sum, sub) => sum + sub.revenue, 0);
-                return acc;
-            }, {});
+            // Build year-wise array in descending order (most recent first)
+            const yearWiseSorted = allYears.map(year => ({
+                year: String(year),
+                revenue: (yearWiseLast4Years[year] || []).reduce((sum, sub) => sum + sub.revenue, 0)
+            }));
 
             console.log('Last 7 Days Subscriptions Date-wise (with 0 for no amount):', dateWiseWithZeros);
             console.log('Last 6 Months Subscriptions Month-wise (with 0 for no amount):', monthWiseWithZeros);
-            console.log('Last 4 Years Subscriptions Year-wise (with 0 for no amount):', yearWiseWithZeros);
+            console.log('Last 4 Years Subscriptions Year-wise (with 0 for no amount):', yearWiseSorted);
 
             // Prepare data for tables
             setCalculatedData({
                 dateWise: Object.entries(dateWiseWithZeros).map(([displayDate, revenue]) => ({ displayDate, revenue })),
                 monthWise: Object.entries(monthWiseWithZeros).map(([month, revenue]) => ({ month, revenue })),
-                yearWise: Object.entries(yearWiseWithZeros).map(([year, revenue]) => ({ year, revenue })),
+                yearWise: yearWiseSorted,
                 dateTotal: Object.values(dateWiseWithZeros).reduce((sum, val) => sum + val, 0),
                 monthTotal: Object.values(monthWiseWithZeros).reduce((sum, val) => sum + val, 0),
-                yearTotal: Object.values(yearWiseWithZeros).reduce((sum, val) => sum + val, 0),
+                yearTotal: yearWiseSorted.reduce((sum, item) => sum + item.revenue, 0),
             });
         }
     }, [subscriptions]);
@@ -283,7 +283,7 @@ const Analytics = () => {
             console.log('Membership Revenue - Year wise:', membershipRevenue.yearlyPeriods);
         }
     }, [consultationRevenue, membershipRevenue]);
-    
+
     // --- Aggregated Totals ---
     const dailyConsultationTotal = consultationRevenue.dailyPeriods ? consultationRevenue.dailyPeriods.reduce((sum, p) => sum + p.revenue, 0) : 0;
     const monthlyConsultationTotal = consultationRevenue.monthlyPeriods ? consultationRevenue.monthlyPeriods.reduce((sum, p) => sum + p.revenue, 0) : 0;
@@ -305,7 +305,7 @@ const Analytics = () => {
 
 
     // --- UI Renderers ---
-    
+
     const RevenueTable = ({ data, periodKey, total }) => (
         <table className="min-w-full divide-y divide-gray-200 shadow-md rounded-lg overflow-hidden border-collapse">
             <thead style={{ backgroundColor: THEME.primary }} className="text-white">
@@ -347,7 +347,7 @@ const Analytics = () => {
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{sub.name}</td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{sub.startDate}</td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
-                                <button 
+                                <button
                                     style={{
                                         backgroundColor: expandedSubscriptionId === sub.id ? '#6B7280' : THEME.primary,
                                         color: 'white',
@@ -360,7 +360,7 @@ const Analytics = () => {
                                     onMouseLeave={(e) => { if (expandedSubscriptionId !== sub.id) e.target.style.backgroundColor = THEME.primary; }}
                                     onClick={() => toggleDetails(sub.id)}
                                 >
-                                    <i className="fas fa-eye mr-2"></i> 
+                                    <i className="fas fa-eye mr-2"></i>
                                     {expandedSubscriptionId === sub.id ? 'Hide Details' : 'View Details'}
                                 </button>
                             </td>
@@ -401,7 +401,7 @@ const Analytics = () => {
                     </div>
                 </div>
                 <h1 style={{ color: THEME.primary }} className="text-4xl font-extrabold text-center mb-4">Analytics Dashboard</h1>
-                
+
                 {/* Loading Indicator */}
                 {isLoading && (
                     <div className="bg-blue-100 text-blue-700 p-3 rounded-lg text-center mb-6">
@@ -409,7 +409,7 @@ const Analytics = () => {
                         Loading analytics data...
                     </div>
                 )}
-                
+
                 {/* Error Message */}
                 {errorMessage && (
                     <div className="bg-red-100 text-red-700 p-3 rounded-lg text-center mb-6">{errorMessage}</div>
@@ -455,10 +455,7 @@ const Analytics = () => {
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Verifying Organizations</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">{userStats.totalOrganizations}</td>
                                 </tr>
-                                <tr className="hover:bg-green-50 transition-colors">
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Corporate Partners</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">{userStats.totalCorporatePartners}</td>
-                                </tr>
+
                                 <tr className="hover:bg-green-50 transition-colors">
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Active Diet Plans</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">{userStats.activeDietPlans}</td>
@@ -474,7 +471,7 @@ const Analytics = () => {
                         <h2 style={{ color: THEME.primary }} className="text-xl font-bold mb-4">
                             <i style={{ color: THEME.primary }} className="fas fa-stethoscope mr-2"></i> Revenue from Consultations ({revenueAnalytics.summary?.commissionRates?.consultationCommission || '15%'})
                         </h2>
-                        
+
                         <div className="grid grid-cols-1 gap-6">
                             <div>
                                 <h4 className="text-lg font-semibold mb-2">Daily Revenue (Last 7 Days)</h4>
@@ -496,7 +493,7 @@ const Analytics = () => {
                         <h2 style={{ color: THEME.primary }} className="text-xl font-bold mb-4">
                             <i style={{ color: THEME.primary }} className="fas fa-chart-line mr-2"></i> Revenue from Memberships ({revenueAnalytics.summary?.commissionRates?.platformShare || '20%'})
                         </h2>
-                        
+
                         <div className="grid grid-cols-1 gap-6">
                             <div>
                                 <h4 className="text-lg font-semibold mb-2">Daily Revenue (Last 7 Days)</h4>
@@ -641,7 +638,7 @@ const Analytics = () => {
                             <p className="text-sm text-gray-600 text-center mb-4">
                                 Identify top-performing dietitians generating consultation revenue
                             </p>
-                            
+
                             {dietitianRevenue.data && dietitianRevenue.data.length > 0 ? (
                                 <>
                                     {/* Pie Chart */}
@@ -652,7 +649,7 @@ const Analytics = () => {
                                                     const top10 = dietitianRevenue.data.slice(0, 10);
                                                     const others = dietitianRevenue.data.slice(10);
                                                     const othersTotal = others.reduce((sum, d) => sum + d.totalRevenue, 0);
-                                                    
+
                                                     if (othersTotal > 0) {
                                                         return [...top10, { dietitianName: 'Others', totalRevenue: othersTotal }];
                                                     }
@@ -663,7 +660,7 @@ const Analytics = () => {
                                                 cx="50%"
                                                 cy="50%"
                                                 outerRadius={80}
-                                                label={({ dietitianName, percent }) => 
+                                                label={({ dietitianName, percent }) =>
                                                     `${dietitianName}: ${(percent * 100).toFixed(1)}%`
                                                 }
                                             >
@@ -671,22 +668,22 @@ const Analytics = () => {
                                                     const top10 = dietitianRevenue.data.slice(0, 10);
                                                     const others = dietitianRevenue.data.slice(10);
                                                     const totalItems = top10.length + (others.length > 0 ? 1 : 0);
-                                                    
+
                                                     return Array.from({ length: totalItems }).map((_, index) => (
-                                                        <Cell 
-                                                            key={`cell-${index}`} 
+                                                        <Cell
+                                                            key={`cell-${index}`}
                                                             fill={index === top10.length ? '#9CA3AF' : `hsl(${120 + index * 36}, 70%, ${50 - index * 3}%)`}
                                                         />
                                                     ));
                                                 })()}
                                             </Pie>
-                                            <Tooltip 
+                                            <Tooltip
                                                 formatter={(value) => `₹${value.toLocaleString()}`}
                                             />
                                             <Legend />
                                         </PieChart>
                                     </ResponsiveContainer>
-                                    
+
                                     {/* Summary Card */}
                                     <div className="mt-4 bg-white p-4 rounded border">
                                         <h4 className="font-semibold text-sm text-gray-700 mb-2">Summary:</h4>
@@ -740,7 +737,7 @@ const Analytics = () => {
                                                 </tbody>
                                             </table>
                                         </div>
-                                        
+
                                         <Pagination
                                             currentPage={dietitianPage}
                                             totalPages={Math.ceil(dietitianRevenue.data.length / itemsPerPage)}
@@ -764,7 +761,7 @@ const Analytics = () => {
                             <p className="text-sm text-gray-600 text-center mb-4">
                                 Identify high-value users bringing maximum subscription revenue
                             </p>
-                            
+
                             {userRevenue.data && userRevenue.data.length > 0 ? (
                                 <>
                                     {/* Pie Chart */}
@@ -775,7 +772,7 @@ const Analytics = () => {
                                                     const top10 = userRevenue.data.slice(0, 10);
                                                     const others = userRevenue.data.slice(10);
                                                     const othersTotal = others.reduce((sum, u) => sum + u.totalRevenue, 0);
-                                                    
+
                                                     if (othersTotal > 0) {
                                                         return [...top10, { userName: 'Others', totalRevenue: othersTotal }];
                                                     }
@@ -786,7 +783,7 @@ const Analytics = () => {
                                                 cx="50%"
                                                 cy="50%"
                                                 outerRadius={80}
-                                                label={({ userName, percent }) => 
+                                                label={({ userName, percent }) =>
                                                     `${userName}: ${(percent * 100).toFixed(1)}%`
                                                 }
                                             >
@@ -794,22 +791,22 @@ const Analytics = () => {
                                                     const top10 = userRevenue.data.slice(0, 10);
                                                     const others = userRevenue.data.slice(10);
                                                     const totalItems = top10.length + (others.length > 0 ? 1 : 0);
-                                                    
+
                                                     return Array.from({ length: totalItems }).map((_, index) => (
-                                                        <Cell 
-                                                            key={`cell-${index}`} 
+                                                        <Cell
+                                                            key={`cell-${index}`}
                                                             fill={index === top10.length ? '#9CA3AF' : `hsl(${210 + index * 36}, 70%, ${50 - index * 3}%)`}
                                                         />
                                                     ));
                                                 })()}
                                             </Pie>
-                                            <Tooltip 
+                                            <Tooltip
                                                 formatter={(value) => `₹${value.toLocaleString()}`}
                                             />
                                             <Legend />
                                         </PieChart>
                                     </ResponsiveContainer>
-                                    
+
                                     {/* Summary Card */}
                                     <div className="mt-4 bg-white p-4 rounded border">
                                         <h4 className="font-semibold text-sm text-gray-700 mb-2">Summary:</h4>
@@ -863,7 +860,7 @@ const Analytics = () => {
                                                 </tbody>
                                             </table>
                                         </div>
-                                        
+
                                         <Pagination
                                             currentPage={userPage}
                                             totalPages={Math.ceil(userRevenue.data.length / itemsPerPage)}

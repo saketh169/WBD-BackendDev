@@ -149,7 +149,6 @@ const Home = () => {
       { slug: 'dietitian', icon: 'fas fa-user-md', title: 'Dietitian', text: 'Join our platform to help users achieve their health goals.' },
       { slug: 'organization', icon: 'fas fa-building', title: 'Certifying Organization', text: 'Partner with us to certify dietitians and expand your reach.' },
       { slug: 'admin', icon: 'fas fa-crown', title: 'Admin', text: 'Access administrative features and system management.' },
-      // { slug: 'corporatepartner', icon: 'fas fa-handshake', title: 'Corporate Partner', text: 'Provide comprehensive wellness and nutrition solutions to your employees with our corporate plans.' },
     ];
   };
 
