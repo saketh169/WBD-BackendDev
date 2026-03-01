@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import NutritionCard from './NutritionCard';
+import { Copy, Check } from 'lucide-react';
 
 function MessageBubble({ message }) {
   const isUser = message.type === "user";
@@ -62,7 +63,7 @@ function MessageBubble({ message }) {
               const boldItem = cleanItem.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-gray-900">$1</strong>');
               return (
                 <li key={i} className="text-sm leading-relaxed flex items-start">
-                  <span className="text-[#27AE60] mr-2 font-bold shrink-0">✓</span>
+                  <span className="text-emerald-600 mr-2 font-bold shrink-0">&#10003;</span>
                   <span dangerouslySetInnerHTML={{ __html: boldItem }} />
                 </li>
               );
@@ -91,7 +92,7 @@ function MessageBubble({ message }) {
       processedText = processedText.replace(/\*([^*]+)\*/g, '<em class="italic text-gray-700">$1</em>');
 
       // Handle links [text](url) - though Gemini rarely returns these
-      processedText = processedText.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-[#27AE60] underline hover:text-[#1E8449]" target="_blank" rel="noopener noreferrer">$1</a>');
+      processedText = processedText.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-emerald-600 underline hover:text-emerald-800" target="_blank" rel="noopener noreferrer">$1</a>');
       
       // Regular paragraph
       return (
@@ -110,8 +111,8 @@ function MessageBubble({ message }) {
         <div
           className={`px-4 py-3 rounded-lg shadow-md relative group ${
             isUser
-              ? "bg-[#27AE60] text-white rounded-br-none"
-              : "bg-white text-gray-800 border-2 border-gray-100 rounded-bl-none"
+              ? "bg-linear-to-r from-emerald-500 to-teal-600 text-white rounded-br-none"
+              : "bg-white text-gray-800 border-2 border-emerald-100 rounded-bl-none"
           }`}
         >
           {/* Render formatted message for bot, simple text for user */}
@@ -128,7 +129,7 @@ function MessageBubble({ message }) {
           {message.timestamp && (
             <p
               className={`text-xs mt-1 ${
-                isUser ? "text-green-100" : "text-gray-500"
+                isUser ? "text-emerald-100" : "text-gray-500"
               }`}
             >
               {new Date(message.timestamp).toLocaleTimeString([], {
@@ -142,10 +143,10 @@ function MessageBubble({ message }) {
           {!isUser && (
             <button
               onClick={handleCopy}
-              className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-1 rounded text-xs font-medium shadow-sm"
+              className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-1 rounded text-xs font-medium shadow-sm flex items-center gap-1"
               title="Copy message"
             >
-              {copied ? '✓ Copied!' : '📋 Copy'}
+              {copied ? <><Check className="w-3 h-3" /> Copied</> : <><Copy className="w-3 h-3" /> Copy</>}
             </button>
           )}
         </div>

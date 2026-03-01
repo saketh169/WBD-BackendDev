@@ -1,5 +1,6 @@
 import React from "react";
 import MessageBubble from "./MessageBubble" ;
+import { RefreshCw } from "lucide-react";
 
 
 function MessageList({messages, onRetry}) {
@@ -16,9 +17,9 @@ function MessageList({messages, onRetry}) {
             <div className="flex justify-start mt-2">
               <button
                 onClick={() => onRetry(msg.failedMessage)}
-                className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-1 shadow-md"
+                className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-1.5 shadow-md"
               >
-                <span>🔄</span>
+                <RefreshCw className="w-3 h-3" />
                 <span>Retry</span>
               </button>
             </div>

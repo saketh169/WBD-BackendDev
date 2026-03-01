@@ -20,6 +20,7 @@ import Contact from '../pages/Contactus';
 import CreateBlog from '../pages/Blog/CreateBlog';
 import BlogPost from '../pages/Blog/BlogPost';
 import DietitianLabReportViewer from '../pages/LabReports/DietitianLabReportViewer';
+import DietitianHealthReportPage from '../pages/LabReports/DietitianHealthReportPage';
 import DietitianActivities from '../pages/Activities/DietitianActivities';
 
 
@@ -80,6 +81,9 @@ export default function DietitianRoutes() {
          {/* Lab Reports Route */}
          <Route path="lab-reports" element={<DietitianLabReportViewer />} />
          <Route path="lab-reports/:clientId" element={<DietitianLabReportViewer />} />
+
+         {/* Health Reports Route */}
+         <Route path="health-reports/:clientId" element={<DietitianHealthReportPage />} />
 
          <Route path="*" element={<NotFoundPage role="dietitian" />} />
       </Routes>

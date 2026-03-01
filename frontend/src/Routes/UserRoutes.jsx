@@ -34,6 +34,7 @@ import PaymentSuccess from '../pages/Payments/PaymentSuccess';
 import SubscriptionDashboard from '../pages/Payments/SubscriptionDashboard';
 
 import ClientLabReportViewer from '../pages/LabReports/ClientLabReportViewer';
+import ClientHealthReportViewer from '../pages/LabReports/ClientHealthReportViewer';
 import LabReportUploader from '../pages/LabReports/LabReportUploader';
 import UserActivities from '../pages/Activities/UserActivities';
 
@@ -76,6 +77,9 @@ export default function UserRoutes() {
         {/* Lab Reports Routes */}
         <Route path="lab-reports/:dietitianId" element={<ClientLabReportViewer />} />
         <Route path="submit-lab-report/:dietitianId" element={<LabReportUploader />} />
+
+        {/* Health Reports Route */}
+        <Route path="health-reports/:dietitianId" element={<ClientHealthReportViewer />} />
          
          {/* Payment Routes */}
         <Route path="pricing" element={<Pricing />} />

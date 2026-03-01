@@ -16,6 +16,7 @@ const mealPlanRoutes = require('./routes/mealPlanRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const labReportRoutes = require('./routes/labReportRoutes');
+const healthReportRoutes = require('./routes/healthReportRoutes');
 const analyticsRoutes = require('./routes/analyticsRoutes');
 const settingsRoutes = require('./routes/settingsRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
@@ -103,6 +104,9 @@ app.use('/api/payments', paymentRoutes);
 
 // Lab report routes mounted at '/api/lab-reports'
 app.use('/api/lab-reports', labReportRoutes);
+
+// Health report routes mounted at '/api/health-reports'
+app.use('/api/health-reports', healthReportRoutes);
 
 // Analytics routes mounted at '/api'
 app.use('/api', analyticsRoutes);

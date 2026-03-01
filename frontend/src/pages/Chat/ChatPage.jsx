@@ -29,6 +29,10 @@ const ChatPage = () => {
     scheduledTime: ''
   });
   
+  // Dropdown state for reports
+  const [showReportsDropdown, setShowReportsDropdown] = useState(false);
+  const reportsDropdownRef = useRef(null);
+  
   const pollingIntervalRef = useRef(null);
   
   // Get other participant info from location state
@@ -52,6 +56,17 @@ const ChatPage = () => {
       });
     }
   }, [showVideoModal, bookingInfo]);
+
+  // Close reports dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (reportsDropdownRef.current && !reportsDropdownRef.current.contains(event.target)) {
+        setShowReportsDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const messagesContainerRef = useRef(null);
 
@@ -332,24 +347,98 @@ const ChatPage = () => {
                     <i className="fas fa-file-upload"></i>
                     <span className="hidden sm:inline">Upload Report</span>
                   </button>
-                  <button
-                    onClick={() => navigate(`/user/lab-reports/${otherParticipant?._id || otherParticipant?.id}`)}
-                    className="px-4 py-2 bg-linear-to-r from-emerald-600 to-teal-600 text-white rounded-lg hover:from-emerald-700 hover:to-teal-700 transition-all flex items-center gap-2"
-                  >
-                    <i className="fas fa-file-medical"></i>
-                    <span className="hidden sm:inline">My Reports</span>
-                  </button>
+                  <div className="relative" ref={userType === 'client' ? reportsDropdownRef : undefined}>
+                    <button
+                      onClick={() => setShowReportsDropdown(!showReportsDropdown)}
+                      className="px-4 py-2 bg-linear-to-r from-emerald-600 to-teal-600 text-white rounded-lg hover:from-emerald-700 hover:to-teal-700 transition-all flex items-center gap-2"
+                    >
+                      <i className="fas fa-file-medical"></i>
+                      <span className="hidden sm:inline">My Reports</span>
+                      <i className={`fas fa-chevron-${showReportsDropdown ? 'up' : 'down'} text-xs ml-1`}></i>
+                    </button>
+                    {showReportsDropdown && (
+                      <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-2xl border border-emerald-200 overflow-hidden z-50">
+                        <button
+                          onClick={() => {
+                            setShowReportsDropdown(false);
+                            navigate(`/user/lab-reports/${otherParticipant?._id || otherParticipant?.id}`);
+                          }}
+                          className="w-full px-4 py-3 text-left hover:bg-emerald-50 transition flex items-center gap-3 border-b border-gray-100"
+                        >
+                          <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center">
+                            <i className="fas fa-flask text-emerald-600 text-sm"></i>
+                          </div>
+                          <div>
+                            <div className="font-semibold text-gray-800 text-sm">Lab Reports</div>
+                            <div className="text-xs text-gray-500">Your submitted lab reports</div>
+                          </div>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowReportsDropdown(false);
+                            navigate(`/user/health-reports/${otherParticipant?._id || otherParticipant?.id}`);
+                          }}
+                          className="w-full px-4 py-3 text-left hover:bg-emerald-50 transition flex items-center gap-3"
+                        >
+                          <div className="w-8 h-8 bg-teal-100 rounded-lg flex items-center justify-center">
+                            <i className="fas fa-notes-medical text-teal-600 text-sm"></i>
+                          </div>
+                          <div>
+                            <div className="font-semibold text-gray-800 text-sm">Health Assessment</div>
+                            <div className="text-xs text-gray-500">Reports from your dietitian</div>
+                          </div>
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </>
               )}
               
               {userType === 'dietitian' && (
-                <button
-                  onClick={() => navigate(`/dietitian/lab-reports/${otherParticipant?._id || otherParticipant?.id}`, { state: { clientInfo: otherParticipant } })}
-                  className="px-4 py-2 bg-linear-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all flex items-center gap-2"
-                >
-                  <i className="fas fa-file-medical"></i>
-                  <span className="hidden sm:inline">Client Reports</span>
-                </button>
+                <div className="relative" ref={userType === 'dietitian' ? reportsDropdownRef : undefined}>
+                  <button
+                    onClick={() => setShowReportsDropdown(!showReportsDropdown)}
+                    className="px-4 py-2 bg-linear-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all flex items-center gap-2"
+                  >
+                    <i className="fas fa-file-medical"></i>
+                    <span className="hidden sm:inline">Client Reports</span>
+                    <i className={`fas fa-chevron-${showReportsDropdown ? 'up' : 'down'} text-xs ml-1`}></i>
+                  </button>
+                  {showReportsDropdown && (
+                    <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-2xl border border-emerald-200 overflow-hidden z-50">
+                      <button
+                        onClick={() => {
+                          setShowReportsDropdown(false);
+                          navigate(`/dietitian/lab-reports/${otherParticipant?._id || otherParticipant?.id}`, { state: { clientInfo: otherParticipant } });
+                        }}
+                        className="w-full px-4 py-3 text-left hover:bg-emerald-50 transition flex items-center gap-3 border-b border-gray-100"
+                      >
+                        <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center">
+                          <i className="fas fa-flask text-emerald-600 text-sm"></i>
+                        </div>
+                        <div>
+                          <div className="font-semibold text-gray-800 text-sm">Lab Reports</div>
+                          <div className="text-xs text-gray-500">View client's lab reports</div>
+                        </div>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowReportsDropdown(false);
+                          navigate(`/dietitian/health-reports/${otherParticipant?._id || otherParticipant?.id}`, { state: { clientInfo: otherParticipant } });
+                        }}
+                        className="w-full px-4 py-3 text-left hover:bg-emerald-50 transition flex items-center gap-3"
+                      >
+                        <div className="w-8 h-8 bg-teal-100 rounded-lg flex items-center justify-center">
+                          <i className="fas fa-notes-medical text-teal-600 text-sm"></i>
+                        </div>
+                        <div>
+                          <div className="font-semibold text-gray-800 text-sm">Health Assessment</div>
+                          <div className="text-xs text-gray-500">Send health report to client</div>
+                        </div>
+                      </button>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </div>

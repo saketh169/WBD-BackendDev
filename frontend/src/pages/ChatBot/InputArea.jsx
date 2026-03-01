@@ -20,20 +20,20 @@ function InputArea({ onSendMessage }) {
   };
 
   return (
-    <div className="flex px-6 py-4 bg-white rounded-b-2xl shadow-md gap-3 border-t-2 border-gray-100">
+    <div className="flex px-6 py-4 bg-white rounded-b-2xl shadow-md gap-3 border-t-2 border-emerald-100">
       <TextareaAutoSize
         minRows={1}
         maxRows={6}
         value={inputValue}
         onChange={(e) => setInputValue(e.target.value)}
         onKeyPress={handleKeyPress}
-        className="flex-1 border-2 border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:border-transparent text-base resize-none transition-all duration-200"
+        className="flex-1 border-2 border-gray-200 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 text-base resize-none transition-all duration-200"
         placeholder="Type your message here... (Press Enter to send)"
       />
       <button
         onClick={handleSend}
         disabled={!inputValue.trim()}
-        className="bg-[#27AE60] hover:bg-[#1E8449] disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg px-6 py-3 flex items-center justify-center transition-all duration-300 transform hover:scale-105 shadow-md"
+        className="bg-linear-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 disabled:from-gray-300 disabled:to-gray-300 disabled:cursor-not-allowed text-white rounded-lg px-6 py-3 flex items-center justify-center transition-all duration-300 shadow-md"
       >
         <FiSend className="text-xl" />
       </button>

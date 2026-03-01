@@ -3,7 +3,7 @@ import ChatBotPage from './ChatBot/ChatBotPage';
 
 const ChatbotPage = () => {
     return (
-        <main className="min-h-screen bg-linear-to-b from-gray-50 to-green-50 flex items-center justify-center">
+        <main className="min-h-screen bg-linear-to-br from-emerald-50 to-teal-50 flex items-center justify-center">
             <ChatBotPage />
         </main>
     );
