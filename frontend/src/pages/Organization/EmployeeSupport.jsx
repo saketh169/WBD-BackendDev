@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 
 const CATEGORIES = [
@@ -32,7 +32,6 @@ const EmployeeSupport = () => {
   // ── My Queries ──
   const [myQueries, setMyQueries] = useState([]);
   const [replies, setReplies] = useState({});
-  const [fetchingReplies, setFetchingReplies] = useState(false);
 
   // ── Team Board ──
   const [boardMsg, setBoardMsg] = useState('');
@@ -99,9 +98,9 @@ const EmployeeSupport = () => {
       }
     };
     refreshUser();
-  }, [token]);
+  }, [token, _stored]);
 
-  const fetchBoardPosts = async (silent = false) => {
+  const fetchBoardPosts = useCallback(async (silent = false) => {
     if (!silent) setBoardLoading(true);
     try {
       const res = await axios.get(`/api/teamboard?orgName=${encodeURIComponent(orgName)}`, {
@@ -113,29 +112,12 @@ const EmployeeSupport = () => {
     } finally {
       if (!silent) setBoardLoading(false);
     }
-  };
-
-  useEffect(() => {
-    if (!QUERIES_KEY) return;
-    const stored = JSON.parse(localStorage.getItem(QUERIES_KEY) || '[]');
-    setMyQueries(stored);
-    fetchReplies();
-    fetchBoardPosts();
-    // Auto-refresh board every 15 seconds
-    const boardInterval = setInterval(() => fetchBoardPosts(true), 15000);
-    // Auto-refresh replies every 5 seconds to show new admin responses
-    const repliesInterval = setInterval(() => fetchReplies(), 5000);
-    return () => {
-      clearInterval(boardInterval);
-      clearInterval(repliesInterval);
-    };
-  }, [orgName, empEmail]);
+  }, [orgName, token]);
 
   // Fetch admin replies to employee queries
-  const fetchReplies = async () => {
+  const fetchReplies = useCallback(async () => {
     if (!empEmail) return;
     try {
-      setFetchingReplies(true);
       const res = await axios.get(`/api/contact/queries-list?email=${encodeURIComponent(empEmail.toLowerCase())}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -162,28 +144,33 @@ const EmployeeSupport = () => {
       }
     } catch (err) {
       console.error('Failed to fetch replies:', err);
-    } finally {
-      setFetchingReplies(false);
     }
-  };
+  }, [empEmail, token]);
 
-  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (!QUERIES_KEY) return;
+    const stored = JSON.parse(localStorage.getItem(QUERIES_KEY) || '[]');
+    setMyQueries(stored);
+    fetchReplies();
+    fetchBoardPosts();
+    // Auto-refresh board every 15 seconds
+    const boardInterval = setInterval(() => fetchBoardPosts(true), 15000);
+    // Auto-refresh replies every 5 seconds to show new admin responses
+    const repliesInterval = setInterval(() => fetchReplies(), 5000);
+    return () => {
+      clearInterval(boardInterval);
+      clearInterval(repliesInterval);
+    };
+  }, [orgName, empEmail, QUERIES_KEY, fetchBoardPosts, fetchReplies]);
+
+  // Auto-scroll to bottom when new messages arrive or when switching to board tab
   useEffect(() => {
     if (boardMessagesRef.current) {
       setTimeout(() => {
         boardMessagesRef.current.scrollTop = boardMessagesRef.current.scrollHeight;
-      }, 0);
+      }, 50);
     }
-  }, [boardPosts]);
-
-  // Auto-scroll page to bottom when switching to board tab or when board updates
-  useEffect(() => {
-    if (activeTab === 'board' && pageRef.current) {
-      setTimeout(() => {
-        pageRef.current.scrollTop = pageRef.current.scrollHeight;
-      }, 100);
-    }
-  }, [activeTab, boardPosts]);
+  }, [boardPosts, activeTab]);
 
   // ── Validate form ──
   const validate = () => {
@@ -293,11 +280,11 @@ const EmployeeSupport = () => {
       <div className="max-w-6xl mx-auto w-full">
 
         {/* Header */}
-        <div className="bg-gradient-to-r from-[#1A4A40] to-[#27AE60] rounded-2xl p-7 mb-6 text-white shadow-lg">
+        <div className="bg-gradient-to-r from-green-50 to-green-50 rounded-2xl p-7 mb-6 border border-green-200 text-[#1A4A40] shadow-lg">
           <h1 className="text-3xl font-bold mb-1">
             <i className="fas fa-headset mr-3"></i>Employee Support
           </h1>
-          <p className="text-green-100">Raise queries, report issues, or collaborate with your team — all in one place.</p>
+          <p className="text-[#1A4A40]">Raise queries, report issues, or collaborate with your team — all in one place. Access support tickets, team board, and get help from administrators.</p>
         </div>
 
         {/* Tabs */}
@@ -322,11 +309,11 @@ const EmployeeSupport = () => {
         {activeTab === 'submit' && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
             <h2 className="text-xl font-bold text-[#1A4A40] mb-6">
-              <i className="fas fa-paper-plane mr-2 text-[#27AE60]"></i>Raise a New Query
+              <i className="fas fa-paper-plane mr-2 text-[#27AE60]"></i>Raise a New Que5060ry
             </h2>
 
             {submitSuccess && (
-              <div className="bg-green-50 border-l-4 border-green-500 text-green-700 p-4 mb-5 rounded">
+              <div className="bg-[#27AE60]/10 border-l-4 border-[#27AE60] text-[#27AE60] p-4 mb-5 rounded">
                 <i className="fas fa-check-circle mr-2"></i>{submitSuccess}
               </div>
             )}
@@ -457,7 +444,7 @@ const EmployeeSupport = () => {
                           </div>
                         </div>
                         <span className={`flex-shrink-0 text-xs px-3 py-1 rounded-full font-semibold whitespace-nowrap ${
-                          isResolved ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                          isResolved ? 'bg-[#27AE60]/20 text-[#27AE60]' : 'bg-yellow-100 text-yellow-700'
                         }`}>
                           {isResolved ? <><i className="fas fa-check-circle mr-1"></i>Resolved</> : <><i className="fas fa-clock mr-1"></i>Pending</> }
                         </span>
@@ -465,9 +452,9 @@ const EmployeeSupport = () => {
 
                       {/* Admin Reply Section */}
                       {reply?.reply && (
-                        <div className="bg-green-50 border-l-4 border-green-400 p-4 rounded mb-4">
+                        <div className="bg-[#27AE60]/10 border-l-4 border-[#27AE60] p-4 rounded mb-4">
                           <p className="text-sm font-semibold text-gray-900 mb-2">
-                            <i className="fas fa-check-circle text-green-600 mr-2"></i>Reply from Admin:
+                            <i className="fas fa-check-circle text-[#27AE60] mr-2"></i>Reply from Admin:
                           </p>
                           <p className="text-gray-700 text-sm leading-relaxed mb-2">{reply.reply}</p>
                           <p className="text-xs text-gray-500">
@@ -552,7 +539,7 @@ const EmployeeSupport = () => {
                 <p className="text-gray-500">No messages yet. Be the first to post!</p>
               </div>
             ) : (
-              <div ref={boardMessagesRef} className="flex flex-col gap-3 p-5 h-[50vh] overflow-y-auto scroll-smooth">
+              <div ref={boardMessagesRef} className="flex flex-col gap-3 p-5 h-[40vh] overflow-y-auto scroll-smooth">
                 {[...boardPosts].reverse().map(post => {
                   const isAdmin = post.isOrg === true;
                   const isMine = post.email === empEmail;

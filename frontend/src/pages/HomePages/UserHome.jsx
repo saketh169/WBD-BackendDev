@@ -207,10 +207,10 @@ const UserHome = () => {
                     <li className="flex items-center gap-2"><i className="fas fa-check-circle text-[#27AE60]"></i> Frequently asked questions and troubleshooting.</li>
                 </ul>
                 <button
-                    onClick={() => navigate('/user-guide')}
+                    onClick={() => navigate('/guide?role=user')}
                     className="bg-[#27AE60] text-white font-bold py-2 px-6 rounded-full hover:bg-[#1A4A40] transition-all shadow-md"
                 >
-                    Go to User Guide
+                    Go to Guide
                 </button>
             </div>
             <div className="md:w-full flex justify-center order-1 md:order-2">

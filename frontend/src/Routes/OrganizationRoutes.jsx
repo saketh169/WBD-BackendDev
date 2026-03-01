@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '../contexts/AuthContext';
+import ScrollToTop from '../components/ScrollToTop';
 import { VerifyProvider } from '../contexts/VerifyContext';
 import NotFoundPage from '../pages/Error/NotFoundPage';
 
@@ -12,7 +13,7 @@ import DietitianVerify from '../pages/Verify/DietitianVerify';
 
 import ChangePassword from '../pages/ChangePassword';
 import EditProfile from '../pages/EditProfile';
-import BlogModeration from '../pages/Organization/BlogModeration';
+import BlogModeration from '../pages/Blog/BlogModeration';
 import Blog from '../pages/Blog';
 import BlogPost from '../pages/Blog/BlogPost';
 import EmployeeManagement from '../pages/Organization/EmployeeManagement';
@@ -21,6 +22,7 @@ import EmployeeMonitoring from '../pages/Organization/EmployeeMonitoring';
 export default function OrganizationRoutes() {
   return (
     <AuthProvider currentRole="organization">
+      <ScrollToTop />
       <div className="p-6">
         <Routes>
           <Route index element={<Navigate to="home" replace />} />
@@ -46,9 +48,17 @@ export default function OrganizationRoutes() {
           <Route path="blogs" element={<Blog />} />
           <Route path="blog/:id" element={<BlogPost />} />
 
-          {/* Employee Management Routes */}
-          <Route path="employee-management" element={<EmployeeManagement />} />
-          <Route path="employee-monitoring" element={<EmployeeMonitoring />} />
+          {/* Employee Management Routes - Require Organization Verification */}
+          <Route path="employee-management" element={
+            <VerifyProvider requiredRole="organization" redirectTo="/organization/doc-status">
+              <EmployeeManagement />
+            </VerifyProvider>
+          } />
+          <Route path="employee-monitoring" element={
+            <VerifyProvider requiredRole="organization" redirectTo="/organization/doc-status">
+              <EmployeeMonitoring />
+            </VerifyProvider>
+          } />
           <Route path="contact-us" element={<Contact />} />
 
           <Route path="*" element={<NotFoundPage role="organization" />} />

@@ -181,23 +181,23 @@ const BookingSidebar = ({
   }, [selectedDate, dietitianId, fetchDietitianBookedSlots]);
 
   // NEW: Helper function to check if user has conflict at this time with ANOTHER dietitian
-  const getUserConflictAt = (time) => {
+  const getUserConflictAt = useCallback((time) => {
     // userBookedSlots contains all user's bookings on the selected date
-    // We need to filter out bookings with the current dietitian and find conflicts with others
+    // We need to filter out bookings with the current dietitian and find conflicts with others 
     const conflict = userBookedSlots.find((slot) => 
       slot.time === time && slot.dietitianId !== dietitianId
     );
     return conflict;
-  };
+  }, [userBookedSlots, dietitianId]);
 
   // Helper function to check if a slot is unavailable
-  const isSlotUnavailable = (time) => {
+  const isSlotUnavailable = useCallback((time) => {
     return (
       currentUserBookedTimesWithDietitian.includes(time) ||
       bookedSlots.includes(time) ||
       getUserConflictAt(time)
     );
-  };
+  }, [currentUserBookedTimesWithDietitian, bookedSlots, getUserConflictAt]);
 
   // Update selected time when booked slots are loaded - ensure we don't select an unavailable slot
   useEffect(() => {
@@ -211,7 +211,7 @@ const BookingSidebar = ({
       const firstAvailable = allSlots.find(slot => !isSlotUnavailable(slot));
       setSelectedTime(firstAvailable || "");
     }
-  }, [bookedSlots, currentUserBookedTimesWithDietitian, userBookedSlots]);
+  }, [bookedSlots, currentUserBookedTimesWithDietitian, userBookedSlots, availableSlots, isSlotUnavailable, selectedTime]);
 
   const handleSubmit = async () => {
     if (!selectedDate || !selectedTime) {

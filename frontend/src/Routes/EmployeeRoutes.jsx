@@ -1,13 +1,14 @@
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider } from '../contexts/AuthContext';
+import ScrollToTop from '../components/ScrollToTop';
 import Sidebar from '../components/Sidebar/Sidebar';
 import EmployeeHome from '../pages/HomePages/EmployeeHome';
-import BlogModeration from '../pages/Organization/BlogModeration';
+import BlogModeration from '../pages/Blog/BlogModeration';
 import DietitianVerify from '../pages/Verify/DietitianVerify';
 import Blog from '../pages/Blog';
 import BlogPost from '../pages/Blog/BlogPost';
 import Contact from '../pages/Contactus';
-import EmployeeSupport from '../pages/EmployeeSupport';
+import EmployeeSupport from '../pages/Organization/EmployeeSupport';
 import { VerifyProvider } from '../contexts/VerifyContext';
 
 // Inline layout: reuses existing Sidebar, no separate layout file needed
@@ -23,6 +24,7 @@ const EmployeeLayout = () => (
 export default function EmployeeRoutes() {
   return (
     <AuthProvider currentRole="employee">
+      <ScrollToTop />
       <Routes>
         <Route element={<EmployeeLayout />}>
           <Route index element={<Navigate to="home" replace />} />
@@ -35,7 +37,14 @@ export default function EmployeeRoutes() {
               </VerifyProvider>
             }
           />
-          <Route path="blog-moderation" element={<BlogModeration />} />
+          <Route
+            path="blog-moderation"
+            element={
+              <VerifyProvider requiredRole="employee" redirectTo="/employee/home">
+                <BlogModeration />
+              </VerifyProvider>
+            }
+          />
           <Route path="blogs" element={<Blog />} />
           <Route path="blog/:id" element={<BlogPost />} />
           <Route path="contact-us" element={<Contact />} />

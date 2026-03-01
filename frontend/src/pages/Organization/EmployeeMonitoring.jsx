@@ -23,8 +23,8 @@ const EmployeeMonitoring = () => {
     const [boardLoading, setBoardLoading] = useState(false);
     const [boardPosting, setBoardPosting] = useState(false);
 
-    // Today's employee queries state
-    const [todayActivities, setTodayActivities] = useState([]);
+    // Pending employee queries state
+    const [pendingQueries, setPendingQueries] = useState([]);
     const [queriesLoading, setQueriesLoading] = useState(false);
 
     // Resolved queries state with pagination
@@ -37,14 +37,29 @@ const EmployeeMonitoring = () => {
     const [replyText, setReplyText] = useState('');
     const [isSendingReply, setIsSendingReply] = useState(false);
 
+    // Employee Work Summary state
+    const [workSummary, setWorkSummary] = useState([]);
+    const [workLoading, setWorkLoading] = useState(false);
+    const [expandedEmployee, setExpandedEmployee] = useState(null);
+    const [workTab, setWorkTab] = useState({}); // per-employee active tab: 'verifications' | 'blogs'
+
     useEffect(() => {
         fetchStats();
         fetchEmployees();
         fetchBoardPosts();
         fetchEmployeeQueries();
+        fetchWorkSummary();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    useEffect(() => {
         // Auto-refresh board every 15 seconds
-        const interval = setInterval(() => fetchBoardPostsSilent(), 15000);
+        // Using empty dependency array as functions are defined in component
+        const interval = setInterval(() => {
+            fetchBoardPostsSilent();
+        }, 15000);
         return () => clearInterval(interval);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // Auto-scroll chat containers to bottom when new data arrives
@@ -54,7 +69,7 @@ const EmployeeMonitoring = () => {
                 queriesContainerRef.current.scrollTop = queriesContainerRef.current.scrollHeight;
             }, 100);
         }
-    }, [todayActivities]);
+    }, [pendingQueries]);
 
     // Auto-scroll resolved queries container
     useEffect(() => {
@@ -70,7 +85,7 @@ const EmployeeMonitoring = () => {
         if (boardContainerRef.current) {
             setTimeout(() => {
                 boardContainerRef.current.scrollTop = boardContainerRef.current.scrollHeight;
-            }, 100);
+            }, 50);
         }
     }, [boardPosts]);
 
@@ -132,10 +147,12 @@ const EmployeeMonitoring = () => {
                 headers: { Authorization: `Bearer ${token}` },
             });
             setBoardPosts(res.data.data || []);
-        } catch (_) {}
+        } catch (error) {
+            console.error('Error fetching board posts:', error);
+        }
     };
 
-    // Fetch today's employee queries from API
+    // Fetch pending employee queries from API
     const fetchEmployeeQueries = async () => {
         setQueriesLoading(true);
         try {
@@ -143,7 +160,7 @@ const EmployeeMonitoring = () => {
             const res = await axios.get('/api/contact/employee-queries', {
                 headers: { Authorization: `Bearer ${token}` },
             });
-            setTodayActivities(res.data.data || []);
+            setPendingQueries(res.data.data || []);
             
             // Also fetch all queries for resolved list
             const allRes = await axios.get('/api/contact/queries-list', {
@@ -156,10 +173,27 @@ const EmployeeMonitoring = () => {
             setResolvedPage(1); // Reset to first page
         } catch (err) {
             console.error('Failed to fetch employee queries:', err);
-            setTodayActivities([]);
+            setPendingQueries([]);
             setAllQueries([]);
         } finally {
             setQueriesLoading(false);
+        }
+    };
+
+    // Fetch employee work summary (verifications & blog moderation)
+    const fetchWorkSummary = async () => {
+        setWorkLoading(true);
+        try {
+            const token = localStorage.getItem('authToken_organization');
+            const response = await axios.get('/api/organization/employee-work-summary', {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setWorkSummary(response.data.data || []);
+        } catch (error) {
+            console.error('Error fetching work summary:', error);
+            setWorkSummary([]);
+        } finally {
+            setWorkLoading(false);
         }
     };
 
@@ -239,13 +273,9 @@ const EmployeeMonitoring = () => {
             );
 
             if (response.data.success) {
-                // Update the query status in the list
-                setTodayActivities(prevActivities =>
-                    prevActivities.map(q =>
-                        q._id === queryId
-                            ? { ...q, status: 'replied', admin_reply: replyText, replied_at: new Date().toISOString() }
-                            : q
-                    )
+                // Remove the query from pending list since it's now replied
+                setPendingQueries(prevActivities =>
+                    prevActivities.filter(q => q._id !== queryId)
                 );
                 alert('Reply sent successfully!');
                 setReplyingTo(null);
@@ -340,11 +370,11 @@ const EmployeeMonitoring = () => {
                                         <i className="fas fa-tasks text-blue-600"></i>
                                     </div>
                                     <div>
-                                        <h2 className="text-lg font-bold text-[#1A4A40]">Today's Employee Queries</h2>
-                                        <p className="text-xs text-gray-400">Queries submitted by employees today</p>
+                                        <h2 className="text-lg font-bold text-[#1A4A40]">Pending Employee Queries</h2>
+                                        <p className="text-xs text-gray-400">Queries submitted by employees awaiting response</p>
                                     </div>
                                     <span className="ml-auto bg-blue-100 text-blue-700 text-sm font-bold px-3 py-1 rounded-full">
-                                        {todayActivities.length}
+                                        {pendingQueries.length}
                                     </span>
                                 </div>
                                 {queriesLoading ? (
@@ -352,14 +382,14 @@ const EmployeeMonitoring = () => {
                                         <i className="fas fa-spinner fa-spin text-2xl text-gray-300 mb-3"></i>
                                         <p className="text-gray-400 text-sm">Loading queries...</p>
                                     </div>
-                                ) : todayActivities.length === 0 ? (
+                                ) : pendingQueries.length === 0 ? (
                                     <div className="text-center py-10">
                                         <i className="fas fa-inbox text-3xl text-gray-300 mb-3"></i>
-                                        <p className="text-gray-400 text-sm">No queries submitted today</p>
+                                        <p className="text-gray-400 text-sm">No pending queries</p>
                                     </div>
                                 ) : (
                                     <div ref={queriesContainerRef} className="divide-y divide-gray-100 max-h-72 overflow-y-auto">
-                                        {todayActivities.map(q => {
+                                        {pendingQueries.map(q => {
                                             const queryText = q.query || '';
                                             // Extract category from query format: "[Category] subject"
                                             const catMatch = queryText.match(/^\[([^\]]+)\]\s*(.+?)(?:\n|$)/);
@@ -616,7 +646,7 @@ const EmployeeMonitoring = () => {
                                     <p className="text-gray-500">No messages on the board yet.</p>
                                 </div>
                             ) : (
-                                <div ref={boardContainerRef} className="flex flex-col gap-3 p-5 h-[50vh] overflow-y-auto scroll-smooth">
+                                <div ref={boardContainerRef} className="flex flex-col gap-3 p-5 h-[40vh] overflow-y-auto scroll-smooth">
                                     {[...boardPosts].reverse().map(post => {
                                         const isMine = post.isOrg === true;
                                         return (
@@ -688,6 +718,195 @@ const EmployeeMonitoring = () => {
                                     </button>
                                 </div>
                             </div>
+                        </div>
+
+                        {/* Employee Activity Table */}
+                        <div className="bg-white rounded-lg shadow-lg overflow-hidden mb-6">
+                            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+                                <h2 className="text-xl font-bold text-[#1A4A40]">
+                                    Employee Work Summary
+                                </h2>
+                                <button
+                                    onClick={fetchWorkSummary}
+                                    className="px-4 py-2 bg-[#27AE60] text-white rounded-lg hover:bg-[#1E6F5C] transition-colors"
+                                >
+                                    <i className="fas fa-sync-alt mr-2"></i>Refresh
+                                </button>
+                            </div>
+
+                            {workLoading ? (
+                                <div className="text-center py-12">
+                                    <i className="fas fa-spinner fa-spin text-4xl text-[#27AE60]"></i>
+                                    <p className="mt-4 text-gray-600">Loading work summary...</p>
+                                </div>
+                            ) : workSummary.length === 0 ? (
+                                <div className="text-center py-12">
+                                    <i className="fas fa-check-circle text-6xl text-gray-300 mb-4"></i>
+                                    <p className="text-gray-500 text-lg">No employee activity yet</p>
+                                </div>
+                            ) : (
+                                <div className="divide-y divide-gray-100">
+                                    {workSummary.map((work) => {
+                                        const isOpen = expandedEmployee === work.employeeId;
+                                        const activeTab = workTab[work.employeeId] || 'verifications';
+                                        const formatDate = (d) => new Date(d).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
+
+                                        const statusBadge = (status) => {
+                                            const map = {
+                                                verified: 'bg-blue-100 text-blue-700',
+                                                approved: 'bg-green-100 text-green-700',
+                                                rejected: 'bg-red-100 text-red-700',
+                                                flagged: 'bg-yellow-100 text-yellow-700',
+                                            };
+                                            const label = {
+                                                verified: 'Verified',
+                                                approved: 'Approved',
+                                                rejected: 'Rejected',
+                                                flagged: 'Flagged',
+                                            };
+                                            return (
+                                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${map[status] || 'bg-gray-100 text-gray-600'}`}>
+                                                    {label[status] || status}
+                                                </span>
+                                            );
+                                        };
+
+                                        return (
+                                            <div key={work.employeeId}>
+                                                {/* Employee header row — click to expand */}
+                                                <button
+                                                    className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors text-left"
+                                                    onClick={() => setExpandedEmployee(isOpen ? null : work.employeeId)}
+                                                >
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#27AE60] to-[#1E6F5C] flex items-center justify-center text-white font-bold text-sm shrink-0">
+                                                            {work.employeeName.charAt(0).toUpperCase()}
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-semibold text-gray-900">{work.employeeName}</p>
+                                                            <p className="text-xs text-gray-500">{work.employeeEmail}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-6">
+                                                        <div className="hidden sm:flex gap-4 text-sm text-gray-500">
+                                                            <span>
+                                                                <i className="fas fa-user-check mr-1 text-blue-500"></i>
+                                                                {work.verifications.total} verif.
+                                                            </span>
+                                                            <span>
+                                                                <i className="fas fa-newspaper mr-1 text-purple-500"></i>
+                                                                {work.blogModeration.total} blogs
+                                                            </span>
+                                                            {work.lastActivityAt && (
+                                                                <span className="text-xs text-gray-400">
+                                                                    Last: {new Date(work.lastActivityAt).toLocaleDateString()}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <i className={`fas fa-chevron-${isOpen ? 'up' : 'down'} text-gray-400`}></i>
+                                                    </div>
+                                                </button>
+
+                                                {/* Expanded detail panel */}
+                                                {isOpen && (
+                                                    <div className="bg-gray-50 border-t border-gray-200 px-6 py-4">
+                                                        {/* Tab switcher */}
+                                                        <div className="flex gap-2 mb-4">
+                                                            <button
+                                                                onClick={() => setWorkTab(prev => ({ ...prev, [work.employeeId]: 'verifications' }))}
+                                                                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${activeTab === 'verifications' ? 'bg-[#27AE60] text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-100'}`}
+                                                            >
+                                                                <i className="fas fa-user-check mr-1"></i>
+                                                                Verifications ({work.verifications.total})
+                                                            </button>
+                                                            <button
+                                                                onClick={() => setWorkTab(prev => ({ ...prev, [work.employeeId]: 'blogs' }))}
+                                                                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${activeTab === 'blogs' ? 'bg-[#27AE60] text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-100'}`}
+                                                            >
+                                                                <i className="fas fa-newspaper mr-1"></i>
+                                                                Blog Moderation ({work.blogModeration.total})
+                                                            </button>
+                                                        </div>
+
+                                                        {/* Verifications list */}
+                                                        {activeTab === 'verifications' && (
+                                                            work.verifications.items.length === 0 ? (
+                                                                <p className="text-sm text-gray-400 py-4 text-center">No verification actions yet</p>
+                                                            ) : (
+                                                                <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+                                                                    <table className="w-full text-sm">
+                                                                        <thead className="bg-blue-50">
+                                                                            <tr>
+                                                                                <th className="px-4 py-2 text-left text-xs font-semibold text-blue-700 uppercase">Dietitian</th>
+                                                                                <th className="px-4 py-2 text-left text-xs font-semibold text-blue-700 uppercase">Action</th>
+                                                                                <th className="px-4 py-2 text-left text-xs font-semibold text-blue-700 uppercase">Notes</th>
+                                                                                <th className="px-4 py-2 text-left text-xs font-semibold text-blue-700 uppercase">Date</th>
+                                                                            </tr>
+                                                                        </thead>
+                                                                        <tbody className="divide-y divide-gray-100">
+                                                                            {work.verifications.items.map((item) => (
+                                                                                <tr key={item.id} className="hover:bg-gray-50">
+                                                                                    <td className="px-4 py-2 font-medium text-gray-900">{item.name}</td>
+                                                                                    <td className="px-4 py-2">{statusBadge(item.status)}</td>
+                                                                                    <td className="px-4 py-2 text-gray-500 text-xs">{item.notes || '—'}</td>
+                                                                                    <td className="px-4 py-2 text-gray-400 text-xs whitespace-nowrap">{formatDate(item.date)}</td>
+                                                                                </tr>
+                                                                            ))}
+                                                                        </tbody>
+                                                                    </table>
+                                                                </div>
+                                                            )
+                                                        )}
+
+                                                        {/* Blog moderation list */}
+                                                        {activeTab === 'blogs' && (
+                                                            work.blogModeration.items.length === 0 ? (
+                                                                <p className="text-sm text-gray-400 py-4 text-center">No blog moderation actions yet</p>
+                                                            ) : (
+                                                                <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+                                                                    <table className="w-full text-sm">
+                                                                        <thead className="bg-purple-50">
+                                                                            <tr>
+                                                                                <th className="px-4 py-2 text-left text-xs font-semibold text-purple-700 uppercase">Blog Title</th>
+                                                                                <th className="px-4 py-2 text-left text-xs font-semibold text-purple-700 uppercase">Action</th>
+                                                                                <th className="px-4 py-2 text-left text-xs font-semibold text-purple-700 uppercase">Notes</th>
+                                                                                <th className="px-4 py-2 text-left text-xs font-semibold text-purple-700 uppercase">Date</th>
+                                                                            </tr>
+                                                                        </thead>
+                                                                        <tbody className="divide-y divide-gray-100">
+                                                                            {work.blogModeration.items.map((item) => (
+                                                                                <tr key={item.id} className="hover:bg-gray-50">
+                                                                                    <td className="px-4 py-2 font-medium text-gray-900">{item.title}</td>
+                                                                                    <td className="px-4 py-2">{statusBadge(item.status)}</td>
+                                                                                    <td className="px-4 py-2 text-gray-500 text-xs">{item.notes || '—'}</td>
+                                                                                    <td className="px-4 py-2 text-gray-400 text-xs whitespace-nowrap">{formatDate(item.date)}</td>
+                                                                                </tr>
+                                                                            ))}
+                                                                        </tbody>
+                                                                    </table>
+                                                                </div>
+                                                            )
+                                                        )}
+
+                                                        {/* Mini stats row */}
+                                                        <div className="flex gap-4 mt-4 flex-wrap">
+                                                            {activeTab === 'verifications' && (<>
+                                                                <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded bg-blue-100 text-blue-700 font-semibold">Approved: {work.verifications.approved}</span>
+                                                                <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded bg-red-100 text-red-700 font-semibold">Rejected: {work.verifications.rejected}</span>
+                                                            </>)}
+                                                            {activeTab === 'blogs' && (<>
+                                                                <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded bg-green-100 text-green-700 font-semibold">Approved: {work.blogModeration.approved}</span>
+                                                                <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded bg-red-100 text-red-700 font-semibold">Rejected: {work.blogModeration.rejected}</span>
+                                                                <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded bg-yellow-100 text-yellow-700 font-semibold">Flagged: {work.blogModeration.flagged}</span>
+                                                            </>)}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
 
                         {/* Employee Activity Table */}

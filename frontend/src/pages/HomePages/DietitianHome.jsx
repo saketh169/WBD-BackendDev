@@ -5,13 +5,13 @@ import { useNavigate } from 'react-router-dom';
 const fetchMockSchedule = () => {
   const today = new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
   const mockAppointments = [
-    { id: 1, time: '09:00 AM', clientName: 'Alice Johnson', consultationType: 'Video Call' },
-    { id: 2, time: '11:30 AM', clientName: 'Bob Smith', consultationType: 'Chat Follow-up' },
-    { id: 3, time: '02:00 PM', clientName: 'Charlie Brown', consultationType: 'In-person Meeting' },
-    { id: 4, time: '04:45 PM', clientName: 'Diana Prince', consultationType: 'Video Call' },
-    { id: 5, time: '06:00 PM', clientName: 'Clark Kent', consultationType: 'Chat Follow-up' },
+    { id: 1, time: '09:00 AM', clientName: 'Anjali Patel' },
+    { id: 2, time: '11:00 AM', clientName: 'Vikram Singh' },
+    { id: 3, time: '01:00 PM', clientName: 'Priya Sharma' },
+    { id: 4, time: '03:00 PM', clientName: 'Rajesh Kumar' },
+    { id: 5, time: '05:00 PM', clientName: 'Neha Gupta' },
   ];
-  return { date: today, appointments: mockAppointments.slice(0, 4) }; // Return top 4
+  return { date: today, appointments: mockAppointments };
 };
 
 const DietitianHome = () => {
@@ -59,8 +59,9 @@ const DietitianHome = () => {
     { q: 'How do I register as a dietitian on Nutri Connect?', a: 'You can sign up by selecting the ‘Dietitian Sign Up’ option on the homepage and completing the registration process, including certification upload.' },
     { q: 'How do I manage my client appointments?', a: 'The Schedule page allows you to view, modify, and manage all incoming consultation requests and booked sessions.' },
     { q: 'Can I create and share custom diet plans with clients?', a: 'Yes, the client dashboard provides tools to build and share personalized plans based on client goals and data.' },
-    { q: 'Can I track my clients\' progress over time?', a: 'Absolutely. Client profiles track nutrition logging, biometric data, and consultation history for comprehensive monitoring.' },
-  ];
+    { q: 'Can I track my clients\' progress over time?', a: 'Absolutely. Client profiles track nutrition logging, biometric data, and consultation history for comprehensive monitoring.' },    { q: 'How do I block days on my schedule?', a: 'In the Schedule page, use the "Blocking Options" button to block single or multiple days. You can block an entire day or specific time slots, and the admin will be notified with your reason for the leave.' },
+    { q: 'How do I reschedule a client appointment?', a: 'On the Schedule page, open the slot management drawer, click on a booked appointment, and select the reschedule option. Choose a new date and time slot, and the client will be notified of the change.' },
+    { q: 'Can I select any date for scheduling slots?', a: 'Yes! You can now select any future date without being limited to just the current week, giving you complete flexibility in managing your long-term schedule.' },  ];
 
   const toggleFaq = (index) => {
     setOpenFaq(openFaq === index ? null : index);
@@ -168,8 +169,8 @@ const DietitianHome = () => {
               {todaySchedule.length > 0 ? (
                 todaySchedule.map((appt) => (
                   <li key={appt.id} className="p-3 bg-white border-l-4 border-[#27AE60] text-[#2F4F4F] shadow-sm rounded flex justify-between items-center text-lg">
-                    <span>{appt.time} - **{appt.clientName}**</span>
-                    <span className="text-sm text-[#27AE60] font-semibold">{appt.consultationType}</span>
+                    <span className="font-semibold">{appt.time}</span>
+                    <span className="text-[#27AE60] font-semibold">{appt.clientName}</span>
                   </li>
                 ))
               ) : (
@@ -306,13 +307,14 @@ const DietitianHome = () => {
               <li className="flex items-start gap-2"><i className="fas fa-check-circle mt-1 text-[#4CAF50]"></i> How to set up and manage client profiles.</li>
               <li className="flex items-start gap-2"><i className="fas fa-check-circle mt-1 text-[#4CAF50]"></i> Creating personalized meal plans and tracking progress.</li>
               <li className="flex items-start gap-2"><i className="fas fa-check-circle mt-1 text-[#4CAF50]"></i> Tips for communicating with clients and providing feedback.</li>
-              <li className="flex items-start gap-2"><i className="fas fa-check-circle mt-1 text-[#4CAF50]"></i> Advanced tools for analyzing client data and trends.</li>
+              <li className="flex items-start gap-2"><i className="fas fa-check-circle mt-1 text-[#4CAF50]"></i> Block and unblock days for personal time or leave management.</li>
+              <li className="flex items-start gap-2"><i className="fas fa-check-circle mt-1 text-[#4CAF50]"></i> Reschedule client appointments with ease when needed.</li>
             </ul>
             <button 
-              onClick={() => navigate('/dietitian/contact-us')}
+              onClick={() => navigate('/guide?role=dietitian')}
               className="py-3 px-8 bg-[#4CAF50] text-white font-bold rounded-full shadow-md hover:bg-[#388e3c] transition-colors"
             >
-              Contact Support
+              Read Complete Guide
             </button>
           </div>
         </div>

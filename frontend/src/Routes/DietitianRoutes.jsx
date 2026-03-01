@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { VerifyProvider } from '../contexts/VerifyContext';
 import { AuthProvider } from '../contexts/AuthContext';
+import ScrollToTop from '../components/ScrollToTop';
 import NotFoundPage from '../pages/Error/NotFoundPage';
 
 import DietitianHome from '../pages/HomePages/DietitianHome';
@@ -27,6 +28,7 @@ import DietitianActivities from '../pages/Activities/DietitianActivities';
 export default function DietitianRoutes() {
   return (
     <AuthProvider currentRole="dietitian">
+      <ScrollToTop />
       <div className="p-6">
         <Routes>
           <Route index element={<Navigate to="home" replace />} />

@@ -182,10 +182,10 @@ const FormInput = ({ label, type = 'text', required = false, unit = '', onView, 
     </>
   );
 };// --- Stable FormSectionWrapper (must be outside LabReportUploader to avoid remounting) ---
-const FormSectionWrapper = ({ label, icon: Icon, description, children }) => (
+const FormSectionWrapper = ({ label, description, children }) => (
   <>
     <h2 className="text-2xl font-bold text-emerald-800 mb-2 flex items-center">
-      <span className="mr-2"><Icon className='w-8 h-8' /></span>
+      <span className="mr-2"><i className="fas fa-heartbeat w-8 h-8"></i></span>
       {label} - Details
     </h2>
     <p className="text-gray-600 mb-6 border-b border-emerald-200 pb-4">{description}</p>
@@ -208,7 +208,6 @@ const LabReportUploader = () => {
   const [activeFormsOrder, setActiveFormsOrder] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [notification, setNotification] = useState(null);
-  const [fileError, setFileError] = useState('');
 
   // Populate form with user data on component mount
   useEffect(() => {
@@ -498,8 +497,8 @@ const LabReportUploader = () => {
   };
 
   // Handles file validation errors from FormInput
-  const handleViewFile = useCallback((error) => {
-    setFileError(error || '');
+  const handleViewFile = useCallback(() => {
+    // Handle file view logic
   }, []);
   // --- Centralized Form Rendering Function ---
   const renderFormContent = useCallback((categoryId) => {

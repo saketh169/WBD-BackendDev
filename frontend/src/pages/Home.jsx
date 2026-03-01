@@ -83,15 +83,17 @@ const Home = () => {
       {
         title: 'Top 5 Nutrition Tips for 2025',
         excerpt: 'Discover the latest nutrition trends and tips to kickstart your health journey this year.',
+        image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400&h=250&fit=crop',
       },
       {
         title: 'How Dietitians Are Using AI',
         excerpt: 'Explore how artificial intelligence is revolutionizing dietitian practices worldwide.',
+        image: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=400&h=250&fit=crop',
       },
       {
         title: 'Healthy Recipes for Busy Days',
         excerpt: 'Quick and nutritious recipes to keep you energized during your hectic schedule.',
-        image: 'https://nomoneynotime.com.au/imager/uploads/articles/23154/Picture1_fc6ea16018e704b44b856798086f03ca.webp',
+        image: 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?w=400&h=250&fit=crop',
       },
     ];
     return (
@@ -104,7 +106,7 @@ const Home = () => {
                 key={index}
                 className="bg-white p-6 rounded-2xl shadow-md border-2 border-[#27AE60] hover:shadow-xl transition-all duration-300"
               >
-                <img src={post.image} alt={post.title} className="w-full h-48 object-cover rounded-t-xl mb-4" />
+                {post.image && <img src={post.image} alt={post.title} className="w-full h-48 object-cover rounded-t-xl mb-4" />}
                 <h3 className="text-xl sm:text-2xl font-semibold text-[#2F4F4F] mb-2">{post.title}</h3>
                 <p className="text-gray-600 text-sm sm:text-base">{post.excerpt}</p>
                 <div className="flex justify-center gap-4 mt-4">

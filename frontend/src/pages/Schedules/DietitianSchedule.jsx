@@ -56,7 +56,6 @@ const DietitianSchedule = () => {
     const [newTime, setNewTime] = useState('');
     const [rescheduleDate, setRescheduleDate] = useState('');
     const [rescheduleSlots, setRescheduleSlots] = useState({ morning: [], afternoon: [], evening: [] });
-    const [isBlockingDay, setIsBlockingDay] = useState(false);
     const [selectedDatesToBlock, setSelectedDatesToBlock] = useState([]);
     const [showMultiDateModal, setShowMultiDateModal] = useState(false);
     const [isBlockingMultipleDays, setIsBlockingMultipleDays] = useState(false);
@@ -211,7 +210,6 @@ const DietitianSchedule = () => {
     const fetchBlockedDays = useCallback(async () => {
         if (!user?.id) return;
         try {
-            const today = new Date().toISOString().split('T')[0];
             // Check each of the next 30 days if they are fully blocked
             // We piggyback on the booked-slots API which already returns blockedSlots
             const days = [];
@@ -226,7 +224,9 @@ const DietitianSchedule = () => {
                         const bs = resp.data.blockedSlots || [];
                         if (bs.length >= allSlots.length) days.push(dayInfo.fullDateKey);
                     }
-                } catch { }
+                } catch (error) {
+                    console.error('Error fetching blocked slots:', error);
+                }
             });
             await Promise.all(checks);
             setBlockedDays(days);
@@ -296,25 +296,6 @@ const DietitianSchedule = () => {
             console.error('Error unblocking slot:', err);
             setBlockedSlots(prev => [...prev, time]);
             alert('Failed to unblock slot. ' + (err.response?.data?.message || 'Unknown error'));
-        }
-    };
-
-    const handleBlockEntireDay = async () => {
-        if (!drawerDate || !user?.id) return;
-        const confirmBlock = window.confirm(`Are you sure you want to block all slots for ${new Date(drawerDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}?`);
-        if (!confirmBlock) return;
-        setIsBlockingDay(true);
-        try {
-            await axios.post(`/api/dietitians/${user.id}/block-day`, { date: drawerDate }, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            alert('Entire day blocked successfully.');
-            fetchDietitianSlots(drawerDate);
-        } catch (err) {
-            console.error('Error blocking entire day:', err);
-            alert('Failed to block entire day. ' + (err.response?.data?.message || 'Backend endpoint may be missing.'));
-        } finally {
-            setIsBlockingDay(false);
         }
     };
 
@@ -428,25 +409,6 @@ const DietitianSchedule = () => {
             currentDate.setDate(currentDate.getDate() + 1);
         }
         setSelectedDatesToBlock(dates);
-    };
-
-    const handleUnblockEntireDay = async () => {
-        if (!drawerDate || !user?.id) return;
-        const confirmUnblock = window.confirm(`Are you sure you want to unblock all slots for ${new Date(drawerDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}?`);
-        if (!confirmUnblock) return;
-        setIsBlockingDay(true);
-        try {
-            await axios.post(`/api/dietitians/${user.id}/unblock-day`, { date: drawerDate }, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            alert('Entire day unblocked successfully.');
-            fetchDietitianSlots(drawerDate);
-        } catch (err) {
-            console.error('Error unblocking entire day:', err);
-            alert('Failed to unblock entire day. ' + (err.response?.data?.message || 'Unknown error'));
-        } finally {
-            setIsBlockingDay(false);
-        }
     };
 
     const renderDrawerTimeSlot = (time) => {
@@ -639,7 +601,7 @@ const DietitianSchedule = () => {
                             </div>
                             <div className="mb-4">
                                 <label className="block text-sm font-semibold mb-2 text-gray-700">Select Date</label>
-                                <input type="date" value={drawerDate} onChange={(e) => { setDrawerDate(e.target.value); fetchDietitianSlots(e.target.value); }} min={new Date().toISOString().split('T')[0]} max={(() => { const maxDate = new Date(); maxDate.setDate(maxDate.getDate() + 7); return maxDate.toISOString().split('T')[0]; })()} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white" />
+                                <input type="date" value={drawerDate} onChange={(e) => { setDrawerDate(e.target.value); fetchDietitianSlots(e.target.value); }} min={new Date().toISOString().split('T')[0]} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white" />
                             </div>
                             <div className="mb-4 relative blocking-options-container">
                                 <button
@@ -801,7 +763,7 @@ const DietitianSchedule = () => {
                             )}
                             <div className="grid grid-cols-7 gap-2 mb-4">
                                 {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => <div key={day} className="text-center text-xs font-semibold text-gray-600 py-2">{day}</div>)}
-                                {getCalendarDates().map(({ dateString, displayDate, dayOfWeek, isToday }, index) => {
+                                {getCalendarDates().map(({ dateString, displayDate, dayOfWeek }, index) => {
                                     const emptyCell = index === 0 && dayOfWeek > 0;
                                     const isSelected = selectedDatesToBlock.includes(dateString);
                                     const alreadyBlocked = blockedDays.includes(dateString);
@@ -809,9 +771,8 @@ const DietitianSchedule = () => {
                                     return (
                                         <React.Fragment key={dateString}>
                                             {emptyCell && Array(dayOfWeek).fill(null).map((_, i) => <div key={`empty-${i}`} className="p-2"></div>)}
-                                            <button onClick={() => !alreadyBlocked && toggleDateSelection(dateString)} disabled={isDisabled} className={`p-2 rounded-lg text-sm font-medium transition-all ${alreadyBlocked ? 'bg-gray-100 text-gray-500 cursor-not-allowed opacity-60' : isSelected ? 'bg-emerald-500 text-white shadow-md transform hover:scale-105' : isToday ? 'bg-blue-100 text-blue-700 border-2 border-blue-300 hover:scale-105' : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:scale-105 cursor-pointer'}`} title={alreadyBlocked ? 'Already blocked' : displayDate}>
+                                            <button onClick={() => !alreadyBlocked && toggleDateSelection(dateString)} disabled={isDisabled} className={`p-2 rounded-lg text-sm font-medium transition-all ${alreadyBlocked ? 'bg-gray-100 text-gray-500 cursor-not-allowed opacity-60' : isSelected ? 'bg-emerald-500 text-white shadow-md transform hover:scale-105' : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:scale-105 cursor-pointer'}`} title={alreadyBlocked ? 'Already blocked' : displayDate}>
                                                 <div className="text-xs">{new Date(dateString).getDate()}</div>
-                                                {isToday && !alreadyBlocked && <div className="text-[8px] font-bold">Today</div>}
                                                 {alreadyBlocked && <div className="text-[7px] font-bold">Blocked</div>}
                                             </button>
                                         </React.Fragment>
@@ -881,7 +842,7 @@ const DietitianSchedule = () => {
                             )}
                             <div className="grid grid-cols-7 gap-2 mb-4">
                                 {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => <div key={day} className="text-center text-xs font-semibold text-gray-600 py-2">{day}</div>)}
-                                {getCalendarDates().map(({ dateString, displayDate, dayOfWeek, isToday }, index) => {
+                                {getCalendarDates().map(({ dateString, displayDate, dayOfWeek }, index) => {
                                     const emptyCell = index === 0 && dayOfWeek > 0;
                                     const isSelected = selectedDatesToBlock.includes(dateString);
                                     const isFullyBlocked = blockedDays.includes(dateString);

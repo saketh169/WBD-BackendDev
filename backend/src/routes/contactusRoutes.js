@@ -29,7 +29,7 @@ router.post('/reply', replyToQuery);
 // POST route for employee to reply to an admin response
 router.post('/emp-reply', authenticateJWT, employeeReply);
 
-// GET route for org to fetch today's employee queries
+// GET route for org to fetch pending employee queries
 router.get('/employee-queries', authenticateJWT, requireOrganization, getEmployeeQueries);
 
 module.exports = router;

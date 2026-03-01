@@ -145,7 +145,34 @@ const AdminHome = () => {
       </section>
 
       {/* ======================================================= */}
-      {/* 4. ADMIN FAQs (Support Focus) */}
+      {/* 4. ADMIN GUIDE SECTION */}
+      {/* ======================================================= */}
+      <section id="guide" className="py-12 px-4 sm:px-6 md:px-8 bg-gradient-to-r from-[#27AE60] to-[#1A4A40] min-h-[125] animate-fade-in-up animate-delay-[600ms]">
+        <div className="max-w-6xl mx-auto text-white">
+          <div className="flex items-start justify-between gap-8">
+            <div className="flex-1">
+              <h2 className="text-4xl sm:text-5xl font-bold mb-4 flex items-center gap-3">
+                <i className="fas fa-compass text-2xl"></i>Admin Guide
+              </h2>
+              <p className="text-xl text-green-100 mb-6 max-w-2xl leading-relaxed">
+                Master platform administration, user management, verification processes, analytics interpretation, and best practices for maintaining system integrity and security.
+              </p>
+              <button
+                onClick={() => navigate('/guide?role=admin')}
+                className="bg-white text-[#1A4A40] font-bold py-3 px-8 rounded-full hover:bg-gray-100 transition-all shadow-lg inline-flex items-center gap-2"
+              >
+                <i className="fas fa-book"></i>Read Complete Guide
+              </button>
+            </div>
+            <div className="text-7xl opacity-10 hidden sm:block shrink-0">
+              <i className="fas fa-crown"></i>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ======================================================= */}
+      {/* 5. ADMIN FAQs (Support Focus) */}
       {/* ======================================================= */}
       <section id="faqs" className="py-12 px-4 sm:px-6 md:px-8 bg-white min-h-[125] animate-fade-in-up animate-delay-[700ms]">
         <div className="max-w-4xl mx-auto">
@@ -190,6 +217,7 @@ const AdminHome = () => {
           .animate-delay-\\[200ms\\] { animation-delay: 200ms; }
           .animate-delay-\\[350ms\\] { animation-delay: 350ms; }
           .animate-delay-\\[500ms\\] { animation-delay: 500ms; }
+          .animate-delay-\\[600ms\\] { animation-delay: 600ms; }
           .animate-delay-\\[700ms\\] { animation-delay: 700ms; }
           
           /* Custom Tailwind utilities for dynamic colors */
@@ -199,7 +227,7 @@ const AdminHome = () => {
           .hover\\:bg-\\[\\#218838\\]:hover { background-color: #218838; }
           .text-\\[\\#5a8f5a\\] { color: #5a8f5a; }
 
-          #welcome-intro, #metrics, #duties, #faqs {
+          #welcome-intro, #metrics, #duties, #guide, #faqs {
             scroll-margin-top: 90px; 
           }
         `}

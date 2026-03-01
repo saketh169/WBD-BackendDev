@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '../contexts/AuthContext';
+import ScrollToTop from '../components/ScrollToTop';
 import NotFoundPage from '../pages/Error/NotFoundPage';
 
 import UserHome from '../pages/HomePages/UserHome';
@@ -43,6 +44,7 @@ import UserActivities from '../pages/Activities/UserActivities';
 export default function UserRoutes() {
   return (
     <AuthProvider currentRole="user">
+      <ScrollToTop />
       <div className="p-6">
         <Routes>
           <Route index element={<Navigate to="home" replace />} />
