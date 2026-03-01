@@ -139,8 +139,7 @@ exports.getAllQueries = async (req, res) => {
 
 /**
  * GET /api/contact/employee-queries
- * Fetch queries submitted by employees of the authenticated organisation.
- * Query params: date (ISO date string, defaults to today)
+ * Fetch pending queries submitted by employees of the authenticated organisation.
  * Requires: authenticateJWT + requireOrganization (applied in route)
  */
 exports.getEmployeeQueries = async (req, res) => {
@@ -155,16 +154,9 @@ exports.getEmployeeQueries = async (req, res) => {
       return res.status(200).json({ success: true, data: [] });
     }
 
-    // Determine target date boundaries
-    const targetDate = req.query.date ? new Date(req.query.date) : new Date();
-    const startOfDay = new Date(targetDate);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(targetDate);
-    endOfDay.setHours(23, 59, 59, 999);
-
     const queries = await Query.find({
       email: { $in: emailList },
-      created_at: { $gte: startOfDay, $lte: endOfDay },
+      status: 'pending'
     }).sort({ created_at: -1 });
 
     // Build employee lookup for name resolution

@@ -38,7 +38,7 @@ const EmployeeHome = () => {
   ];
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
+    <div className="p-6 max-w-7xl mx-auto">
       {/* Welcome Banner */}
       <div className="bg-gradient-to-r from-[#1A4A40] to-[#27AE60] rounded-2xl p-8 mb-8 text-white shadow-lg">
         <div className="flex items-center gap-4">
@@ -59,7 +59,7 @@ const EmployeeHome = () => {
       <h2 className="text-xl font-bold text-[#1A4A40] mb-4">
         <i className="fas fa-tasks mr-2"></i>Your Tasks
       </h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         {taskCards.map((card) => (
           <div
             key={card.route}

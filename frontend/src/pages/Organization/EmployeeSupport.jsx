@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 
 const CATEGORIES = [
@@ -32,7 +32,6 @@ const EmployeeSupport = () => {
   // ── My Queries ──
   const [myQueries, setMyQueries] = useState([]);
   const [replies, setReplies] = useState({});
-  const [fetchingReplies, setFetchingReplies] = useState(false);
 
   // ── Team Board ──
   const [boardMsg, setBoardMsg] = useState('');
@@ -99,9 +98,9 @@ const EmployeeSupport = () => {
       }
     };
     refreshUser();
-  }, [token]);
+  }, [token, _stored]);
 
-  const fetchBoardPosts = async (silent = false) => {
+  const fetchBoardPosts = useCallback(async (silent = false) => {
     if (!silent) setBoardLoading(true);
     try {
       const res = await axios.get(`/api/teamboard?orgName=${encodeURIComponent(orgName)}`, {
@@ -113,7 +112,7 @@ const EmployeeSupport = () => {
     } finally {
       if (!silent) setBoardLoading(false);
     }
-  };
+  }, [orgName, token]);
 
   useEffect(() => {
     if (!QUERIES_KEY) return;
@@ -129,13 +128,12 @@ const EmployeeSupport = () => {
       clearInterval(boardInterval);
       clearInterval(repliesInterval);
     };
-  }, [orgName, empEmail]);
+  }, [orgName, empEmail, QUERIES_KEY, fetchBoardPosts, fetchReplies]);
 
   // Fetch admin replies to employee queries
-  const fetchReplies = async () => {
+  const fetchReplies = useCallback(async () => {
     if (!empEmail) return;
     try {
-      setFetchingReplies(true);
       const res = await axios.get(`/api/contact/queries-list?email=${encodeURIComponent(empEmail.toLowerCase())}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -162,10 +160,8 @@ const EmployeeSupport = () => {
       }
     } catch (err) {
       console.error('Failed to fetch replies:', err);
-    } finally {
-      setFetchingReplies(false);
     }
-  };
+  }, [empEmail, token]);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {

@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
-import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 const FIELD_MAP = {
   resume: {
@@ -73,7 +72,6 @@ const STATUS_ICONS = {
 // --- Utility Components (Simplified Notifications & Modals) ---
 // Removed as they are now inlined in the JSX
 const DietitianVerify = () => {
-  const navigate = useNavigate();
   const [dietitians, setDietitians] = useState([])
   const [expandedRow, setExpandedRow] = useState(null)
   const [notification, setNotification] = useState(null)

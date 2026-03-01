@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useContext, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import AuthContext from '../../contexts/AuthContext';
 
@@ -7,17 +7,15 @@ const Sidebar = () => {
   const location = useLocation();
   const currentPath = location.pathname;
   
-  // Try to get orgType from AuthContext, fallback to localStorage
   const context = useContext(AuthContext);
-  const [orgType, setOrgType] = useState(null);
 
   useEffect(() => {
     if (context?.orgType) {
-      setOrgType(context.orgType);
+      // orgType is available from context
     } else {
       // Fallback to localStorage
-      const storedOrgType = localStorage.getItem('orgType_organization');
-      setOrgType(storedOrgType);
+      localStorage.getItem('orgType_organization');
+      // orgType retrieved
     }
   }, [context]);
 

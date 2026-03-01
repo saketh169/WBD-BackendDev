@@ -7,7 +7,7 @@ import DietitianVerify from '../pages/Verify/DietitianVerify';
 import Blog from '../pages/Blog';
 import BlogPost from '../pages/Blog/BlogPost';
 import Contact from '../pages/Contactus';
-import EmployeeSupport from '../pages/EmployeeSupport';
+import EmployeeSupport from '../pages/Organization/EmployeeSupport';
 import { VerifyProvider } from '../contexts/VerifyContext';
 
 // Inline layout: reuses existing Sidebar, no separate layout file needed

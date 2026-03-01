@@ -1,56 +1,7 @@
-import React, { createContext, useState, useContext, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
-
-// Create Profile Context
-const ProfileContext = createContext();
-
-// Custom hook to use Profile Context
-export const useProfile = () => {
-  const context = useContext(ProfileContext);
-  if (!context) {
-    throw new Error('useProfile must be used within a ProfileProvider');
-  }
-  return context;
-};
-
-
-
-// Role-specific configuration
-const roleConfig = {
-  user: {
-    tokenKey: 'authToken_user',
-    signinPath: '/signin?role=user',
-    dashboardPath: '/user/profile',
-    roleLabel: 'User',
-    apiEndpoint: '/api/getuserdetails',
-    fields: ['name', 'phone', 'dob', 'gender', 'address']
-  },
-  dietitian: {
-    tokenKey: 'authToken_dietitian',
-    signinPath: '/signin?role=dietitian',
-    dashboardPath: '/dietitian/profile',
-    roleLabel: 'Dietitian',
-    apiEndpoint: '/api/getdietitiandetails',
-    fields: ['name', 'phone', 'age']
-  },
-  organization: {
-    tokenKey: 'authToken_organization',
-    signinPath: '/signin?role=organization',
-    dashboardPath: '/organization/profile',
-    roleLabel: 'Organization',
-    apiEndpoint: '/api/getorganizationdetails',
-    fields: ['name', 'phone', 'address']
-  },
-  admin: {
-    tokenKey: 'authToken_admin',
-    signinPath: '/signin?role=admin',
-    dashboardPath: '/admin/profile',
-    roleLabel: 'Admin',
-    apiEndpoint: '/api/getadmindetails',
-    fields: ['name', 'phone']
-  },
-};
+import { roleConfig, ProfileContext as Context, useProfile } from './roleConfig';
 
 // Profile Provider Component
 export const ProfileProvider = ({ children }) => {
@@ -88,7 +39,7 @@ export const ProfileProvider = ({ children }) => {
     setIsFetching(true);
     setMessage('');
 
-    const { role, config: roleConfiguration } = initializeRole();
+    const { config: roleConfiguration } = initializeRole();
 
     try {
       const token = localStorage.getItem(roleConfiguration.tokenKey);
@@ -207,7 +158,7 @@ export const ProfileProvider = ({ children }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [originalData, initializeRole, navigate]);
+  }, [originalData, initializeRole, navigate, currentRole]);
 
   // Change password
   const changePassword = useCallback(async (oldPassword, newPassword) => {
@@ -280,10 +231,13 @@ export const ProfileProvider = ({ children }) => {
   };
 
   return (
-    <ProfileContext.Provider value={value}>
+    <Context.Provider value={value}>
       {children}
-    </ProfileContext.Provider>
+    </Context.Provider>
   );
 };
 
-export default ProfileContext;
+export { Context as ProfileContext };
+// eslint-disable-next-line react-refresh/only-export-components
+export { useProfile };
+export default Context;

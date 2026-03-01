@@ -23,8 +23,8 @@ const EmployeeMonitoring = () => {
     const [boardLoading, setBoardLoading] = useState(false);
     const [boardPosting, setBoardPosting] = useState(false);
 
-    // Today's employee queries state
-    const [todayActivities, setTodayActivities] = useState([]);
+    // Pending employee queries state
+    const [pendingQueries, setPendingQueries] = useState([]);
     const [queriesLoading, setQueriesLoading] = useState(false);
 
     // Resolved queries state with pagination
@@ -42,9 +42,17 @@ const EmployeeMonitoring = () => {
         fetchEmployees();
         fetchBoardPosts();
         fetchEmployeeQueries();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    useEffect(() => {
         // Auto-refresh board every 15 seconds
-        const interval = setInterval(() => fetchBoardPostsSilent(), 15000);
+        // Using empty dependency array as functions are defined in component
+        const interval = setInterval(() => {
+            fetchBoardPostsSilent();
+        }, 15000);
         return () => clearInterval(interval);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // Auto-scroll chat containers to bottom when new data arrives
@@ -54,7 +62,7 @@ const EmployeeMonitoring = () => {
                 queriesContainerRef.current.scrollTop = queriesContainerRef.current.scrollHeight;
             }, 100);
         }
-    }, [todayActivities]);
+    }, [pendingQueries]);
 
     // Auto-scroll resolved queries container
     useEffect(() => {
@@ -132,10 +140,12 @@ const EmployeeMonitoring = () => {
                 headers: { Authorization: `Bearer ${token}` },
             });
             setBoardPosts(res.data.data || []);
-        } catch (_) {}
+        } catch (error) {
+            console.error('Error fetching board posts:', error);
+        }
     };
 
-    // Fetch today's employee queries from API
+    // Fetch pending employee queries from API
     const fetchEmployeeQueries = async () => {
         setQueriesLoading(true);
         try {
@@ -143,7 +153,7 @@ const EmployeeMonitoring = () => {
             const res = await axios.get('/api/contact/employee-queries', {
                 headers: { Authorization: `Bearer ${token}` },
             });
-            setTodayActivities(res.data.data || []);
+            setPendingQueries(res.data.data || []);
             
             // Also fetch all queries for resolved list
             const allRes = await axios.get('/api/contact/queries-list', {
@@ -156,7 +166,7 @@ const EmployeeMonitoring = () => {
             setResolvedPage(1); // Reset to first page
         } catch (err) {
             console.error('Failed to fetch employee queries:', err);
-            setTodayActivities([]);
+            setPendingQueries([]);
             setAllQueries([]);
         } finally {
             setQueriesLoading(false);
@@ -239,13 +249,9 @@ const EmployeeMonitoring = () => {
             );
 
             if (response.data.success) {
-                // Update the query status in the list
-                setTodayActivities(prevActivities =>
-                    prevActivities.map(q =>
-                        q._id === queryId
-                            ? { ...q, status: 'replied', admin_reply: replyText, replied_at: new Date().toISOString() }
-                            : q
-                    )
+                // Remove the query from pending list since it's now replied
+                setPendingQueries(prevActivities =>
+                    prevActivities.filter(q => q._id !== queryId)
                 );
                 alert('Reply sent successfully!');
                 setReplyingTo(null);
@@ -340,11 +346,11 @@ const EmployeeMonitoring = () => {
                                         <i className="fas fa-tasks text-blue-600"></i>
                                     </div>
                                     <div>
-                                        <h2 className="text-lg font-bold text-[#1A4A40]">Today's Employee Queries</h2>
-                                        <p className="text-xs text-gray-400">Queries submitted by employees today</p>
+                                        <h2 className="text-lg font-bold text-[#1A4A40]">Pending Employee Queries</h2>
+                                        <p className="text-xs text-gray-400">Queries submitted by employees awaiting response</p>
                                     </div>
                                     <span className="ml-auto bg-blue-100 text-blue-700 text-sm font-bold px-3 py-1 rounded-full">
-                                        {todayActivities.length}
+                                        {pendingQueries.length}
                                     </span>
                                 </div>
                                 {queriesLoading ? (
@@ -352,14 +358,14 @@ const EmployeeMonitoring = () => {
                                         <i className="fas fa-spinner fa-spin text-2xl text-gray-300 mb-3"></i>
                                         <p className="text-gray-400 text-sm">Loading queries...</p>
                                     </div>
-                                ) : todayActivities.length === 0 ? (
+                                ) : pendingQueries.length === 0 ? (
                                     <div className="text-center py-10">
                                         <i className="fas fa-inbox text-3xl text-gray-300 mb-3"></i>
-                                        <p className="text-gray-400 text-sm">No queries submitted today</p>
+                                        <p className="text-gray-400 text-sm">No pending queries</p>
                                     </div>
                                 ) : (
                                     <div ref={queriesContainerRef} className="divide-y divide-gray-100 max-h-72 overflow-y-auto">
-                                        {todayActivities.map(q => {
+                                        {pendingQueries.map(q => {
                                             const queryText = q.query || '';
                                             // Extract category from query format: "[Category] subject"
                                             const catMatch = queryText.match(/^\[([^\]]+)\]\s*(.+?)(?:\n|$)/);

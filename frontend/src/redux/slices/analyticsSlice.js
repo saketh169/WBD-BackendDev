@@ -171,7 +171,7 @@ export const fetchConsultationRevenue = createAsyncThunk(
       // Check if backend already calculated the periods with revenue
       if (response.data.dailyPeriods && Array.isArray(response.data.dailyPeriods) &&
         response.data.dailyPeriods.length > 0 &&
-        response.data.dailyPeriods[0].hasOwnProperty('revenue')) {
+        Object.prototype.hasOwnProperty.call(response.data.dailyPeriods[0], 'revenue')) {
         // Backend already calculated everything with revenue, use it directly
         return {
           dailyPeriods: response.data.dailyPeriods,

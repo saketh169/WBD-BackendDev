@@ -12,8 +12,6 @@ import {
     createBlog,
     updateBlog,
     clearCurrentBlog,
-    clearError,
-    clearSuccessMessage,
     selectCategories,
     selectCurrentBlog,
     selectIsSubmitting,
@@ -31,7 +29,7 @@ const CreateBlog = () => {
     const categories = useSelector(selectCategories);
     const currentBlog = useSelector(selectCurrentBlog);
     const isSubmitting = useSelector(selectIsSubmitting);
-    const reduxError = useSelector(selectError);
+    useSelector(selectError);
     
     // Get role from URL path
     const getRoleFromPath = useCallback(() => {

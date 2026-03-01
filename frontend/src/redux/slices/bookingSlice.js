@@ -535,7 +535,7 @@ const bookingSlice = createSlice({
         state.currentUserBookedTimesWithDietitian = action.payload.userBookings;
         state.blockedSlots = action.payload.blockedSlots;
       })
-      .addCase(fetchBookedSlots.rejected, (state, action) => {
+      .addCase(fetchBookedSlots.rejected, (state) => {
         state.isLoadingSlots = false;
         state.bookedSlots = [];
         state.currentUserBookedTimesWithDietitian = [];
@@ -549,7 +549,7 @@ const bookingSlice = createSlice({
         state.isLoadingSlots = false;
         state.userBookedSlots = action.payload;
       })
-      .addCase(fetchUserBookedSlots.rejected, (state, action) => {
+      .addCase(fetchUserBookedSlots.rejected, (state) => {
         state.isLoadingSlots = false;
         state.userBookedSlots = [];
       })
@@ -684,7 +684,7 @@ const bookingSlice = createSlice({
         // Cache the profile
         state.dietitianProfiles[action.payload._id] = action.payload;
       })
-      .addCase(fetchDietitianProfile.rejected, (state, action) => {
+      .addCase(fetchDietitianProfile.rejected, (state) => {
         state.isLoading = false;
       });
   }
