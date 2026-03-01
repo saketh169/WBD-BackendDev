@@ -2,7 +2,7 @@ import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider } from '../contexts/AuthContext';
 import Sidebar from '../components/Sidebar/Sidebar';
 import EmployeeHome from '../pages/HomePages/EmployeeHome';
-import BlogModeration from '../pages/Organization/BlogModeration';
+import BlogModeration from '../pages/Blog/BlogModeration';
 import DietitianVerify from '../pages/Verify/DietitianVerify';
 import Blog from '../pages/Blog';
 import BlogPost from '../pages/Blog/BlogPost';

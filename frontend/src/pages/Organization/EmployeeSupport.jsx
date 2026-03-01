@@ -114,22 +114,6 @@ const EmployeeSupport = () => {
     }
   }, [orgName, token]);
 
-  useEffect(() => {
-    if (!QUERIES_KEY) return;
-    const stored = JSON.parse(localStorage.getItem(QUERIES_KEY) || '[]');
-    setMyQueries(stored);
-    fetchReplies();
-    fetchBoardPosts();
-    // Auto-refresh board every 15 seconds
-    const boardInterval = setInterval(() => fetchBoardPosts(true), 15000);
-    // Auto-refresh replies every 5 seconds to show new admin responses
-    const repliesInterval = setInterval(() => fetchReplies(), 5000);
-    return () => {
-      clearInterval(boardInterval);
-      clearInterval(repliesInterval);
-    };
-  }, [orgName, empEmail, QUERIES_KEY, fetchBoardPosts, fetchReplies]);
-
   // Fetch admin replies to employee queries
   const fetchReplies = useCallback(async () => {
     if (!empEmail) return;
@@ -163,23 +147,30 @@ const EmployeeSupport = () => {
     }
   }, [empEmail, token]);
 
-  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (!QUERIES_KEY) return;
+    const stored = JSON.parse(localStorage.getItem(QUERIES_KEY) || '[]');
+    setMyQueries(stored);
+    fetchReplies();
+    fetchBoardPosts();
+    // Auto-refresh board every 15 seconds
+    const boardInterval = setInterval(() => fetchBoardPosts(true), 15000);
+    // Auto-refresh replies every 5 seconds to show new admin responses
+    const repliesInterval = setInterval(() => fetchReplies(), 5000);
+    return () => {
+      clearInterval(boardInterval);
+      clearInterval(repliesInterval);
+    };
+  }, [orgName, empEmail, QUERIES_KEY, fetchBoardPosts, fetchReplies]);
+
+  // Auto-scroll to bottom when new messages arrive or when switching to board tab
   useEffect(() => {
     if (boardMessagesRef.current) {
       setTimeout(() => {
         boardMessagesRef.current.scrollTop = boardMessagesRef.current.scrollHeight;
-      }, 0);
+      }, 50);
     }
-  }, [boardPosts]);
-
-  // Auto-scroll page to bottom when switching to board tab or when board updates
-  useEffect(() => {
-    if (activeTab === 'board' && pageRef.current) {
-      setTimeout(() => {
-        pageRef.current.scrollTop = pageRef.current.scrollHeight;
-      }, 100);
-    }
-  }, [activeTab, boardPosts]);
+  }, [boardPosts, activeTab]);
 
   // ── Validate form ──
   const validate = () => {
@@ -318,7 +309,7 @@ const EmployeeSupport = () => {
         {activeTab === 'submit' && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
             <h2 className="text-xl font-bold text-[#1A4A40] mb-6">
-              <i className="fas fa-paper-plane mr-2 text-[#27AE60]"></i>Raise a New Query
+              <i className="fas fa-paper-plane mr-2 text-[#27AE60]"></i>Raise a New Que5060ry
             </h2>
 
             {submitSuccess && (
@@ -548,7 +539,7 @@ const EmployeeSupport = () => {
                 <p className="text-gray-500">No messages yet. Be the first to post!</p>
               </div>
             ) : (
-              <div ref={boardMessagesRef} className="flex flex-col gap-3 p-5 h-[50vh] overflow-y-auto scroll-smooth">
+              <div ref={boardMessagesRef} className="flex flex-col gap-3 p-5 h-[40vh] overflow-y-auto scroll-smooth">
                 {[...boardPosts].reverse().map(post => {
                   const isAdmin = post.isOrg === true;
                   const isMine = post.email === empEmail;

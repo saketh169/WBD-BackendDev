@@ -128,6 +128,24 @@ const DietitianVerify = () => {
         },
         withCredentials: true,
       });
+      
+      // Log activity
+      const dietitian = dietitians.find(d => d._id === dietitianId);
+      
+      if (dietitian) {
+        axios.post('/api/organization/log-activity', {
+          activityType: 'verification_approved',
+          targetId: dietitianId,
+          targetType: 'dietitian',
+          targetName: `${dietitian.name} - ${FIELD_MAP[field].name}`,
+          status: 'verified',
+          notes: `Approved ${FIELD_MAP[field].name}`
+        }, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('authToken_employee')}` },
+          withCredentials: true
+        }).catch(err => console.warn('Activity log failed:', err));
+      }
+      
       handleNotify(`Document ${FIELD_MAP[field].name} verified.`, 'success');
       fetchDietitians(); // Refresh data
     } catch (error) {
@@ -144,6 +162,24 @@ const DietitianVerify = () => {
         },
         withCredentials: true,
       });
+      
+      // Log activity
+      const dietitian = dietitians.find(d => d._id === dietitianId);
+      
+      if (dietitian) {
+        axios.post('/api/organization/log-activity', {
+          activityType: 'verification_rejected',
+          targetId: dietitianId,
+          targetType: 'dietitian',
+          targetName: `${dietitian.name} - ${FIELD_MAP[field].name}`,
+          status: 'rejected',
+          notes: `Rejected ${FIELD_MAP[field].name}`
+        }, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('authToken_employee')}` },
+          withCredentials: true
+        }).catch(err => console.warn('Activity log failed:', err));
+      }
+      
       handleNotify(`Document ${FIELD_MAP[field].name} rejected.`, 'error');
       fetchDietitians(); // Refresh data
     } catch (error) {
@@ -160,6 +196,24 @@ const DietitianVerify = () => {
         },
         withCredentials: true,
       });
+      
+      // Log activity
+      const dietitian = dietitians.find(d => d._id === dietitianId);
+      
+      if (dietitian) {
+        axios.post('/api/organization/log-activity', {
+          activityType: 'verification_approved',
+          targetId: dietitianId,
+          targetType: 'dietitian',
+          targetName: `${dietitian.name} - Final Approval`,
+          status: 'verified',
+          notes: 'Final Report Verified'
+        }, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('authToken_employee')}` },
+          withCredentials: true
+        }).catch(err => console.warn('Activity log failed:', err));
+      }
+      
       handleNotify('Dietitian has been finally approved!', 'success');
       fetchDietitians(); // Refresh data
       setExpandedRow(null); // Close the expanded row
@@ -181,6 +235,24 @@ const DietitianVerify = () => {
         },
         withCredentials: true,
       });
+      
+      // Log activity
+      const dietitian = dietitians.find(d => d._id === dietitianId);
+      
+      if (dietitian) {
+        axios.post('/api/organization/log-activity', {
+          activityType: 'verification_rejected',
+          targetId: dietitianId,
+          targetType: 'dietitian',
+          targetName: `${dietitian.name} - Final Rejection`,
+          status: 'rejected',
+          notes: 'Final Report Rejected'
+        }, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('authToken_employee')}` },
+          withCredentials: true
+        }).catch(err => console.warn('Activity log failed:', err));
+      }
+      
       handleNotify('Dietitian has been finally rejected.', 'error', 5000, true);
       fetchDietitians(); // Refresh data
       setExpandedRow(null); // Close the expanded row

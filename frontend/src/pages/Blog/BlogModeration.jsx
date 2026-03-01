@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
+import axios from 'axios';
 import moment from 'moment';
 import { FaTrash, FaEye, FaExclamationTriangle, FaUser, FaCheck } from 'react-icons/fa';
 
@@ -99,6 +100,24 @@ const BlogModeration = () => {
         const result = await dispatch(deleteBlog({ blogId: blogToDelete, role: roleFromUrl }));
 
         if (deleteBlog.fulfilled.match(result)) {
+            // Log activity for blog moderation (employees only)
+            const blog = reportedBlogs.find(b => b._id === blogToDelete);
+            const empToken = localStorage.getItem('authToken_employee');
+            
+            if (blog && empToken) {
+                axios.post('/api/organization/log-activity', {
+                    activityType: 'blog_rejected',
+                    targetId: blogToDelete,
+                    targetType: 'blog',
+                    targetName: blog.title,
+                    status: 'rejected',
+                    notes: `Deleted blog: ${blog.title}`
+                }, {
+                    headers: { Authorization: `Bearer ${empToken}` },
+                    withCredentials: true
+                }).catch(err => console.warn('Activity log failed:', err));
+            }
+            
             setShowDetailsModal(false);
             setSelectedBlog(null);
         }
@@ -119,6 +138,24 @@ const BlogModeration = () => {
         const result = await dispatch(dismissReports({ blogId: blogToDismiss, role: roleFromUrl }));
 
         if (dismissReports.fulfilled.match(result)) {
+            // Log activity for blog moderation (employees only)
+            const blog = reportedBlogs.find(b => b._id === blogToDismiss);
+            const empToken = localStorage.getItem('authToken_employee');
+            
+            if (blog && empToken) {
+                axios.post('/api/organization/log-activity', {
+                    activityType: 'blog_approved',
+                    targetId: blogToDismiss,
+                    targetType: 'blog',
+                    targetName: blog.title,
+                    status: 'approved',
+                    notes: `Approved blog and dismissed reports: ${blog.title}`
+                }, {
+                    headers: { Authorization: `Bearer ${empToken}` },
+                    withCredentials: true
+                }).catch(err => console.warn('Activity log failed:', err));
+            }
+            
             setShowDetailsModal(false);
             setSelectedBlog(null);
         }
