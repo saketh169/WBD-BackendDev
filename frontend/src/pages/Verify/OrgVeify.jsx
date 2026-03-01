@@ -433,16 +433,16 @@ const OrgVerify = () => {
                 </tr>
               ) : (
                 organizations.map(o => {
-                const overallStatus =
-                  o.verificationStatus.finalReport || 'Not Received'
                 const documentUploadStatus = o.documentUploadStatus || 'pending'
+                // Determine display status based on documentUploadStatus
                 const displayStatus =
                   documentUploadStatus === 'verified' ? 'Verified' : 
-                  overallStatus === 'Not Received' ? 'Pending' : overallStatus
+                  documentUploadStatus === 'rejected' ? 'Rejected' :
+                  'Pending'
                 const statusColor =
                   documentUploadStatus === 'verified'
                     ? 'text-emerald-600'
-                    : overallStatus === 'Rejected'
+                    : documentUploadStatus === 'rejected'
                     ? 'text-red-600'
                     : 'text-amber-600'
 
@@ -469,15 +469,15 @@ const OrgVerify = () => {
                           <div className={`p-2 rounded-xl mr-3 ${
                             documentUploadStatus === 'verified'
                               ? 'bg-emerald-100'
-                              : overallStatus === 'Rejected'
+                              : documentUploadStatus === 'rejected'
                               ? 'bg-red-100'
                               : 'bg-amber-100'
                           }`}>
                             <i
-                              className={`fas fa-${STATUS_ICONS[overallStatus]} ${
+                              className={`fas fa-${STATUS_ICONS[displayStatus]} ${
                                 documentUploadStatus === 'verified'
                                   ? 'text-emerald-600'
-                                  : overallStatus === 'Rejected'
+                                  : documentUploadStatus === 'rejected'
                                   ? 'text-red-600'
                                   : 'text-amber-600'
                               }`}

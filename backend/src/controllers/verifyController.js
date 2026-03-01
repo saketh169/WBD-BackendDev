@@ -482,7 +482,7 @@ async function getOrganizations(req, res) {
 
         console.log('All Organizations:');
         organizations.forEach((organization) => {
-            console.log(`- ${organization.name}: ${organization.documentUploadStatus || 'No status'}`);
+            console.log(`- ${organization.name}: ${organization.documentUploadStatus || 'pending'}`);
         });
 
         res.status(200).json(organizations);
