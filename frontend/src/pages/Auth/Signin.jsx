@@ -471,7 +471,7 @@ const Signin = () => {
                                             <i className="fas fa-spinner fa-spin mr-2"></i> Verifying...
                                         </>
                                     ) : (
-                                        'Verify & Sign In'
+                                        'Verify & Log In'
                                     )}
                                 </button>
 

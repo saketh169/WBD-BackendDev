@@ -280,7 +280,7 @@ const EmployeeSupport = () => {
       <div className="max-w-6xl mx-auto w-full">
 
         {/* Header */}
-        <div className="bg-gradient-to-r from-green-50 to-green-50 rounded-2xl p-7 mb-6 border border-green-200 text-[#1A4A40] shadow-lg">
+        <div className="bg-linear-to-r from-green-50 to-green-50 rounded-2xl p-7 mb-6 border border-green-200 text-[#1A4A40] shadow-lg">
           <h1 className="text-3xl font-bold mb-1">
             <i className="fas fa-headset mr-3"></i>Employee Support
           </h1>
@@ -427,7 +427,7 @@ const EmployeeSupport = () => {
                       {/* Query Header */}
                       <div className="flex items-start justify-between gap-4 mb-4">
                         <div className="flex items-start gap-3 flex-1 min-w-0">
-                          <div className={`mt-0.5 w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${cat?.bg || 'bg-gray-100'}`}>
+                          <div className={`mt-0.5 w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${cat?.bg || 'bg-gray-100'}`}>
                             <i className={`${cat?.icon} ${cat?.color} text-sm`}></i>
                           </div>
                           <div className="min-w-0">
@@ -443,7 +443,7 @@ const EmployeeSupport = () => {
                             </div>
                           </div>
                         </div>
-                        <span className={`flex-shrink-0 text-xs px-3 py-1 rounded-full font-semibold whitespace-nowrap ${
+                        <span className={`shrink-0 text-xs px-3 py-1 rounded-full font-semibold whitespace-nowrap ${
                           isResolved ? 'bg-[#27AE60]/20 text-[#27AE60]' : 'bg-yellow-100 text-yellow-700'
                         }`}>
                           {isResolved ? <><i className="fas fa-check-circle mr-1"></i>Resolved</> : <><i className="fas fa-clock mr-1"></i>Pending</> }
@@ -500,7 +500,7 @@ const EmployeeSupport = () => {
             {/* Compose */}
             <div className="p-6 border-b border-gray-100 bg-gray-50">
               <div className="flex gap-3 items-start">
-                <div className="w-9 h-9 rounded-full bg-[#27AE60] flex items-center justify-center text-white font-bold flex-shrink-0 mt-1">
+                <div className="w-9 h-9 rounded-full bg-[#27AE60] flex items-center justify-center text-white font-bold shrink-0 mt-1">
                   {empName.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1">
@@ -551,7 +551,7 @@ const EmployeeSupport = () => {
                   return (
                     <div key={post._id} className={`flex items-end gap-2 group ${isAdmin ? 'flex-row' : 'flex-row-reverse'}`}>
                       {/* Avatar */}
-                      <div className={`w-8 h-8 rounded-full ${isAdmin ? 'bg-[#27AE60]' : userColor.bg} flex items-center justify-center text-white font-bold flex-shrink-0 text-xs`}>
+                      <div className={`w-8 h-8 rounded-full ${isAdmin ? 'bg-[#27AE60]' : userColor.bg} flex items-center justify-center text-white font-bold shrink-0 text-xs`}>
                         {isAdmin ? <i className="fas fa-building"></i> : post.author.charAt(0).toUpperCase()}
                       </div>
                       {/* Bubble */}

@@ -40,7 +40,7 @@ const EmployeeHome = () => {
   return (
     <div className="p-6 max-w-7xl mx-auto">
       {/* Welcome Banner */}
-      <div className="bg-gradient-to-r from-green-50 to-green-50 rounded-2xl p-8 mb-8 border border-green-200 text-[#1A4A40] shadow-lg">
+      <div className="bg-linear-to-r from-green-50 to-green-50 rounded-2xl p-8 mb-8 border border-green-200 text-[#1A4A40] shadow-lg">
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 rounded-full bg-[#27AE60]/20 flex items-center justify-center text-3xl font-bold text-[#27AE60]">
             {employeeName.charAt(0).toUpperCase()}
