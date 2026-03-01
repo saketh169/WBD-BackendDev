@@ -103,10 +103,19 @@ export const VerifyProvider = ({
 
     window.addEventListener('storage', handleStorageChange);
 
+    // Set up polling if user is authenticated but not verified
+    let intervalId = null;
+    if (isAuthenticated && !isVerified) {
+      intervalId = setInterval(checkAuthAndVerification, 15000); // Poll every 15 seconds
+    }
+
     return () => {
       window.removeEventListener('storage', handleStorageChange);
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
     };
-  }, [requiredRole]);
+  }, [requiredRole, isAuthenticated, isVerified]);
 
   const value = {
     isAuthenticated,
