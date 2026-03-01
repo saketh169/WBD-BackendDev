@@ -13,9 +13,9 @@ const EmployeeHome = () => {
       icon: 'fas fa-user-check',
       description: 'Verify dietitian credentials and approve professional profiles submitted for review.',
       route: '/employee/verify-dietitian',
-      color: 'bg-green-50 border-green-200',
-      iconColor: 'text-green-600',
-      btnColor: 'bg-green-600 hover:bg-green-700',
+      color: 'bg-[#27AE60]/10 border-[#27AE60]/30',
+      iconColor: 'text-[#27AE60]',
+      btnColor: 'bg-[#27AE60] hover:bg-[#1A4A40]',
     },
     {
       title: 'Blog Moderation',
