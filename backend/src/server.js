@@ -1,3 +1,6 @@
+// Load environment variables FIRST (before any other imports that may use process.env)
+require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
+
 const express = require('express');
 const cors = require('cors');
 const connectDB = require('./utils/db'); 
@@ -28,9 +31,6 @@ const activityLogRoutes = require('./routes/activityLogRoutes');
 const { helmetMiddleware, rateLimiter, sanitizeInput } = require('./middlewares/securityMiddleware');
 const { requestLogger, errorLogger } = require('./middlewares/loggerMiddleware');
 const { errorHandler, notFoundHandler } = require('./middlewares/errorMiddleware');
-
-// Load environment variables from .env file in utils folder
-require('dotenv').config({ path: require('path').join(__dirname, 'utils', '.env') });
 
 const app = express();
 const PORT = process.env.PORT || 5000;

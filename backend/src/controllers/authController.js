@@ -2,9 +2,9 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 // Mongoose Models
 const { UserAuth, User, Admin, Dietitian, Organization, Employee } = require('../models/userModel');
+const otpService = require('../services/otpService');
 
-// Load environment variables
-require('dotenv').config();
+// Environment variables (loaded by dotenv at server.js startup)
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-for-development';
 const ADMIN_SIGNIN_KEY = process.env.ADMIN_SIGNIN_KEY || 'Nutri@2025';
 
@@ -182,22 +182,20 @@ exports.signinController = async (req, res) => {
             employee.lastLogin = new Date();
             await employee.save();
 
-            const expiresIn = rememberMe ? '7d' : '1d';
-            const token = jwt.sign(
-                { employeeId: employee._id, organizationId: employee.organizationId, role: 'organization', orgType: 'employee' },
-                JWT_SECRET,
-                { expiresIn }
-            );
+            // 2FA: Send login OTP instead of returning token directly
+            const otpResult = await otpService.sendLoginOTP(employee.email, 'Organization Employee');
+            if (!otpResult.success) {
+                console.error('Login OTP sending failed for employee:', otpResult.error);
+                return res.status(500).json({ message: 'Failed to send verification OTP. Please try again.' });
+            }
 
             return res.status(200).json({
-                message: 'Login successful!',
-                token,
+                message: 'Credentials verified! An OTP has been sent to your email for verification.',
+                requires2FA: true,
+                email: employee.email,
                 role: 'organization',
                 orgType: 'employee',
-                roleId: employee._id,
-                name: employee.name,
-                email: employee.email,
-                expiresIn
+                rememberMe: rememberMe || false
             });
         }
         // 1. Find user in central Auth collection
@@ -238,21 +236,21 @@ exports.signinController = async (req, res) => {
             }
         }
 
-        // 4. Generate JWT
-        const expiresIn = rememberMe ? '7d' : '1d';
+        // 4. 2FA: Send login OTP instead of returning token directly
+        const roleLabel = role.charAt(0).toUpperCase() + role.slice(1);
+        const otpResult = await otpService.sendLoginOTP(email, roleLabel);
+        if (!otpResult.success) {
+            console.error(`Login OTP sending failed for ${role}:`, otpResult.error);
+            return res.status(500).json({ message: 'Failed to send verification OTP. Please try again.' });
+        }
 
-        const token = jwt.sign(
-            { userId: authUser._id, role: authUser.role, roleId: authUser.roleId },
-            JWT_SECRET,
-            { expiresIn }
-        );
-
-        // 5. Respond with token and success
+        // 5. Respond with 2FA required (no token yet)
         return res.status(200).json({
-            message: 'Login successful!',
-            token,
+            message: 'Credentials verified! An OTP has been sent to your email for verification.',
+            requires2FA: true,
+            email: email,
             role: authUser.role,
-            expiresIn
+            rememberMe: rememberMe || false
         });
 
     } catch (error) {
@@ -447,5 +445,100 @@ exports.changePasswordController = async (req, res) => {
         }
 
         res.status(500).json({ message: 'Internal Server Error during password change.' });
+    }
+};
+
+// VERIFY LOGIN OTP CONTROLLER (2FA Step 2)
+exports.verifyLoginOTPController = async (req, res) => {
+    const role = req.params.role;
+    const { email, otp, rememberMe, orgType } = req.body;
+
+    if (!email || !otp) {
+        return res.status(400).json({ message: 'Email and OTP are required.' });
+    }
+
+    try {
+        // 1. Verify the OTP
+        const otpVerification = otpService.verifyOTP(email, otp);
+        if (!otpVerification.success) {
+            return res.status(400).json({ message: otpVerification.message });
+        }
+
+        // 2. Handle Employee login OTP verification
+        if (role === 'organization' && orgType === 'employee') {
+            const employee = await Employee.findOne({ email, isDeleted: false });
+            if (!employee) {
+                return res.status(404).json({ message: 'Employee not found.' });
+            }
+
+            const expiresIn = rememberMe ? '7d' : '1d';
+            const token = jwt.sign(
+                { employeeId: employee._id, organizationId: employee.organizationId, role: 'organization', orgType: 'employee' },
+                JWT_SECRET,
+                { expiresIn }
+            );
+
+            return res.status(200).json({
+                message: 'Login successful!',
+                token,
+                role: 'organization',
+                orgType: 'employee',
+                roleId: employee._id,
+                name: employee.name,
+                email: employee.email,
+                expiresIn
+            });
+        }
+
+        // 3. Handle regular user/admin/dietitian/organization login OTP verification
+        const authUser = await UserAuth.findOne({ email, role });
+        if (!authUser) {
+            return res.status(404).json({ message: 'User not found.' });
+        }
+
+        const expiresIn = rememberMe ? '7d' : '1d';
+        const token = jwt.sign(
+            { userId: authUser._id, role: authUser.role, roleId: authUser.roleId },
+            JWT_SECRET,
+            { expiresIn }
+        );
+
+        return res.status(200).json({
+            message: 'Login successful!',
+            token,
+            role: authUser.role,
+            expiresIn
+        });
+
+    } catch (error) {
+        console.error(`Error during ${role} login OTP verification:`, error);
+        res.status(500).json({ message: 'Internal Server Error during OTP verification.' });
+    }
+};
+
+// RESEND LOGIN OTP CONTROLLER (2FA - Resend)
+exports.resendLoginOTPController = async (req, res) => {
+    const { email, role } = req.body;
+
+    if (!email) {
+        return res.status(400).json({ message: 'Email is required.' });
+    }
+
+    try {
+        const roleLabel = role ? (role.charAt(0).toUpperCase() + role.slice(1)) : '';
+        const otpResult = await otpService.sendLoginOTP(email, roleLabel);
+
+        if (otpResult.success) {
+            return res.status(200).json({
+                message: 'A new OTP has been sent to your email.',
+                email: email
+            });
+        } else {
+            console.error('Resend login OTP failed:', otpResult.error);
+            return res.status(500).json({ message: 'Failed to resend OTP. Please try again.' });
+        }
+    } catch (error) {
+        console.error('Error resending login OTP:', error);
+        res.status(500).json({ message: 'Internal server error. Please try again.' });
     }
 };

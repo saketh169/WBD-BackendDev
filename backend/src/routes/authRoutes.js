@@ -89,4 +89,10 @@ router.post('/forgot-password/:role', forgotPasswordController.forgotPasswordCon
 // 17. Reset Password: POST /api/reset-password/:role (Reset password with OTP for specific role)
 router.post('/reset-password/:role', forgotPasswordController.resetPasswordController);
 
+// 18. Verify Login OTP: POST /api/verify-login-otp/:role (2FA - verify OTP and get JWT)
+router.post('/verify-login-otp/:role', authController.verifyLoginOTPController);
+
+// 19. Resend Login OTP: POST /api/resend-login-otp (2FA - resend OTP)
+router.post('/resend-login-otp', authController.resendLoginOTPController);
+
 module.exports = router;
