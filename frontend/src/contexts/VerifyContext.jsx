@@ -1,4 +1,5 @@
 import React, { createContext, useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import axios from 'axios';
 
 // Create Verify Context
@@ -26,9 +27,10 @@ export const VerifyProvider = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [token, setToken] = useState(null);
+  const location = useLocation();
 
   useEffect(() => {
-    // Check authentication and verification on mount and when role changes
+    // Check authentication and verification on mount and when role/route changes
     const checkAuthAndVerification = async () => {
       setLoading(true);
       setError(null);
@@ -103,19 +105,10 @@ export const VerifyProvider = ({
 
     window.addEventListener('storage', handleStorageChange);
 
-    // Set up polling if user is authenticated but not verified
-    let intervalId = null;
-    if (isAuthenticated && !isVerified) {
-      intervalId = setInterval(checkAuthAndVerification, 15000); // Poll every 15 seconds
-    }
-
     return () => {
       window.removeEventListener('storage', handleStorageChange);
-      if (intervalId) {
-        clearInterval(intervalId);
-      }
     };
-  }, [requiredRole, isAuthenticated, isVerified]);
+  }, [requiredRole, location.pathname]);
 
   const value = {
     isAuthenticated,
