@@ -92,24 +92,15 @@ const buildValidationSchema = (role, orgType = '') => {
 };
 
 // --- Initial Form Values Based on Role ---
-const getInitialValues = (role) => {
-    const base = {
-        email: '',
-        password: '',
-        rememberMe: false,
-    };
-
-    switch (role) {
-        case 'dietitian':
-            return { ...base, licenseNumber: '' };
-        case 'organization':
-            return { ...base, licenseNumber: '' };
-        case 'admin':
-            return { ...base, adminKey: '' };
-        default:
-            return base; // For 'user'
-    }
-};
+// Always include ALL possible fields so no Field ever transitions from undefined to a value.
+// Formik ignores values with no matching <Field> — unused keys are harmless.
+const getInitialValues = () => ({
+    email: '',
+    password: '',
+    rememberMe: false,
+    licenseNumber: '',  // used by dietitian & organization
+    adminKey: '',       // used by admin
+});
 
 
 // --- Main Component ---
@@ -119,6 +110,11 @@ const Signin = () => {
     const [role, setRole] = useState('');
     const [orgType, setOrgType] = useState(''); // 'management' or 'employee'
     const [message, setMessage] = useState('');
+
+    // 2FA State
+    const [currentStep, setCurrentStep] = useState('credentials'); // 'credentials' or 'otp'
+    const [twoFAEmail, setTwoFAEmail] = useState('');
+    const [twoFARememberMe, setTwoFARememberMe] = useState(false);
 
     // Get role from URL on mount
     useEffect(() => {
@@ -157,40 +153,44 @@ const Signin = () => {
             const response = await axios.post(apiRoute, formData);
             const data = response.data;
 
-            // Handle token storage
-            if (data.token) {
-                // Employees get their own separate token key so they don't share with org management
+            // Check if 2FA is required
+            if (data.requires2FA) {
+                setTwoFAEmail(data.email);
+                setTwoFARememberMe(values.rememberMe || false);
+                setMessage('OTP sent to your email! Please check your inbox.');
+                setCurrentStep('otp');
+
+                setTimeout(() => {
+                    setMessage('');
+                }, 3000);
+            } else if (data.token) {
+                // Direct login (fallback if 2FA not required)
                 const storageRole = (data.role === 'organization' && data.orgType === 'employee')
                     ? 'employee'
                     : data.role;
 
-                // Store token with role-specific key so multiple roles can be logged in simultaneously
                 localStorage.setItem(`authToken_${storageRole}`, data.token);
-                // Store user info; for employees also persist name & email immediately
                 const existingUser = JSON.parse(localStorage.getItem(`authUser_${storageRole}`) || '{}');
                 const userUpdate = { ...existingUser };
                 if (data.orgType) userUpdate.orgType = data.orgType;
                 if (data.name)    userUpdate.name  = data.name;
                 if (data.email)   userUpdate.email = data.email;
                 localStorage.setItem(`authUser_${storageRole}`, JSON.stringify(userUpdate));
-                // Store userId for profile operations
                 if (data.roleId) {
                     localStorage.setItem('userId', data.roleId);
                 }
+
+                setMessage(`Sign-in successful! Redirecting...`);
+
+                setTimeout(() => {
+                    setMessage('');
+                    if (role === 'organization' && (orgType === 'employee' || data.orgType === 'employee')) {
+                        navigate('/employee/home');
+                    } else {
+                        navigate(roleRoutes[role]);
+                    }
+                }, 1000);
             }
-
-            setMessage(`Sign-in successful! Redirecting...`);
-
-            // Redirect after a short delay
-            setTimeout(() => {
-                setMessage('');
-                // Employees go to their own home page
-                if (role === 'organization' && (orgType === 'employee' || data.orgType === 'employee')) {
-                    navigate('/employee/home');
-                } else {
-                    navigate(roleRoutes[role]);
-                }
-            }, 1000);
 
         } catch (error) {
             console.error('Sign-in Error:', error.response ? error.response.data : error.message);
@@ -205,6 +205,71 @@ const Signin = () => {
 
         } finally {
             setSubmitting(false);
+        }
+    };
+
+    // 2FA OTP submission handler
+    const handleOTPSubmit = async (values, { setSubmitting }) => {
+        setSubmitting(true);
+        setMessage('Verifying OTP...');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+        try {
+            const response = await axios.post(`/api/verify-login-otp/${role}`, {
+                email: twoFAEmail,
+                otp: values.otp,
+                rememberMe: twoFARememberMe,
+                orgType: orgType,
+            });
+
+            const data = response.data;
+
+            if (data.token) {
+                const storageRole = (data.role === 'organization' && data.orgType === 'employee')
+                    ? 'employee'
+                    : data.role;
+
+                localStorage.setItem(`authToken_${storageRole}`, data.token);
+                const existingUser = JSON.parse(localStorage.getItem(`authUser_${storageRole}`) || '{}');
+                const userUpdate = { ...existingUser };
+                if (data.orgType) userUpdate.orgType = data.orgType;
+                if (data.name)    userUpdate.name  = data.name;
+                if (data.email)   userUpdate.email = data.email;
+                localStorage.setItem(`authUser_${storageRole}`, JSON.stringify(userUpdate));
+                if (data.roleId) {
+                    localStorage.setItem('userId', data.roleId);
+                }
+
+                setMessage('Sign-in successful! Redirecting...');
+
+                setTimeout(() => {
+                    setMessage('');
+                    if (role === 'organization' && (orgType === 'employee' || data.orgType === 'employee')) {
+                        navigate('/employee/home');
+                    } else {
+                        navigate(roleRoutes[role]);
+                    }
+                }, 1000);
+            }
+        } catch (error) {
+            console.error('OTP Verification Error:', error.response ? error.response.data : error.message);
+            const errorMessage = error.response?.data?.message || 'OTP verification failed. Please try again.';
+            setMessage(`Error: ${errorMessage}`);
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    // Resend OTP handler
+    const handleResendOTP = async () => {
+        setMessage('Resending OTP...');
+        try {
+            await axios.post('/api/resend-login-otp', { email: twoFAEmail, role: role });
+            setMessage('A new OTP has been sent to your email!');
+            setTimeout(() => setMessage(''), 3000);
+        } catch (error) {
+            console.error('Resend OTP Error:', error.response ? error.response.data : error.message);
+            setMessage('Error: Failed to resend OTP. Please try again.');
         }
     };
 
@@ -304,23 +369,45 @@ const Signin = () => {
         <section className="flex items-center justify-center bg-gray-100 p-4 min-h-150">
             <div className="w-full max-w-lg p-8 mx-auto rounded-3xl shadow-2xl bg-white animate-fade-in relative">
                 <button
-                    onClick={() => navigate('/role')}
+                    onClick={() => {
+                        if (currentStep === 'otp') {
+                            setCurrentStep('credentials');
+                            setMessage('');
+                        } else {
+                            navigate('/role');
+                        }
+                    }}
                     className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition-colors"
-                    title="Back to Role Selection"
+                    title={currentStep === 'otp' ? 'Back to Credentials' : 'Back to Role Selection'}
                 >
-                    <i className="fas fa-times text-xl"></i>
+                    <i className={`fas ${currentStep === 'otp' ? 'fa-arrow-left' : 'fa-times'} text-xl`}></i>
                 </button>
-                <h2 className="text-center text-3xl font-bold text-[#1E6F5C] mb-6">
-                    LOG IN AS {role === 'organization' && orgType ? `ORGANIZATION - ${orgType.toUpperCase()}` : role.toUpperCase()}
-                </h2>
+
+                {currentStep === 'otp' ? (
+                    <>
+                        <div className="text-center mb-6">
+                            <i className="fas fa-shield-alt text-4xl text-[#1E6F5C] mb-4"></i>
+                            <h2 className="text-3xl font-bold text-[#1E6F5C]">
+                                Verify Your Identity
+                            </h2>
+                            <p className="text-gray-600 mt-2">
+                                Two-Factor Authentication
+                            </p>
+                        </div>
+                    </>
+                ) : (
+                    <h2 className="text-center text-3xl font-bold text-[#1E6F5C] mb-6">
+                        LOG IN AS {role === 'organization' && orgType ? `ORGANIZATION - ${orgType.toUpperCase()}` : role.toUpperCase()}
+                    </h2>
+                )}
 
                 {/* Global Alert */}
                 {message && (
                     <div
                         aria-live="polite"
-                        className={`p-3 mb-5 text-center text-base font-medium rounded-lg shadow-sm animate-slide-in w-full ${message.includes('successful') || message.includes('Redirecting')
+                        className={`p-3 mb-5 text-center text-base font-medium rounded-lg shadow-sm animate-slide-in w-full ${message.includes('successful') || message.includes('Redirecting') || message.includes('OTP sent') || message.includes('new OTP')
                                 ? 'text-green-800 bg-green-100 border border-green-300'
-                                : message.includes('Verifying')
+                                : message.includes('Verifying') || message.includes('Resending')
                                     ? 'text-blue-800 bg-blue-100 border border-blue-300'
                                     : 'text-red-800 bg-red-100 border border-red-300'
                             }`}
@@ -330,39 +417,127 @@ const Signin = () => {
                     </div>
                 )}
 
-                <Formik
-                    initialValues={getInitialValues(role)}
-                    validationSchema={buildValidationSchema(role, orgType)}
-                    onSubmit={handleFormikSubmit}
-                    enableReinitialize={true}
-                >
-                    {({ isSubmitting }) => (
-                        <Form className="space-y-4" noValidate>
+                {currentStep === 'otp' ? (
+                    /* ========== 2FA OTP FORM ========== */
+                    <Formik
+                        initialValues={{ otp: '' }}
+                        validationSchema={Yup.object().shape({
+                            otp: Yup.string()
+                                .required('OTP is required.')
+                                .length(6, 'OTP must be 6 digits.')
+                                .matches(/^[0-9]+$/, 'OTP must contain only numbers.'),
+                        })}
+                        onSubmit={handleOTPSubmit}
+                    >
+                        {({ isSubmitting }) => (
+                            <Form className="space-y-4" noValidate>
+                                {/* Email Display */}
+                                <div className="bg-gray-50 p-3 rounded-lg">
+                                    <p className="text-sm text-gray-600">
+                                        <i className="fas fa-envelope mr-2"></i>
+                                        OTP sent to: <span className="font-medium text-gray-800">{twoFAEmail}</span>
+                                    </p>
+                                </div>
 
-                            {renderFormFields()}
+                                {/* OTP Input */}
+                                <div className="relative">
+                                    <label htmlFor="otp" className="block text-sm font-medium text-gray-700 mb-1">
+                                        Enter OTP
+                                    </label>
+                                    <Field
+                                        id="otp"
+                                        name="otp"
+                                        type="text"
+                                        className={`w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[${lightGreen}] transition-all duration-300 h-11 text-center text-lg tracking-widest`}
+                                        placeholder="000000"
+                                        maxLength="6"
+                                        autoFocus
+                                    />
+                                    <ErrorMessage name="otp" component="div" className="text-red-500 text-xs mt-1" />
+                                </div>
 
-                            {/* Submit Button with Loading State */}
-                            <button
-                                type="submit"
-                                className={`w-full bg-[${primaryGreen}] text-white font-semibold py-3 rounded-lg hover:bg-[#155345] transition-colors duration-300 shadow-md hover:shadow-lg disabled:opacity-50`}
-                                disabled={isSubmitting}
-                            >
-                                {isSubmitting ? (
-                                    <>
-                                        <i className="fas fa-spinner fa-spin mr-2"></i> Logging In...
-                                    </>
-                                ) : (
-                                    'Log In'
-                                )}
-                            </button>
+                                <div className="text-sm text-gray-600">
+                                    <p>Enter the 6-digit code sent to your email to complete sign-in.</p>
+                                </div>
 
-                            <p className="text-center text-sm mt-4">
-                                Don't have an account?{' '}
-                                <Link to={`/signup?role=${role}`} className={commonLinkClasses}>Sign Up</Link>
-                            </p>
-                        </Form>
-                    )}
-                </Formik>
+                                {/* Verify OTP Button */}
+                                <button
+                                    type="submit"
+                                    className={`w-full bg-[${primaryGreen}] text-white font-semibold py-3 rounded-lg hover:bg-[#155345] transition-colors duration-300 shadow-md hover:shadow-lg disabled:opacity-50`}
+                                    disabled={isSubmitting}
+                                >
+                                    {isSubmitting ? (
+                                        <>
+                                            <i className="fas fa-spinner fa-spin mr-2"></i> Verifying...
+                                        </>
+                                    ) : (
+                                        'Verify & Sign In'
+                                    )}
+                                </button>
+
+                                <div className="text-center mt-4 space-y-2">
+                                    <p className="text-sm">
+                                        Didn't receive OTP?{' '}
+                                        <button
+                                            type="button"
+                                            onClick={handleResendOTP}
+                                            className={commonLinkClasses}
+                                        >
+                                            Resend OTP
+                                        </button>
+                                    </p>
+                                    <p className="text-sm">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setCurrentStep('credentials');
+                                                setMessage('');
+                                            }}
+                                            className={commonLinkClasses}
+                                        >
+                                            Back to Sign In
+                                        </button>
+                                    </p>
+                                </div>
+                            </Form>
+                        )}
+                    </Formik>
+                ) : (
+                    /* ========== CREDENTIALS FORM ========== */
+                    <Formik
+                        initialValues={getInitialValues()}
+                        validationSchema={buildValidationSchema(role, orgType)}
+                        onSubmit={handleFormikSubmit}
+                        enableReinitialize={true}
+                    >
+                        {({ isSubmitting }) => (
+                            <Form className="space-y-4" noValidate>
+
+                                {renderFormFields()}
+
+                                {/* Submit Button with Loading State */}
+                                <button
+                                    type="submit"
+                                    className={`w-full bg-[${primaryGreen}] text-white font-semibold py-3 rounded-lg hover:bg-[#155345] transition-colors duration-300 shadow-md hover:shadow-lg disabled:opacity-50`}
+                                    disabled={isSubmitting}
+                                >
+                                    {isSubmitting ? (
+                                        <>
+                                            <i className="fas fa-spinner fa-spin mr-2"></i> Verifying Credentials...
+                                        </>
+                                    ) : (
+                                        'Continue'
+                                    )}
+                                </button>
+
+                                <p className="text-center text-sm mt-4">
+                                    Don't have an account?{' '}
+                                    <Link to={`/signup?role=${role}`} className={commonLinkClasses}>Sign Up</Link>
+                                </p>
+                            </Form>
+                        )}
+                    </Formik>
+                )}
             </div>
         </section>
     );

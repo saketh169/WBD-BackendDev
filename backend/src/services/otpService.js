@@ -53,7 +53,7 @@ const removeOTP = (email) => {
   otpStore.delete(email);
 };
 
-// Send OTP email to user
+// Send OTP email to user (for password reset)
 const sendOTPEmail = async (email, otp) => {
   const otpHtml = `
   <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -93,11 +93,88 @@ const sendOTPEmail = async (email, otp) => {
       subject: 'Password Reset OTP - NutriConnect',
       html: otpHtml
     });
-    console.log('OTP email sent successfully to:', email);
+    console.log('Password reset OTP email sent successfully to:', email);
     return { success: true };
   } catch (error) {
-    console.error('Error sending OTP email:', error);
+    console.error('Error sending password reset OTP email:', error);
     return { success: false, error };
+  }
+};
+
+// Send Login 2FA OTP email to user (includes role label)
+const sendLoginOTPEmail = async (email, otp, roleLabel = '') => {
+  const roleLine = roleLabel ? `<p style="margin-bottom: 15px; color: #555;"><strong>Account Type:</strong> ${roleLabel}</p>` : '';
+  const otpHtml = `
+  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+    <div style="background-color: #1E6F5C; color: white; padding: 20px; text-align: center;">
+      <h1>NutriConnect Login Verification</h1>
+    </div>
+    <div style="padding: 20px; background-color: #f9f9f9;">
+      <h2>Two-Factor Authentication</h2>
+      <p>A sign-in attempt has been made on your NutriConnect account. Please use the OTP below to complete your login.</p>
+
+      ${roleLine}
+
+      <div style="background-color: white; padding: 20px; border-radius: 5px; margin: 20px 0; text-align: center; border: 2px solid #1E6F5C;">
+        <h3 style="color: #1E6F5C; margin-bottom: 10px;">Your Login OTP</h3>
+        <div style="font-size: 32px; font-weight: bold; color: #1E6F5C; letter-spacing: 5px; font-family: monospace;">
+          ${otp}
+        </div>
+        <p style="margin-top: 15px; color: #666; font-size: 14px;">
+          Enter this code on the login page to verify your identity.
+        </p>
+      </div>
+
+      <p><strong>Important:</strong> If you did not attempt to log in, please change your password immediately as someone may have your credentials.</p>
+
+      <p>If you have any questions, please contact our support team.</p>
+
+      <p>Best regards,<br>The NutriConnect Team</p>
+    </div>
+    <div style="background-color: #1E6F5C; color: white; padding: 10px; text-align: center;">
+      <p>Contact us: nutriconnect6@gmail.com | +91 70757 83143</p>
+    </div>
+  </div>`;
+
+  try {
+    const transporter = getTransporter();
+    const subjectRole = roleLabel ? ` (${roleLabel})` : '';
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: `Login Verification OTP${subjectRole} - NutriConnect`,
+      html: otpHtml
+    });
+    console.log(`Login 2FA OTP email sent successfully to: ${email} (role: ${roleLabel || 'unknown'})`);
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending login OTP email:', error);
+    return { success: false, error };
+  }
+};
+
+// Main function to send OTP for login 2FA
+const sendLoginOTP = async (email, roleLabel = '') => {
+  try {
+    const otp = generateOTP();
+    storeOTP(email, otp);
+
+    // --- DEV MODE: Print OTP to console so it can be used without email access ---
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`\n🔐 [DEV] LOGIN OTP for ${email} (${roleLabel || 'unknown role'}): ${otp}\n`);
+    }
+
+    const emailResult = await sendLoginOTPEmail(email, otp, roleLabel);
+
+    if (emailResult.success) {
+      return { success: true, message: 'Login OTP sent successfully' };
+    } else {
+      removeOTP(email);
+      return { success: false, message: 'Failed to send login OTP email', error: emailResult.error };
+    }
+  } catch (error) {
+    console.error('Error in sendLoginOTP:', error);
+    return { success: false, message: 'Internal server error', error };
   }
 };
 
@@ -109,6 +186,11 @@ const sendPasswordResetOTP = async (email) => {
 
     // Store OTP with email
     storeOTP(email, otp);
+
+    // --- DEV MODE: Print OTP to console ---
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`\n🔑 [DEV] PASSWORD RESET OTP for ${email}: ${otp}\n`);
+    }
 
     // Send OTP email
     const emailResult = await sendOTPEmail(email, otp);
@@ -146,6 +228,7 @@ const verifyOTP = (email, enteredOTP) => {
 
 module.exports = {
   sendPasswordResetOTP,
+  sendLoginOTP,
   verifyOTP,
   getStoredOTP,
   cleanupExpiredOTPs
