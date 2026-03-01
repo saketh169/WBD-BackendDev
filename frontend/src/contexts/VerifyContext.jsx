@@ -61,18 +61,14 @@ export const VerifyProvider = ({
       setToken(storedToken);
       setIsAuthenticated(true);
 
-      // Employees have their own auth token (authToken_employee) and are always verified
-      // — they inherit their org's verified status so no status API call is needed.
-      if (requiredRole === 'employee') {
-        setVerificationStatus('verified');
-        setIsVerified(true);
-        setLoading(false);
-        return;
-      }
-
       // Check verification status
       try {
-        const response = await axios.get(`/api/status/${requiredRole}-status`, {
+        // Employees need to check their parent organization's verification status
+        const statusEndpoint = requiredRole === 'employee' 
+          ? '/api/status/employee-org-status' 
+          : `/api/status/${requiredRole}-status`;
+        
+        const response = await axios.get(statusEndpoint, {
           headers: {
             'Authorization': `Bearer ${storedToken}`,
             'Content-Type': 'application/json'
@@ -123,15 +119,12 @@ export const VerifyProvider = ({
         setToken(storedToken);
         setIsAuthenticated(true);
 
-        // Employees are always verified — no status API needed
-        if (requiredRole === 'employee') {
-          setVerificationStatus('verified');
-          setIsVerified(true);
-          return;
-        }
-
-        // Re-fetch verification status
-        axios.get(`/api/status/${requiredRole}-status`, {
+        // Re-fetch verification status (employees check their org's status)
+        const statusEndpoint = requiredRole === 'employee' 
+          ? '/api/status/employee-org-status' 
+          : `/api/status/${requiredRole}-status`;
+        
+        axios.get(statusEndpoint, {
           headers: {
             'Authorization': `Bearer ${storedToken}`,
             'Content-Type': 'application/json'
@@ -245,9 +238,11 @@ export const VerifyProvider = ({
 
   // Not Verified UI - Handle different statuses
   if (!isVerified) {
+    // For employees, show organization-related messaging
+    const isEmployee = requiredRole === 'employee';
     const roleDisplayName = requiredRole === 'dietitian' ? 'Dietitian' : 'Organization';
 
-    // Rejected status - allow resubmitting documents
+    // Rejected status - allow resubmitting documents (not applicable for employees)
     if (verificationStatus === 'rejected') {
       return (
         <VerifyContext.Provider value={value}>
@@ -260,16 +255,31 @@ export const VerifyProvider = ({
               <div className="text-6xl mb-4 text-red-500">
                 <i className="fas fa-times-circle"></i>
               </div>
-              <h2 className="text-2xl font-bold text-red-600 mb-3">Application Rejected</h2>
+              <h2 className="text-2xl font-bold text-red-600 mb-3">
+                {isEmployee ? 'Organization Verification Rejected' : 'Application Rejected'}
+              </h2>
               <p className="text-gray-600 mb-6">
-                Your {roleDisplayName.toLowerCase()} application has been rejected. Please review and resubmit your documents.
+                {isEmployee 
+                  ? 'Your organization\'s verification has been rejected. You cannot perform this task until your organization is verified. Please contact your organization administrator.'
+                  : `Your ${roleDisplayName.toLowerCase()} application has been rejected. Please review and resubmit your documents.`
+                }
               </p>
-              <a
-                href={`/upload-documents?role=${requiredRole}`}
-                className="inline-block bg-red-500 hover:bg-red-600 text-white font-semibold px-6 py-3 rounded-lg transition-colors duration-300"
-              >
-                <i className="fas fa-upload mr-2"></i> Resubmit Documents
-              </a>
+              {!isEmployee && (
+                <a
+                  href={`/upload-documents?role=${requiredRole}`}
+                  className="inline-block bg-red-500 hover:bg-red-600 text-white font-semibold px-6 py-3 rounded-lg transition-colors duration-300"
+                >
+                  <i className="fas fa-upload mr-2"></i> Resubmit Documents
+                </a>
+              )}
+              {isEmployee && (
+                <a
+                  href="/employee/home"
+                  className="inline-block bg-gray-500 hover:bg-gray-600 text-white font-semibold px-6 py-3 rounded-lg transition-colors duration-300"
+                >
+                  <i className="fas fa-home mr-2"></i> Go to Home
+                </a>
+              )}
             </div>
           </div>
         </VerifyContext.Provider>
@@ -288,17 +298,30 @@ export const VerifyProvider = ({
             <div className="text-6xl mb-4 text-yellow-500">
               <i className="fas fa-shield-alt"></i>
             </div>
-            <h2 className="text-2xl font-bold text-yellow-600 mb-3">Verification Required</h2>
+            <h2 className="text-2xl font-bold text-yellow-600 mb-3">
+              {isEmployee ? 'Organization Verification Pending' : 'Verification Required'}
+            </h2>
             <p className="text-gray-600 mb-6">
-              Your {roleDisplayName.toLowerCase()} account needs to be verified before you can access this page.
-              Please complete the verification process.
+              {isEmployee
+                ? 'Your organization\'s verification is still pending. You cannot perform this task until your organization is verified. Please contact your organization administrator.'
+                : `Your ${roleDisplayName.toLowerCase()} account needs to be verified before you can access this page. Please complete the verification process.`
+              }
             </p>
-            <a
-              href={redirectTo}
-              className="inline-block bg-yellow-500 hover:bg-yellow-600 text-white font-semibold px-6 py-3 rounded-lg transition-colors duration-300"
-            >
-              <i className="fas fa-file-alt mr-2"></i> Check Verification Status
-            </a>
+            {isEmployee ? (
+              <a
+                href="/employee/home"
+                className="inline-block bg-gray-500 hover:bg-gray-600 text-white font-semibold px-6 py-3 rounded-lg transition-colors duration-300"
+              >
+                <i className="fas fa-home mr-2"></i> Go to Home
+              </a>
+            ) : (
+              <a
+                href={redirectTo}
+                className="inline-block bg-yellow-500 hover:bg-yellow-600 text-white font-semibold px-6 py-3 rounded-lg transition-colors duration-300"
+              >
+                <i className="fas fa-file-alt mr-2"></i> Check Verification Status
+              </a>
+            )}
           </div>
         </div>
       </VerifyContext.Provider>

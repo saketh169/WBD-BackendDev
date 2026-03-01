@@ -108,3 +108,40 @@ exports.getOrganizationStatus = async (req, res) => {
     }
 };
 
+// Get organization verification status for employee
+exports.getEmployeeOrgStatus = async (req, res) => {
+    try {
+        const token = req.headers['authorization']?.split(' ')[1];
+        if (!token) {
+            return res.status(401).json({ message: 'No token provided' });
+        }
+
+        const decoded = jwt.verify(token, JWT_SECRET);
+        
+        // Employee tokens have orgType: 'employee' and organizationId
+        if (decoded.orgType !== 'employee' || !decoded.organizationId) {
+            return res.status(403).json({ message: 'Access denied. Employee role required.' });
+        }
+
+        const organization = await Organization.findById(decoded.organizationId).select('name documentUploadStatus');
+        if (!organization) {
+            return res.status(404).json({ message: 'Organization not found' });
+        }
+
+        res.status(200).json({
+            organizationName: organization.name,
+            verificationStatus: {
+                finalReport: organization.documentUploadStatus || 'pending'
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching employee org status:', error);
+        if (error.name === 'JsonWebTokenError') {
+            return res.status(401).json({ message: 'Invalid token' });
+        }
+        if (error.name === 'TokenExpiredError') {
+            return res.status(401).json({ message: 'Token expired' });
+        }
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};

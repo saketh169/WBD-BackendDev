@@ -35,7 +35,14 @@ export default function EmployeeRoutes() {
               </VerifyProvider>
             }
           />
-          <Route path="blog-moderation" element={<BlogModeration />} />
+          <Route
+            path="blog-moderation"
+            element={
+              <VerifyProvider requiredRole="employee" redirectTo="/employee/home">
+                <BlogModeration />
+              </VerifyProvider>
+            }
+          />
           <Route path="blogs" element={<Blog />} />
           <Route path="blog/:id" element={<BlogPost />} />
           <Route path="contact-us" element={<Contact />} />
