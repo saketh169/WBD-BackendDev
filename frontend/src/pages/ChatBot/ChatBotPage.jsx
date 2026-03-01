@@ -5,12 +5,13 @@ import MessageList from './MessageList';
 import NutritionCard from './NutritionCard';
 import axios from 'axios';
 import SubscriptionAlert from '../../middleware/SubscriptionAlert';
+import { RefreshCw, Trash2, MessageCircle } from 'lucide-react';
 
 function ChatBotPage() {
   const [messages, setMessages] = useState([
     {
       type: 'bot',
-      content: 'Hello! I\'m your NutriConnect nutrition assistant. 🥗\n\nI can help you with:\n• Nutrition information for foods\n• Diet and meal planning advice\n• Health and wellness guidance\n• Answer your nutrition questions\n\nTry asking me something or click a Quick Question below!',
+      content: 'Hello! I\'m your NutriConnect nutrition assistant.\n\nI can help you with:\n• Nutrition information for foods\n• Diet and meal planning advice\n• Health and wellness guidance\n• Answer your nutrition questions\n\nTry asking me something or click a Quick Question below!',
       timestamp: new Date()
     }
   ]);
@@ -74,7 +75,7 @@ function ChatBotPage() {
   const handleClearChat = () => {
     setMessages([{
       type: 'bot',
-      content: 'Chat cleared! 🔄\n\nReady to help with your nutrition questions. What would you like to know?',
+      content: 'Chat cleared!\n\nReady to help with your nutrition questions. What would you like to know?',
       timestamp: new Date()
     }]);
   };
@@ -185,9 +186,9 @@ function ChatBotPage() {
   };
 
   return (
-    <div className="w-full max-w-5xl mx-auto -mt-30 bg-linear-to-b from-green-50 to-green-100 rounded-2xl shadow-2xl flex flex-col h-[84vh] border border-green-200 overflow-hidden">
+    <div className="w-full max-w-5xl mx-auto -mt-30 bg-linear-to-b from-emerald-50 to-teal-50 rounded-2xl shadow-2xl flex flex-col h-[84vh] border border-emerald-200 overflow-hidden">
       {/* Header - Fixed */}
-      <div className="bg-white rounded-t-2xl px-6 py-4 shadow-md border-b-4 border-[#27AE60] shrink-0">
+      <div className="bg-white rounded-t-2xl px-6 py-4 shadow-md border-b-4 border-emerald-500 shrink-0">
         <div className="flex justify-between items-center">
           <ChatBotHeader />
         </div>
@@ -196,7 +197,7 @@ function ChatBotPage() {
       {/* Messages Area - Scrollable */}
       <div 
         ref={messagesContainerRef}
-        className="flex-1 p-6 overflow-y-auto bg-linear-to-b from-white to-green-50" 
+        className="flex-1 p-6 overflow-y-auto bg-linear-to-b from-white to-emerald-50" 
         style={{ scrollBehavior: 'smooth' }}
       >
         <MessageList messages={messages} onRetry={handleRetry} />
@@ -206,9 +207,9 @@ function ChatBotPage() {
           <div className="flex justify-start mb-4">
             <button
               onClick={handleRegenerate}
-              className="bg-blue-50 hover:bg-blue-100 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-1 border border-blue-200"
+              className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-1.5 border border-emerald-200"
             >
-              <span>🔄</span>
+              <RefreshCw className="w-3 h-3" />
               <span>Regenerate response</span>
             </button>
           </div>
@@ -219,9 +220,9 @@ function ChatBotPage() {
             <div className="bg-linear-to-r from-gray-100 to-gray-200 text-gray-700 px-4 py-3 rounded-lg mb-2 max-w-xs md:max-w-md shadow-md">
               <div className="flex items-center space-x-2">
                 <div className="flex space-x-1">
-                  <div className="w-2 h-2 bg-[#27AE60] rounded-full animate-bounce"></div>
-                  <div className="w-2 h-2 bg-[#27AE60] rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                  <div className="w-2 h-2 bg-[#27AE60] rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                  <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce"></div>
+                  <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
                 </div>
                 <span className="text-sm font-medium">{typingMessage}</span>
               </div>
@@ -233,11 +234,11 @@ function ChatBotPage() {
 
       {/* Frequently Asked Questions Section - Fixed at Bottom */}
       {/* TODO: Fetch from backend API endpoint - Top 4 from Database */}
-      <div className="bg-linear-to-r from-slate-50 to-green-50 px-6 py-3 border-t-2 border-gray-200 shrink-0">
+      <div className="bg-linear-to-r from-slate-50 to-emerald-50 px-6 py-3 border-t-2 border-emerald-200 shrink-0">
         <div className="flex justify-between items-center">
           <div className="flex-1">
-            <h2 className="text-sm font-bold text-[#1A4A40] mb-2 flex items-center">
-              <span className="mr-2">💬</span>
+            <h2 className="text-sm font-bold text-emerald-800 mb-2 flex items-center gap-1.5">
+              <MessageCircle className="w-3.5 h-3.5" />
               Quick Questions
             </h2>
             <div className="flex gap-2 flex-wrap">
@@ -245,7 +246,7 @@ function ChatBotPage() {
                 <button
                   key={index}
                   onClick={() => handleFAQClick(question)}
-                  className="bg-[#27AE60] hover:bg-[#1E8449] text-white rounded-lg px-3 py-1.5 text-xs font-medium transition-all duration-300 transform hover:scale-105 shadow-md hover:shadow-lg"
+                  className="bg-linear-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-lg px-3 py-1.5 text-xs font-medium transition-all duration-300 transform hover:scale-105 shadow-md hover:shadow-lg"
                 >
                   {question}
                 </button>
@@ -258,8 +259,7 @@ function ChatBotPage() {
             className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 flex items-center gap-2 shadow-md hover:shadow-lg ml-4"
             title="Clear Chat"
           >
-            <span>🗑️</span>
-            
+            <Trash2 className="w-4 h-4" />
           </button>
         </div>
       </div>
