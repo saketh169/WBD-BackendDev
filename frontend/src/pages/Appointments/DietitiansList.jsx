@@ -263,9 +263,9 @@ const DietitiansList = () => {
   };
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-slate-50 via-emerald-50/30 to-teal-50/30">
-      {/* Enhanced Header with Gradient */}
-      <div className="bg-linear-to-r from-emerald-600 via-teal-600 to-cyan-600 shadow-lg">
+    <div className="min-h-screen bg-linear-to-br from-emerald-50 to-teal-50">
+      {/* Header */}
+      <div className="bg-linear-to-r from-emerald-500 to-teal-600 shadow-lg">
         <div className="max-w-7xl mx-auto px-6 py-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="flex items-center gap-4">
@@ -396,39 +396,26 @@ const DietitiansList = () => {
                     </div>
 
                     {/* Stats Cards */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="bg-linear-to-br from-emerald-50 to-teal-50 rounded-xl p-4 border border-emerald-200/50">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 bg-emerald-500 rounded-lg flex items-center justify-center">
-                            <i className="fas fa-calendar-alt text-white"></i>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-xs text-teal-700 font-medium mb-0.5">Next Appointment</div>
-                            <div className="font-bold text-emerald-700 truncate">
-                              {dietitian.nextAppointment || 'Not scheduled'}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="bg-linear-to-br from-blue-50 to-cyan-50 rounded-xl p-4 border border-blue-200/50">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
                             <i className="fas fa-history text-white"></i>
                           </div>
                           <div>
-                            <div className="text-xs text-blue-700 font-medium mb-0.5">Total Sessions</div>
-                            <div className="font-bold text-blue-700 text-xl">{dietitian.totalSessions}</div>
+                            <div className="text-xs text-teal-700 font-medium mb-0.5">Total Sessions</div>
+                            <div className="font-bold text-emerald-700 text-xl">{dietitian.totalSessions}</div>
                           </div>
                         </div>
                       </div>
-                      <div className="bg-linear-to-br from-purple-50 to-pink-50 rounded-xl p-4 border border-purple-200/50">
+                      <div className="bg-linear-to-br from-emerald-50 to-teal-50 rounded-xl p-4 border border-emerald-200/50">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center">
+                          <div className="w-10 h-10 bg-teal-500 rounded-lg flex items-center justify-center">
                             <i className="fas fa-arrow-up text-white"></i>
                           </div>
                           <div>
-                            <div className="text-xs text-purple-700 font-medium mb-0.5">Upcoming</div>
-                            <div className="font-bold text-purple-700 text-xl">{dietitian.upcomingSessions} sessions</div>
+                            <div className="text-xs text-teal-700 font-medium mb-0.5">Upcoming</div>
+                            <div className="font-bold text-teal-700 text-xl">{dietitian.upcomingSessions} sessions</div>
                           </div>
                         </div>
                       </div>
@@ -459,7 +446,7 @@ const DietitiansList = () => {
                       </button>
                       <button 
                         onClick={() => handleMessageDietitian(dietitian)}
-                        className="px-6 py-3 bg-linear-to-r from-blue-600 to-cyan-600 text-white rounded-xl hover:from-blue-700 hover:to-cyan-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
+                        className="px-6 py-3 bg-white border-2 border-emerald-300 text-emerald-700 rounded-xl hover:bg-emerald-50 hover:border-emerald-400 transition-all duration-300 font-semibold shadow-md hover:shadow-lg transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
                       >
                         <i className="fas fa-comments"></i>
                         <span>Message</span>
@@ -512,7 +499,7 @@ const DietitiansList = () => {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in duration-300">
           <div className="bg-white rounded-3xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-300">
             {/* Modal Header with Gradient */}
-            <div className="bg-linear-to-r from-emerald-600 via-teal-600 to-cyan-600 px-8 py-6 relative overflow-hidden">
+            <div className="bg-linear-to-r from-emerald-500 to-teal-600 px-8 py-6 relative overflow-hidden">
               <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
               <div className="relative flex justify-between items-center">
                 <div className="flex items-center gap-3">
@@ -584,29 +571,22 @@ const DietitiansList = () => {
                     </p>
                     <p className="font-bold text-emerald-700 text-2xl">₹{selectedDietitian.fees}</p>
                   </div>
-                  <div className="bg-linear-to-br from-blue-50 to-cyan-50 rounded-xl p-4 border border-blue-200">
-                    <p className="text-sm text-blue-700 mb-1 flex items-center gap-2">
-                      <i className="fas fa-history text-blue-500"></i>
+                  <div className="bg-linear-to-br from-emerald-50 to-teal-50 rounded-xl p-4 border border-emerald-200">
+                    <p className="text-sm text-teal-700 mb-1 flex items-center gap-2">
+                      <i className="fas fa-history text-emerald-500"></i>
                       Total Sessions
                     </p>
-                    <p className="font-bold text-blue-700 text-2xl">{selectedDietitian.totalSessions}</p>
-                  </div>
-                  <div className="bg-linear-to-br from-purple-50 to-pink-50 rounded-xl p-4 border border-purple-200">
-                    <p className="text-sm text-purple-700 mb-1 flex items-center gap-2">
-                      <i className="fas fa-calendar-alt text-purple-500"></i>
-                      Next Appointment
-                    </p>
-                    <p className="font-bold text-purple-700 text-sm">{selectedDietitian.nextAppointment || 'Not scheduled'}</p>
+                    <p className="font-bold text-emerald-700 text-2xl">{selectedDietitian.totalSessions}</p>
                   </div>
                 </div>
 
                 {/* Qualifications */}
-                <div className="bg-linear-to-br from-blue-50 to-cyan-50 rounded-xl p-5 border border-blue-200">
-                  <p className="text-sm font-semibold text-blue-700 mb-3 flex items-center gap-2">
+                <div className="bg-linear-to-br from-emerald-50 to-teal-50 rounded-xl p-5 border border-emerald-200">
+                  <p className="text-sm font-semibold text-teal-700 mb-3 flex items-center gap-2">
                     <i className="fas fa-award"></i>
                     Qualifications
                   </p>
-                  <p className="font-semibold text-blue-900 text-lg">{selectedDietitian.qualifications}</p>
+                  <p className="font-semibold text-teal-900 text-lg">{selectedDietitian.qualifications}</p>
                 </div>
 
                 {/* Languages */}
