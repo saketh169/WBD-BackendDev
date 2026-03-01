@@ -37,6 +37,13 @@ const querySchema = new mongoose.Schema({
   replied_at: {
     type: Date
   },
+  emp_reply: {
+    type: String,
+    trim: true
+  },
+  emp_replied_at: {
+    type: Date
+  },
   status: {
     type: String,
     enum: ['pending', 'replied'],

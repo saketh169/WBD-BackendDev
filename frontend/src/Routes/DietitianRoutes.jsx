@@ -43,21 +43,21 @@ export default function DietitianRoutes() {
         <Route
           path="schedule"
           element={
-            <VerifyProvider requiredRole="dietitian" redirectTo="/verify/dietitian">
+            <VerifyProvider requiredRole="dietitian" redirectTo="/dietitian/doc-status">
               <DietitianSchedule/>
             </VerifyProvider>
           } />
         <Route
           path="add-plans"
           element={
-            <VerifyProvider requiredRole="dietitian" redirectTo="/verify/dietitian">
+            <VerifyProvider requiredRole="dietitian" redirectTo="/dietitian/doc-status">
               <DietitianAddPlanForm/>
             </VerifyProvider>
           } />
         <Route
           path="clients-profiles"
           element={
-            <VerifyProvider requiredRole="dietitian" redirectTo="/verify/dietitian">
+            <VerifyProvider requiredRole="dietitian" redirectTo="/dietitian/doc-status">
               <ClientsList/>
             </VerifyProvider>
           } />

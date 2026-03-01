@@ -142,6 +142,11 @@ const OrganizationSchema = new Schema({
     phone: { type: String, required: true, minlength: 10, maxlength: 10 }, // Global check in Controller
     licenseNumber: { type: String, required: true, unique: true, match: /^OLN[0-9]{6}$/ }, // ROLE-SPECIFIC UNIQUE
     address: { type: String, required: true, maxlength: 200 },
+    organizationType: {
+        type: String,
+        enum: ['private', 'ppo', 'freelancing', 'ngo', 'government', 'other'],
+        required: true
+    },
     legalDocumentType: { type: String },
     taxDocumentType: { type: String },
     businessLicenseType: { type: String },
@@ -176,13 +181,36 @@ const OrganizationSchema = new Schema({
     profileImage: { type: Buffer },
 }, { timestamps: true });
 
+// 2e. Employee Profile (Organization Employee)
+const EmployeeSchema = new Schema({
+    name: { type: String, required: true, minlength: 3, trim: true },
+    email: { type: String, required: true, lowercase: true, trim: true },
+    passwordHash: { type: String, required: true },
+    // Format: first 3 letters of org name (uppercase) + 6 digits e.g. APO123456
+    licenseNumber: { type: String, required: true, unique: true, match: /^[A-Z]{3}[0-9]{6}$/ },
+    organizationId: { type: Schema.Types.ObjectId, ref: 'Organization', required: true },
+    status: {
+        type: String,
+        enum: ['active', 'inactive', 'pending-activation'],
+        default: 'pending-activation'
+    },
+    age: { type: Number, default: null },
+    address: { type: String, default: null, trim: true },
+    contact: { type: String, default: null, trim: true },
+    inviteSentAt: { type: Date, default: null },
+    activatedAt: { type: Date, default: null },
+    lastLogin: { type: Date, default: null },
+    isDeleted: { type: Boolean, default: false }
+}, { timestamps: true });
 
-
+// Index for faster queries
+EmployeeSchema.index({ organizationId: 1, email: 1 }, { unique: true, sparse: true });
 
 module.exports = {
     UserAuth: mongoose.model('UserAuth', UserAuthSchema),
     User: mongoose.model('User', UserSchema),
     Admin: mongoose.model('Admin', AdminSchema),
     Dietitian: mongoose.model('Dietitian', DietitianSchema),
-    Organization: mongoose.model('Organization', OrganizationSchema)
+    Organization: mongoose.model('Organization', OrganizationSchema),
+    Employee: mongoose.model('Employee', EmployeeSchema)
 };

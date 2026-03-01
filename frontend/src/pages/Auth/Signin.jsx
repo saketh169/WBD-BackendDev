@@ -20,7 +20,7 @@ const roleRoutes = {
 };
 
 // --- Formik & Yup Validation Schema Builder ---
-const buildValidationSchema = (role) => {
+const buildValidationSchema = (role, orgType = '') => {
     // Base schema for all roles
     let schema = Yup.object().shape({
         email: Yup.string()
@@ -53,12 +53,25 @@ const buildValidationSchema = (role) => {
             break;
 
         case 'organization':
-            schema = schema.shape({
-                licenseNumber: Yup.string()
-                    .required('License Number is required.')
-                    .min(5, 'License Number must be at least 5 characters.')
-                    .max(20, 'License Number must not exceed 20 characters.'),
-            });
+            if (orgType !== 'employee') {
+                schema = schema.shape({
+                    licenseNumber: Yup.string()
+                        .required('License Number is required.')
+                        .min(5, 'License Number must be at least 5 characters.')
+                        .max(20, 'License Number must not exceed 20 characters.'),
+                });
+            } else {
+                // Employee: 3 uppercase org letters + 6 digits e.g. APO123456
+                schema = schema.shape({
+                    licenseNumber: Yup.string()
+                        .required('Employee License Number is required.')
+                        .matches(
+                            /^[A-Z]{3}[0-9]{6}$/,
+                            'Format must be 3 uppercase org letters + 6 digits (e.g. APO123456).'
+                        )
+                        .length(9, 'Employee License Number must be exactly 9 characters.'),
+                });
+            }
             break;
 
 
@@ -104,12 +117,15 @@ const Signin = () => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const [role, setRole] = useState('');
+    const [orgType, setOrgType] = useState(''); // 'management' or 'employee'
     const [message, setMessage] = useState('');
 
     // Get role from URL on mount
     useEffect(() => {
         const roleFromUrl = searchParams.get('role') || 'user';
+        const typeFromUrl = searchParams.get('type') || '';
         setRole(roleFromUrl);
+        setOrgType(typeFromUrl);
     }, [searchParams]);
 
     // Define the Formik submission handler
@@ -125,7 +141,10 @@ const Signin = () => {
 
         // Map role-specific fields to the API payload
         if (role === 'dietitian') formData.licenseNumber = values.licenseNumber;
-        if (role === 'organization') formData.licenseNumber = values.licenseNumber;
+        if (role === 'organization') {
+            formData.orgType = orgType;
+            formData.licenseNumber = values.licenseNumber; // required for both management and employee
+        }
         if (role === 'admin') formData.adminKey = values.adminKey;
 
         const apiRoute = `/api/signin/${role}`; // e.g., /api/signin/user
@@ -140,20 +159,37 @@ const Signin = () => {
 
             // Handle token storage
             if (data.token) {
+                // Employees get their own separate token key so they don't share with org management
+                const storageRole = (data.role === 'organization' && data.orgType === 'employee')
+                    ? 'employee'
+                    : data.role;
+
                 // Store token with role-specific key so multiple roles can be logged in simultaneously
-                localStorage.setItem(`authToken_${data.role}`, data.token);
+                localStorage.setItem(`authToken_${storageRole}`, data.token);
+                // Store user info; for employees also persist name & email immediately
+                const existingUser = JSON.parse(localStorage.getItem(`authUser_${storageRole}`) || '{}');
+                const userUpdate = { ...existingUser };
+                if (data.orgType) userUpdate.orgType = data.orgType;
+                if (data.name)    userUpdate.name  = data.name;
+                if (data.email)   userUpdate.email = data.email;
+                localStorage.setItem(`authUser_${storageRole}`, JSON.stringify(userUpdate));
                 // Store userId for profile operations
                 if (data.roleId) {
                     localStorage.setItem('userId', data.roleId);
                 }
             }
 
-            setMessage(`Sign-in successful! Redirecting to ${role} home page ...`);
+            setMessage(`Sign-in successful! Redirecting...`);
 
             // Redirect after a short delay
             setTimeout(() => {
                 setMessage('');
-                navigate(roleRoutes[role]);
+                // Employees go to their own home page
+                if (role === 'organization' && (orgType === 'employee' || data.orgType === 'employee')) {
+                    navigate('/employee/home');
+                } else {
+                    navigate(roleRoutes[role]);
+                }
             }, 1000);
 
         } catch (error) {
@@ -213,8 +249,10 @@ const Signin = () => {
         const renderRoleFields = () => {
             if (role === 'dietitian') {
                 return <div key="roleField">{renderInputGroup('text', 'License Number', 'e.g., DLN123456', getFieldIdAndName('licenseNumber'))}</div>;
-            } else if (role === 'organization') {
+            } else if (role === 'organization' && orgType !== 'employee') {
                 return <div key="roleField">{renderInputGroup('text', 'License Number', 'Enter your License Number', getFieldIdAndName('licenseNumber'))}</div>;
+            } else if (role === 'organization' && orgType === 'employee') {
+                return <div key="roleField">{renderInputGroup('text', 'Employee License Number', 'e.g. APO123456', getFieldIdAndName('licenseNumber'))}</div>;
             } else if (role === 'admin') {
                 return <div key="roleField">{renderInputGroup('password', 'Admin Key', 'Enter Admin Key', getFieldIdAndName('adminKey'))}</div>;
             }
@@ -273,7 +311,7 @@ const Signin = () => {
                     <i className="fas fa-times text-xl"></i>
                 </button>
                 <h2 className="text-center text-3xl font-bold text-[#1E6F5C] mb-6">
-                    LOG IN AS {role.toUpperCase()}
+                    LOG IN AS {role === 'organization' && orgType ? `ORGANIZATION - ${orgType.toUpperCase()}` : role.toUpperCase()}
                 </h2>
 
                 {/* Global Alert */}
@@ -294,7 +332,7 @@ const Signin = () => {
 
                 <Formik
                     initialValues={getInitialValues(role)}
-                    validationSchema={buildValidationSchema(role)}
+                    validationSchema={buildValidationSchema(role, orgType)}
                     onSubmit={handleFormikSubmit}
                     enableReinitialize={true}
                 >

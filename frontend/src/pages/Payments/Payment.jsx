@@ -133,15 +133,9 @@ const Payment = () => {
     return true;
   };
 
-  // Validate UPI ID - Accept multiple formats: 10-digit@bank, handle@app, email-format@upi, etc.
+  // Validate UPI ID - any format: something@something (e.g. saketh@upi, 9876543210@paytm)
   const validateUpiId = (id) => {
-    // Multiple UPI formats supported:
-    // 1. Mobile@bank: 9876543210@paytm
-    // 2. Handle@app: myemail@ybl (Google Pay)
-    // 3. Username@upi: john.doe@okhdfcbank
-    // 4. VPA with special chars: user-name@upi
-    const upiRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+$/;
-    return id && id.includes('@') && upiRegex.test(id) && id.length >= 5 && id.length <= 60;
+    return id && /^.+@.+$/.test(id.trim());
   };
 
   const handleProceed = async () => {
@@ -197,11 +191,9 @@ const Payment = () => {
       // Removed strict verification requirement - optional verification for UX
     } else if (selectedMethod === 'upi') {
       if (!upiId && !selectedUpiApp) {
-        errors.upi = "Please enter UPI ID or select a UPI app";
+        errors.upi = "Please enter a UPI ID or select a UPI app";
       } else if (upiId && !validateUpiId(upiId)) {
-        errors.upi = "Invalid UPI ID format. Examples: 9876543210@paytm, username@ybl, name@okhdfcbank";
-      } else if (!upiVerified) {
-        errors.upi = "Please verify your UPI ID before proceeding";
+        errors.upi = "Invalid UPI ID. Use format: name@upi or 9876543210@paytm";
       }
 
     } else if (selectedMethod === 'emi') {
@@ -230,14 +222,11 @@ const Payment = () => {
       alert('Please enter UPI ID');
       return;
     }
-
     if (!validateUpiId(upiId)) {
-      alert('Invalid UPI ID format. Examples: 9876543210@paytm, username@ybl, name@okhdfcbank');
+      alert('Invalid UPI ID. Use format: name@upi or 9876543210@paytm');
       return;
     }
-
     setIsVerifyingUpi(true);
-    // Simulate verification
     setTimeout(() => {
       setUpiVerified(true);
       setIsVerifyingUpi(false);

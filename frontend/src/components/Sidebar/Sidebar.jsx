@@ -1,10 +1,25 @@
-import React from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import AuthContext from '../../contexts/AuthContext';
 
 const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const currentPath = location.pathname;
+  
+  // Try to get orgType from AuthContext, fallback to localStorage
+  const context = useContext(AuthContext);
+  const [orgType, setOrgType] = useState(null);
+
+  useEffect(() => {
+    if (context?.orgType) {
+      setOrgType(context.orgType);
+    } else {
+      // Fallback to localStorage
+      const storedOrgType = localStorage.getItem('orgType_organization');
+      setOrgType(storedOrgType);
+    }
+  }, [context]);
 
   // Defined to be used in the CSS variable or direct styling
   const primaryGreen = '#28a745'; // Primary CTA Green (Lighter)
@@ -49,16 +64,25 @@ const Sidebar = () => {
     { name: 'Settings', href: '/admin/settings', icon: 'fas fa-cog' },
   ];
 
+  const employeeNavLinks = [
+    { name: 'Home', href: '/employee/home', icon: 'fas fa-home' },
+    { name: 'Verify Dietitians', href: '/employee/verify-dietitian', icon: 'fas fa-user-md' },
+    { name: 'Blog Moderation', href: '/employee/blog-moderation', icon: 'fas fa-flag' },
+    { name: 'Blogs', href: '/employee/blogs', icon: 'fas fa-newspaper' },
+    { name: 'Support', href: '/employee/support', icon: 'fas fa-headset' },
+  ];
+
   const organizationNavLinks = [
     { name: 'Home', href: '/organization/home', icon: 'fas fa-home' },
     { name: 'My Verification', href: '/organization/doc-status', icon: 'fas fa-handshake' },
-    { name: 'Verify Dietitians', href: '/organization/verify-dietitian', icon: 'fas fa-user-md' },
-    { name: 'Blog Moderation', href: '/organization/blog-moderation', icon: 'fas fa-flag' },
     { name: 'Blogs', href: '/organization/blogs', icon: 'fas fa-blog' },
+    { name: 'Manage Employees', href: '/organization/employee-management', icon: 'fas fa-users-cog' },
+    { name: 'Staff Overview', href: '/organization/employee-monitoring', icon: 'fas fa-chart-line' },
   ];
 
   // --- Function to Select Links based on Path ---
   const getNavLinks = () => {
+    if (currentPath.startsWith('/employee')) return employeeNavLinks;
     if (currentPath.startsWith('/admin')) return adminNavLinks;
     if (currentPath.startsWith('/organization')) return organizationNavLinks;
     if (currentPath.startsWith('/dietitian')) return dietitianNavLinks;

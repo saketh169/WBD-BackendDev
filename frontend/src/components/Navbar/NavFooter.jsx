@@ -52,14 +52,25 @@ const NavFooter = ({ handleScrollToTop }) => {
   // 5. Links for the 'organization' role (matching organizationNavLinks from NavHeader)
   const organizationFooterLinks = [
     { name: 'Home', href: '/organization/home' },
-    { name: 'Verify Dietitians', href: '/organization/verify-dietitian' },
-    { name: 'Blog Moderation', href: '/organization/blog-moderation' },
     { name: 'Blogs', href: '/organization/blogs' },
+    { name: 'Manage Employees', href: '/organization/employee-management' },
+    { name: 'Staff Overview', href: '/organization/employee-monitoring' },
+  ];
+
+  // 6. Links for the 'employee' role
+  const employeeFooterLinks = [
+    { name: 'Home', href: '/employee/home' },
+    { name: 'Verify Dietitians', href: '/employee/verify-dietitian' },
+    { name: 'Blog Moderation', href: '/employee/blog-moderation' },
+    { name: 'Blogs', href: '/employee/blogs' },
   ];
 
 
   // --- Logic to Determine Active Links ---
   const getFooterLinks = () => {
+    if (currentPath.startsWith('/employee')) {
+      return employeeFooterLinks;
+    }
     if (currentPath.startsWith('/admin')) {
       return adminFooterLinks;
     }

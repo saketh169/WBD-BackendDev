@@ -60,10 +60,12 @@ const ContactPage = () => {
       }
       // Set role if available - map to contact form role values
       if (role) {
+        const isEmployeePath = window.location.pathname.startsWith('/employee');
         const roleMap = {
           'user': 'User',
           'dietitian': 'Dietitian',
-          'organization': 'Certifying Organization'
+          'employee': 'Employee',
+          'organization': isEmployeePath ? 'Employee' : 'Certifying Organization'
         };
         setValue('role', roleMap[role] || '');
       }
@@ -171,6 +173,7 @@ const ContactPage = () => {
                 </option>
                 <option value='User'>User</option>
                 <option value='Dietitian'>Dietitian</option>
+                <option value='Employee'>Employee</option>
                 <option value='Certifying Organization'>
                   Certifying Organization
                 </option>
@@ -333,6 +336,7 @@ const ContactPageWithAuth = () => {
     if (path.startsWith('/admin')) return 'admin';
     if (path.startsWith('/organization')) return 'organization';
     if (path.startsWith('/dietitian')) return 'dietitian';
+    if (path.startsWith('/employee')) return 'employee';
     if (path.startsWith('/user')) return 'user';
     return null;
   };

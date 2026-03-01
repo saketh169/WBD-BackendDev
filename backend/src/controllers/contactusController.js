@@ -1,4 +1,5 @@
 const Query = require('../models/contactusModel');
+const { Employee } = require('../models/userModel');
 const { sendContactConfirmationEmail, sendContactReplyEmail } = require('../services/contactService');
 
 exports.submitContact = async (req, res) => {
@@ -86,7 +87,12 @@ exports.getAllQueries = async (req, res) => {
   console.log('Received GET request for /queries-list');
   try {
     console.log('Attempting to query database for all queries...');
-    const queries = await Query.find({}).sort({ created_at: -1 });
+    // Support optional email filter
+    const filter = {};
+    if (req.query.email) {
+      filter.email = req.query.email.toLowerCase();
+    }
+    const queries = await Query.find(filter).sort({ created_at: -1 });
     console.log('Queries fetched successfully:', queries.length);
 
     // Transform the data to match frontend expectations
@@ -99,6 +105,8 @@ exports.getAllQueries = async (req, res) => {
       status: query.status,
       admin_reply: query.admin_reply,
       replied_at: query.replied_at,
+      emp_reply: query.emp_reply,
+      emp_replied_at: query.emp_replied_at,
       created_at: query.created_at
     }));
 
@@ -129,5 +137,83 @@ exports.getAllQueries = async (req, res) => {
   }
 };
 
+/**
+ * GET /api/contact/employee-queries
+ * Fetch queries submitted by employees of the authenticated organisation.
+ * Query params: date (ISO date string, defaults to today)
+ * Requires: authenticateJWT + requireOrganization (applied in route)
+ */
+exports.getEmployeeQueries = async (req, res) => {
+  try {
+    const organizationId = req.user.roleId;
 
+    // Get all employee emails for this org
+    const employees = await Employee.find({ organizationId, isDeleted: false }).select('email name');
+    const emailList = employees.map(e => e.email.toLowerCase());
 
+    if (emailList.length === 0) {
+      return res.status(200).json({ success: true, data: [] });
+    }
+
+    // Determine target date boundaries
+    const targetDate = req.query.date ? new Date(req.query.date) : new Date();
+    const startOfDay = new Date(targetDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(targetDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const queries = await Query.find({
+      email: { $in: emailList },
+      created_at: { $gte: startOfDay, $lte: endOfDay },
+    }).sort({ created_at: -1 });
+
+    // Build employee lookup for name resolution
+    const empMap = {};
+    employees.forEach(e => { empMap[e.email.toLowerCase()] = e.name; });
+
+    const result = queries.map(q => ({
+      _id: q._id,
+      name: q.name,
+      email: q.email,
+      empName: empMap[q.email] || q.name,
+      query: q.query,
+      status: q.status,
+      created_at: q.created_at,
+    }));
+
+    res.status(200).json({ success: true, data: result });
+  } catch (err) {
+    console.error('getEmployeeQueries error:', err);
+    res.status(500).json({ success: false, message: 'Failed to fetch employee queries.', error: err.message });
+  }
+};
+
+/**
+ * POST /api/contact/emp-reply
+ * Employee submits a reply to an admin's response.
+ * Body: { replyId (Query._id), empReply (text) }
+ */
+exports.employeeReply = async (req, res) => {
+  const { replyId, empReply } = req.body;
+
+  if (!replyId || !empReply) {
+    return res.status(400).json({ success: false, message: 'Reply ID and reply message are required.' });
+  }
+
+  try {
+    const query = await Query.findById(replyId);
+    if (!query) {
+      return res.status(404).json({ success: false, message: 'Query not found.' });
+    }
+
+    // Update the query with employee reply
+    query.emp_reply = empReply;
+    query.emp_replied_at = new Date();
+    await query.save();
+
+    res.status(200).json({ success: true, message: 'Reply submitted successfully.' });
+  } catch (err) {
+    console.error('Error submitting employee reply:', err);
+    res.status(500).json({ success: false, message: 'Failed to submit reply.', error: err.message });
+  }
+};

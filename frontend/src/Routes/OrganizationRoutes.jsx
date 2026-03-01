@@ -5,15 +5,18 @@ import NotFoundPage from '../pages/Error/NotFoundPage';
 
 import OrganizationHome from '../pages/HomePages/OrganizationHome';
 import OrganizationDashboard from '../pages/Dashboards/Organization';
+import Contact from '../pages/Contactus';
 
 import OrgDocStatus from '../pages/Status/OrgDocStatus';
 import DietitianVerify from '../pages/Verify/DietitianVerify';
 
 import ChangePassword from '../pages/ChangePassword';
 import EditProfile from '../pages/EditProfile';
-import BlogModeration from '../pages/Blog/BlogModeration';
+import BlogModeration from '../pages/Organization/BlogModeration';
 import Blog from '../pages/Blog';
 import BlogPost from '../pages/Blog/BlogPost';
+import EmployeeManagement from '../pages/Organization/EmployeeManagement';
+import EmployeeMonitoring from '../pages/Organization/EmployeeMonitoring';
 
 export default function OrganizationRoutes() {
   return (
@@ -42,6 +45,11 @@ export default function OrganizationRoutes() {
           <Route path="blog-moderation" element={<BlogModeration />} />
           <Route path="blogs" element={<Blog />} />
           <Route path="blog/:id" element={<BlogPost />} />
+
+          {/* Employee Management Routes */}
+          <Route path="employee-management" element={<EmployeeManagement />} />
+          <Route path="employee-monitoring" element={<EmployeeMonitoring />} />
+          <Route path="contact-us" element={<Contact />} />
 
           <Route path="*" element={<NotFoundPage role="organization" />} />
         </Routes>

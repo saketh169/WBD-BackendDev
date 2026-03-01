@@ -11,12 +11,20 @@ import '/index.css'; // Assuming your CSS is located here
 const Footer = () => {
   const location = useLocation();
   const currentPath = location.pathname;
+
   const handleScrollToTop = () => {
     window.scrollTo(0, 0);
   };
 
   // Dynamic Services Links based on role
   const getServicesLinks = () => {
+    if (currentPath.startsWith('/employee')) {
+      return [
+        { name: 'Dietitian Verification', href: '/employee/verify-dietitian' },
+        { name: 'Blog Moderation', href: '/employee/blog-moderation' },
+        { name: 'Blogs', href: '/employee/blogs' },
+      ];
+    }
     if (currentPath.startsWith('/admin')) {
       return [
         { name: 'User Management', href: '/admin/users' },

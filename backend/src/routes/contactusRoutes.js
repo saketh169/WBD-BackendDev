@@ -3,8 +3,19 @@ const router = express.Router();
 const {
   submitContact,
   getAllQueries,
-  replyToQuery
+  replyToQuery,
+  getEmployeeQueries,
+  employeeReply,
 } = require('../controllers/contactusController');
+const { authenticateJWT } = require('../middlewares/authMiddleware');
+
+// Middleware to restrict to organisation role
+const requireOrganization = (req, res, next) => {
+  if (req.user.role !== 'organization') {
+    return res.status(403).json({ success: false, message: 'Access denied. Organizations only.' });
+  }
+  next();
+};
 
 // POST route for submitting contact queries
 router.post('/submit', submitContact);
@@ -14,5 +25,11 @@ router.get('/queries-list', getAllQueries);
 
 // POST route for admin to reply to a query
 router.post('/reply', replyToQuery);
+
+// POST route for employee to reply to an admin response
+router.post('/emp-reply', authenticateJWT, employeeReply);
+
+// GET route for org to fetch today's employee queries
+router.get('/employee-queries', authenticateJWT, requireOrganization, getEmployeeQueries);
 
 module.exports = router;

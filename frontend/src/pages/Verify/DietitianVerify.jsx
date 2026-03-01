@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 const FIELD_MAP = {
@@ -70,63 +70,6 @@ const STATUS_ICONS = {
   Pending: 'hourglass-half',
   'Not Uploaded': 'minus-circle'
 }
-const mockDietitiansData = [
-  {
-    _id: 'd001',
-    name: 'Dr. Jane Doe',
-    verificationStatus: {
-      resume: 'Received',
-      degreeCertificate: 'Pending',
-      licenseDocument: 'Verified',
-      idProof: 'Rejected',
-      experienceCertificates: 'Not Uploaded',
-      specializationCertifications: 'Received',
-      internshipCertificate: 'Not Uploaded',
-      researchPapers: 'Not Uploaded',
-      finalReport: 'Received' // Indicates final report uploaded but not yet approved/rejected
-    },
-    fileData: {
-      // Mock file data (Base64 is a large string placeholder)
-      resume: { base64: 'base64_data_res', mime: 'application/pdf' },
-      specializationCertifications: {
-        base64: 'base64_data_spec',
-        mime: 'application/pdf'
-      },
-      finalReport: { base64: 'base64_data_final', mime: 'application/pdf' }
-    }
-  },
-  {
-    _id: 'd002',
-    name: 'Dr. John Smith',
-    verificationStatus: {
-      resume: 'Verified',
-      degreeCertificate: 'Verified',
-      licenseDocument: 'Verified',
-      idProof: 'Verified',
-      experienceCertificates: 'Verified',
-      specializationCertifications: 'Verified',
-      internshipCertificate: 'Verified',
-      researchPapers: 'Verified',
-      finalReport: 'Verified'
-    }
-  },
-  {
-    _id: 'd003',
-    name: 'Sara Connor',
-    verificationStatus: {
-      resume: 'Not Uploaded',
-      degreeCertificate: 'Not Uploaded',
-      licenseDocument: 'Not Uploaded',
-      idProof: 'Not Uploaded',
-      experienceCertificates: 'Not Uploaded',
-      specializationCertifications: 'Not Uploaded',
-      internshipCertificate: 'Not Uploaded',
-      researchPapers: 'Not Uploaded',
-      finalReport: 'Not Received'
-    }
-  }
-]
-
 // --- Utility Components (Simplified Notifications & Modals) ---
 // Removed as they are now inlined in the JSX
 const DietitianVerify = () => {
@@ -140,6 +83,14 @@ const DietitianVerify = () => {
     onConfirm: () => {}
   })
   const [fileViewer, setFileViewer] = useState({ active: false, file: null })
+  const [currentPage, setCurrentPage] = useState(1)
+  const ITEMS_PER_PAGE = 10
+  const tableRef = useRef(null)
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
   const handleNotify = (
     message,
     type = 'info',
@@ -164,10 +115,6 @@ const DietitianVerify = () => {
     } catch (error) {
       console.error('Error fetching dietitians:', error);
       handleNotify('Failed to load dietitians. Please try again.', 'error');
-      // Fallback to mock data for development
-      setDietitians(
-        mockDietitiansData.map((d, index) => ({ ...d, rowId: index + 1 }))
-      );
     }
   }, [])
 
@@ -306,19 +253,29 @@ const DietitianVerify = () => {
       handleNotify('File is not uploaded or data is missing.', 'warning');
     }
   }
+
+  const sortedDietitians = [...dietitians].sort((a, b) => {
+    const priority = d => {
+      const os = d.verificationStatus?.finalReport || 'Not Received';
+      const ds = d.documentUploadStatus || 'pending';
+      if (ds === 'verified') return 2;
+      if (os === 'Rejected' || ds === 'rejected') return 1;
+      return 0;
+    };
+    return priority(a) - priority(b);
+  });
+  const totalPages = Math.ceil(sortedDietitians.length / ITEMS_PER_PAGE);
+  const paginatedDietitians = sortedDietitians.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
   return (
     <div className='min-h-screen bg-linear-to-br from-slate-50 via-emerald-50 to-teal-50 pb-12 px-4 sm:px-6 lg:px-8'>
       <div className='w-full max-w-7xl mx-auto'>
-        {/* Header with Back Button and Title */}
-        <div className='flex items-center justify-between mb-6 pt-2 px-4' style={{ minHeight: '60px', maxHeight: '100px' }}>
-          <button
-            onClick={() => navigate('/organization/profile')}
-            className="flex items-center px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors duration-200 shadow-md hover:shadow-lg font-medium"
-          >
-            <i className="fas fa-chevron-left mr-2"></i> Back
-          </button>
-
-          <div className='flex-1 text-center'>
+        {/* Header Title */}
+        <div className='flex items-center justify-center mb-6 pt-2 px-4' style={{ minHeight: '60px', maxHeight: '100px' }}>
+          <div className='text-center'>
             <div className='inline-flex items-center justify-center gap-3'>
               <div className='inline-flex items-center justify-center w-10 h-10 bg-linear-to-r from-emerald-500 to-teal-600 rounded-2xl shadow-lg'>
                 <i className='fas fa-user-md text-lg text-white'></i>
@@ -331,8 +288,6 @@ const DietitianVerify = () => {
               Streamlined document verification system for dietitians
             </p>
           </div>
-
-          <div className='w-20'></div> {/* Spacer for balance */}
         </div>
 
         {/* Modern Notification */}
@@ -460,7 +415,7 @@ const DietitianVerify = () => {
         )}
 
         {/* Modern Table */}
-        <div className='bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 overflow-hidden'>
+        <div ref={tableRef} className='bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 overflow-hidden'>
           <table className='min-w-full divide-y divide-slate-200'>
             {/* Modern Header */}
             <thead className='bg-linear-to-r from-emerald-600 to-teal-600'>
@@ -493,7 +448,7 @@ const DietitianVerify = () => {
                   </td>
                 </tr>
               ) : (
-                dietitians.map(d => {
+                paginatedDietitians.map(d => {
                 const overallStatus =
                   d.verificationStatus.finalReport || 'Not Received'
                 const documentUploadStatus = d.documentUploadStatus || 'pending'
@@ -774,6 +729,42 @@ const DietitianVerify = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        <div className='flex items-center justify-between mt-6 px-2'>
+            <p className='text-sm text-slate-500'>
+              Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, sortedDietitians.length)} of {sortedDietitians.length} dietitians
+            </p>
+            <div className='flex items-center gap-2'>
+              <button
+                onClick={() => handlePageChange(Math.max(currentPage - 1, 1))}
+                disabled={currentPage === 1}
+                className='px-3 py-1.5 rounded-lg border border-emerald-300 text-emerald-700 text-sm font-medium hover:bg-emerald-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors'
+              >
+                <i className='fas fa-chevron-left mr-1'></i> Prev
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                <button
+                  key={page}
+                  onClick={() => handlePageChange(page)}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    page === currentPage
+                      ? 'bg-emerald-600 text-white shadow'
+                      : 'border border-emerald-300 text-emerald-700 hover:bg-emerald-50'
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+              <button
+                onClick={() => handlePageChange(Math.min(currentPage + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className='px-3 py-1.5 rounded-lg border border-emerald-300 text-emerald-700 text-sm font-medium hover:bg-emerald-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors'
+              >
+                Next <i className='fas fa-chevron-right ml-1'></i>
+              </button>
+            </div>
+          </div>
 
         {/* Modern Footer */}
         <div className='mt-16 text-center'>

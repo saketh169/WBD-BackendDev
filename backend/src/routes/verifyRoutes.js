@@ -4,7 +4,8 @@ const multer = require('multer');
 const {
     validateDietitianObjectId,
     validateOrganizationObjectId,
-    handleMulterError
+    handleMulterError,
+    ensureOrganizationAuthenticated
 } = require('../middlewares/authMiddleware');
 const {
     getDietitians,
@@ -63,18 +64,18 @@ const orgReportUpload = multer({
 }).single('finalReport');
 
 
-// Dietitian Routes
-router.get('/dietitians', getDietitians);
-router.get('/files/:dietitianId/:field', validateDietitianObjectId, getDietitianFile);
-router.post('/:dietitianId/approve', validateDietitianObjectId, approveDietitianDocument);
-router.post('/:dietitianId/disapprove', validateDietitianObjectId, disapproveDietitianDocument);
-router.post('/:dietitianId/final-approve', validateDietitianObjectId, finalApproveDietitian);
-router.post('/:dietitianId/final-disapprove', validateDietitianObjectId, finalDisapproveDietitian);
-router.post('/:dietitianId/upload-report', validateDietitianObjectId, reportUpload, handleMulterError, uploadDietitianFinalReport);
+// Dietitian Routes (protected by organization authentication)
+router.get('/dietitians', ensureOrganizationAuthenticated, getDietitians);
+router.get('/files/:dietitianId/:field', ensureOrganizationAuthenticated, validateDietitianObjectId, getDietitianFile);
+router.post('/:dietitianId/approve', ensureOrganizationAuthenticated, validateDietitianObjectId, approveDietitianDocument);
+router.post('/:dietitianId/disapprove', ensureOrganizationAuthenticated, validateDietitianObjectId, disapproveDietitianDocument);
+router.post('/:dietitianId/final-approve', ensureOrganizationAuthenticated, validateDietitianObjectId, finalApproveDietitian);
+router.post('/:dietitianId/final-disapprove', ensureOrganizationAuthenticated, validateDietitianObjectId, finalDisapproveDietitian);
+router.post('/:dietitianId/upload-report', ensureOrganizationAuthenticated, validateDietitianObjectId, reportUpload, handleMulterError, uploadDietitianFinalReport);
 router.get('/me', getCurrentDietitian);
 router.get('/check-status', checkDietitianStatus);
 
-// Organization Routes
+// Organization Routes (admin only for verifying organizations)
 router.get('/organizations', getOrganizations);
 router.get('/org/files/:orgId/:field', validateOrganizationObjectId, getOrganizationFile);
 router.post('/org/:orgId/approve', validateOrganizationObjectId, approveOrganizationDocument);
