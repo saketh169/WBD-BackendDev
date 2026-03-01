@@ -46,9 +46,17 @@ export default function OrganizationRoutes() {
           <Route path="blogs" element={<Blog />} />
           <Route path="blog/:id" element={<BlogPost />} />
 
-          {/* Employee Management Routes */}
-          <Route path="employee-management" element={<EmployeeManagement />} />
-          <Route path="employee-monitoring" element={<EmployeeMonitoring />} />
+          {/* Employee Management Routes - Require Organization Verification */}
+          <Route path="employee-management" element={
+            <VerifyProvider requiredRole="organization" redirectTo="/organization/doc-status">
+              <EmployeeManagement />
+            </VerifyProvider>
+          } />
+          <Route path="employee-monitoring" element={
+            <VerifyProvider requiredRole="organization" redirectTo="/organization/doc-status">
+              <EmployeeMonitoring />
+            </VerifyProvider>
+          } />
           <Route path="contact-us" element={<Contact />} />
 
           <Route path="*" element={<NotFoundPage role="organization" />} />
