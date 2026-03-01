@@ -47,6 +47,7 @@ const BlogModeration = () => {
         if (path.startsWith('/dietitian')) return 'dietitian';
         if (path.startsWith('/organization')) return 'organization';
         if (path.startsWith('/admin')) return 'admin';
+        if (path.startsWith('/employee')) return 'employee';
         return 'organization'; // default for this page
     }, [location.pathname]);
 

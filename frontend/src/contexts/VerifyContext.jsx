@@ -35,19 +35,24 @@ export const VerifyProvider = ({
 
       // Check authentication first
       let storedToken = localStorage.getItem(`authToken_${requiredRole}`);
+      const storedUser = JSON.parse(localStorage.getItem(`authUser_${requiredRole}`) || 'null');
 
       // Backward-compat migration: old employee sessions stored under authToken_organization
       if (!storedToken && requiredRole === 'employee') {
-        const orgUser = JSON.parse(localStorage.getItem('authUser_organization') || '{}');
-        if (orgUser.orgType === 'employee') {
-          const oldToken = localStorage.getItem('authToken_organization');
-          if (oldToken) {
-            localStorage.setItem('authToken_employee', oldToken);
-            localStorage.setItem('authUser_employee', JSON.stringify(orgUser));
-            localStorage.removeItem('authToken_organization');
-            localStorage.removeItem('authUser_organization');
-            storedToken = oldToken;
-          }
+        const orgAuthUser = JSON.parse(localStorage.getItem('authUser_organization') || 'null');
+        const orgAuthToken = localStorage.getItem('authToken_organization');
+
+        // Only migrate if an org token exists and the user data confirms it's an employee
+        if (orgAuthToken && orgAuthUser?.orgType === 'employee') {
+          console.log('[VerifyContext] Migrating legacy employee session from organization keys.');
+          localStorage.setItem('authToken_employee', orgAuthToken);
+          localStorage.setItem('authUser_employee', JSON.stringify(orgAuthUser));
+          
+          // Clean up old keys
+          localStorage.removeItem('authToken_organization');
+          localStorage.removeItem('authUser_organization');
+          
+          storedToken = orgAuthToken;
         }
       }
 
