@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '../contexts/AuthContext';
+import ScrollToTop from '../components/ScrollToTop';
 import { VerifyProvider } from '../contexts/VerifyContext';
 import NotFoundPage from '../pages/Error/NotFoundPage';
 
@@ -21,6 +22,7 @@ import EmployeeMonitoring from '../pages/Organization/EmployeeMonitoring';
 export default function OrganizationRoutes() {
   return (
     <AuthProvider currentRole="organization">
+      <ScrollToTop />
       <div className="p-6">
         <Routes>
           <Route index element={<Navigate to="home" replace />} />

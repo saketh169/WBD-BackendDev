@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '../contexts/AuthContext';
+import ScrollToTop from '../components/ScrollToTop';
 import NotFoundPage from '../pages/Error/NotFoundPage';
 
 import AdminHome from '../pages/HomePages/AdminHome';
@@ -17,6 +18,7 @@ import EditProfile from '../pages/EditProfile';
 export default function AdminRoutes() {
   return (
     <AuthProvider currentRole="admin">
+      <ScrollToTop />
       <div className="p-6">
         <Routes>
           <Route index element={<Navigate to="home" replace />} />

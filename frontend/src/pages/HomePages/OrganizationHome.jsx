@@ -5,15 +5,15 @@ const OrganizationHome = () => {
   const navigate = useNavigate();
 
   const dutyItems = [
-    { title: 'Manage Employees',  icon: 'fas fa-users-cog',  text: 'Add, update, activate or deactivate employees within your organization. Bulk-upload via CSV.',      route: '/organization/employee-management', accent: 'border-blue-500',   iconColor: 'text-blue-500',   hover: 'hover:bg-blue-50'   },
-    { title: 'Monitor Employees', icon: 'fas fa-chart-line', text: 'Track employee activity, task completion, and performance metrics across your team.',                 route: '/organization/employee-monitoring',  accent: 'border-indigo-500', iconColor: 'text-indigo-500', hover: 'hover:bg-indigo-50' },
-    { title: 'Verify Dietitians', icon: 'fas fa-user-check', text: 'Review and approve credentials for new dietitian registrations to maintain platform trust.',          route: '/organization/verify-dietitian',    accent: 'border-yellow-500', iconColor: 'text-yellow-500', hover: 'hover:bg-yellow-50' },
-    { title: 'Moderate Blogs',    icon: 'fas fa-blog',       text: 'Govern community-submitted blog content. Remove inappropriate or low-quality posts.',                 route: '/organization/blog-moderation',     accent: 'border-red-400',    iconColor: 'text-red-400',    hover: 'hover:bg-red-50'    },
+    { title: 'Manage Employees',  icon: 'fas fa-users-cog',  text: 'Add, update, activate or deactivate employees within your organization. Bulk-upload via CSV.',      route: '/organization/employee-management', accent: 'border-green-500',   iconColor: 'text-green-600',   hover: 'hover:bg-green-50'   },
+    { title: 'Monitor Employees', icon: 'fas fa-chart-line', text: 'Track employee activity, task completion, and performance metrics across your team.',                 route: '/organization/employee-monitoring',  accent: 'border-emerald-500', iconColor: 'text-emerald-600', hover: 'hover:bg-emerald-50' },
+    { title: 'Verify Dietitians', icon: 'fas fa-user-check', text: 'Review and approve credentials for new dietitian registrations to maintain platform trust.',          route: '/organization/verify-dietitian',    accent: 'border-lime-500', iconColor: 'text-lime-600', hover: 'hover:bg-lime-50' },
+    { title: 'Moderate Blogs',    icon: 'fas fa-blog',       text: 'Govern community-submitted blog content. Remove inappropriate or low-quality posts.',                 route: '/organization/blog-moderation',     accent: 'border-teal-500',    iconColor: 'text-teal-600',    hover: 'hover:bg-teal-50'    },
   ];
 
   const quickLinks = [
-    { title: 'Employee Management', subtitle: 'Add, update & manage your team',        icon: 'fas fa-users',          gradient: 'from-blue-500 to-blue-700',        link: '/organization/employee-management' },
-    { title: 'Employee Monitoring', subtitle: 'Track activity & performance',           icon: 'fas fa-chart-bar',      gradient: 'from-indigo-500 to-indigo-700',    link: '/organization/employee-monitoring'  },
+    { title: 'Employee Management', subtitle: 'Add, update & manage your team',        icon: 'fas fa-users',          gradient: 'from-green-500 to-green-700',        link: '/organization/employee-management' },
+    { title: 'Employee Monitoring', subtitle: 'Track activity & performance',           icon: 'fas fa-chart-bar',      gradient: 'from-emerald-500 to-emerald-700',    link: '/organization/employee-monitoring'  },
     { title: 'My Verification Status',   subtitle: 'Check your organization status',  icon: 'fas fa-shield-alt', gradient: 'from-[#27AE60] to-[#1A4A40]',    link: '/organization/doc-status'     },
   ];
 
@@ -100,7 +100,7 @@ const OrganizationHome = () => {
                   <div className="hidden lg:block absolute top-8 -right-4 w-8 h-0.5 bg-gray-300 z-10" />
                 )}
                 <div className="text-3xl font-black text-gray-100 mb-3 group-hover:text-green-100 transition-colors">{step.step}</div>
-                <div className="text-2xl text-[#27AE60] mb-4"><i className={step.icon}></i></div>
+                <div className="text-5xl text-[#27AE60] mb-4"><i className={step.icon}></i></div>
                 <h3 className="text-lg font-bold text-[#1A4A40] mb-2">{step.title}</h3>
                 <p className="text-sm text-gray-600 leading-relaxed">{step.desc}</p>
               </div>
@@ -160,7 +160,57 @@ const OrganizationHome = () => {
       </section>
 
       {/* ======================================================= */}
-      {/* 5. FAQs */}
+      {/* 6. GUIDE SECTION */}
+      {/* ======================================================= */}
+      <section id="guide" className="py-12 px-4 sm:px-6 md:px-8 bg-gradient-to-r from-[#27AE60] to-[#1A4A40] min-h-[125] animate-fade-in-up animate-delay-[800ms]">
+        <div className="max-w-6xl mx-auto text-white">
+          <h2 className="text-4xl sm:text-5xl font-bold mb-8 text-center flex items-center justify-center gap-3">
+            <i className="fas fa-compass text-2xl"></i>Organization Guides
+          </h2>
+          <p className="text-xl text-green-100 mb-8 text-center max-w-3xl mx-auto leading-relaxed">
+            Select the guide that matches your role to master the organization-employee model and best practices.
+          </p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Management Guide */}
+            <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-8 hover:bg-white/20 transition-all duration-300 transform hover:scale-105">
+              <div className="text-5xl mb-4 text-green-300">
+                <i className="fas fa-users-cog"></i>
+              </div>
+              <h3 className="text-2xl font-bold mb-3">Organization Management</h3>
+              <p className="text-green-100 mb-6 text-lg leading-relaxed">
+                Learn to manage employees, oversee verifications, and maintain comprehensive platform governance.
+              </p>
+              <button
+                onClick={() => navigate('/guide?role=organization-management')}
+                className="bg-white text-[#1A4A40] font-bold py-3 px-8 rounded-full hover:bg-gray-100 transition-all shadow-lg inline-flex items-center gap-2"
+              >
+                <i className="fas fa-book"></i>Read Management Guide
+              </button>
+            </div>
+            
+            {/* Employee Guide */}
+            <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-8 hover:bg-white/20 transition-all duration-300 transform hover:scale-105">
+              <div className="text-5xl mb-4 text-green-300">
+                <i className="fas fa-user-tie"></i>
+              </div>
+              <h3 className="text-2xl font-bold mb-3">Organization Employee</h3>
+              <p className="text-green-100 mb-6 text-lg leading-relaxed">
+                Master dietitian verification, blog moderation, and team collaboration with best practices.
+              </p>
+              <button
+                onClick={() => navigate('/guide?role=organization-employee')}
+                className="bg-white text-[#1A4A40] font-bold py-3 px-8 rounded-full hover:bg-gray-100 transition-all shadow-lg inline-flex items-center gap-2"
+              >
+                <i className="fas fa-book"></i>Read Employee Guide
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ======================================================= */}
+      {/* 5. FAQs (Updated numbering after adding guide) */}
       {/* ======================================================= */}
       <section id="faqs" className="py-12 px-4 sm:px-6 md:px-8 bg-white min-h-[125] animate-fade-in-up animate-delay-[900ms]">
         <div className="max-w-4xl mx-auto">
@@ -215,7 +265,7 @@ const OrganizationHome = () => {
           .hover\\:bg-\\[\\#1E6F5C\\]:hover { background-color: #1E6F5C; }
           .text-\\[\\#5a8f5a\\] { color: #5a8f5a; }
 
-          #welcome-intro, #how-it-works, #quick-access, #core-duties, #faqs {
+          #welcome-intro, #how-it-works, #quick-access, #core-duties, #guide, #faqs {
             scroll-margin-top: 90px; 
           }
         `}

@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider } from '../contexts/AuthContext';
+import ScrollToTop from '../components/ScrollToTop';
 import Sidebar from '../components/Sidebar/Sidebar';
 import EmployeeHome from '../pages/HomePages/EmployeeHome';
 import BlogModeration from '../pages/Blog/BlogModeration';
@@ -23,6 +24,7 @@ const EmployeeLayout = () => (
 export default function EmployeeRoutes() {
   return (
     <AuthProvider currentRole="employee">
+      <ScrollToTop />
       <Routes>
         <Route element={<EmployeeLayout />}>
           <Route index element={<Navigate to="home" replace />} />

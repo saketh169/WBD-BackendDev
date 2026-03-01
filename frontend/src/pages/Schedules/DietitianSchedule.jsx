@@ -601,7 +601,7 @@ const DietitianSchedule = () => {
                             </div>
                             <div className="mb-4">
                                 <label className="block text-sm font-semibold mb-2 text-gray-700">Select Date</label>
-                                <input type="date" value={drawerDate} onChange={(e) => { setDrawerDate(e.target.value); fetchDietitianSlots(e.target.value); }} min={new Date().toISOString().split('T')[0]} max={(() => { const maxDate = new Date(); maxDate.setDate(maxDate.getDate() + 7); return maxDate.toISOString().split('T')[0]; })()} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white" />
+                                <input type="date" value={drawerDate} onChange={(e) => { setDrawerDate(e.target.value); fetchDietitianSlots(e.target.value); }} min={new Date().toISOString().split('T')[0]} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white" />
                             </div>
                             <div className="mb-4 relative blocking-options-container">
                                 <button

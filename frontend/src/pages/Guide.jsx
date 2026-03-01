@@ -1,9 +1,33 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 
 const Guide = () => {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [selectedRole, setSelectedRole] = useState(null);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [showOrgSubOptions, setShowOrgSubOptions] = useState(false);
+
+  // Auto-select role from URL parameter and scroll to guide
+  useEffect(() => {
+    const roleParam = searchParams.get('role');
+    if (roleParam) {
+      setSelectedRole(roleParam);
+      setCurrentStepIndex(0);
+      
+      // Scroll to guide content header after state update
+      setTimeout(() => {
+        const guideContainer = document.querySelector('.guide-content');
+        if (guideContainer) {
+          window.scrollTo({
+            top: guideContainer.offsetTop - 80,
+            behavior: 'smooth'
+          });
+        }
+      }, 100);
+    }
+  }, [searchParams]);
 
   const roles = useMemo(() => [
     {
@@ -181,6 +205,94 @@ const Guide = () => {
           }
         ]
       }
+    },
+    {
+      slug: 'organization-management',
+      title: 'Organization Management',
+      subtitle: 'Certification Authority Leaders',
+      icon: 'fas fa-building',
+      description: 'Manage your organization and employees',
+      features: ['Employee management', 'Team oversight', 'Verification governance', 'Performance monitoring'],
+      guide: {
+        title: 'Organization Management Guide',
+        subtitle: 'Lead your organization with confidence',
+        steps: [
+          {
+            step: 1,
+            title: 'Organization Account Setup',
+            description: 'Get your organization verified and access the management dashboard.',
+            details: ['Organization details', 'Legal documentation', 'Admin credentials', 'Verification approval']
+          },
+          {
+            step: 2,
+            title: 'Employee Management',
+            description: 'Add, update, and manage your organization employees effectively.',
+            details: ['Add individual employees', 'Bulk upload via CSV', 'Assign roles', 'Manage status']
+          },
+          {
+            step: 3,
+            title: 'Monitor Employee Activity',
+            description: 'Track employee performance and task completion metrics.',
+            details: ['Activity logs', 'Performance metrics', 'Task completion', 'Quality assurance']
+          },
+          {
+            step: 4,
+            title: 'Oversee Verification Process',
+            description: 'Govern dietitian verifications and content moderation under your team.',
+            details: ['Approval workflows', 'Quality standards', 'Compliance checks', 'Report generation']
+          },
+          {
+            step: 5,
+            title: 'Strategic Governance',
+            description: 'Maintain platform integrity and professional standards through your team.',
+            details: ['Set policies', 'Review decisions', 'Manage conflicts', 'Foster excellence']
+          }
+        ]
+      }
+    },
+    {
+      slug: 'organization-employee',
+      title: 'Organization Employee',
+      subtitle: 'Quality Assurance Team',
+      icon: 'fas fa-user-tie',
+      description: 'Verify dietitians, moderate content, and support the platform',
+      features: ['Dietitian verification', 'Blog moderation', 'Support tickets', 'Content review'],
+      guide: {
+        title: 'Organization Employee Guide',
+        subtitle: 'Master your role in ensuring platform quality and excellence',
+        steps: [
+          {
+            step: 1,
+            title: 'Dashboard Overview',
+            description: 'Access your employee dashboard and view daily tasks and notifications.',
+            details: ['Welcome dashboard', 'Daily notifications', 'Quick stats', 'Task summary']
+          },
+          {
+            step: 2,
+            title: 'Verify Dietitian Credentials',
+            description: 'Review and assess dietitian qualifications, certifications, and professional documentation.',
+            details: ['Review applications', 'Verify licenses', 'Check certifications', 'Approve/Reject']
+          },
+          {
+            step: 3,
+            title: 'Moderate Blog Content',
+            description: 'Review reported content and enforce community guidelines for quality assurance.',
+            details: ['Review flagged posts', 'Check content quality', 'Enforce standards', 'Take actions']
+          },
+          {
+            step: 4,
+            title: 'Provide Support & Assistance',
+            description: 'Handle user support tickets and resolve queries from dietitians and clients.',
+            details: ['View support tickets', 'Respond to queries', 'Track resolutions', 'Document feedback']
+          },
+          {
+            step: 5,
+            title: 'Explore Community Content',
+            description: 'Stay updated with the latest blogs and community posts for context and knowledge.',
+            details: ['Browse all blogs', 'Read posts', 'Stay informed', 'Learn best practices']
+          }
+        ]
+      }
     }
   ], []);
 
@@ -199,23 +311,39 @@ const Guide = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedRole, currentStepIndex, roles]);
 
-  const cardColors = ['bg-green-50', 'bg-green-50', 'bg-green-50', 'bg-green-50', 'bg-green-50'];
+  const cardColors = ['bg-green-50', 'bg-green-50', 'bg-green-50', 'bg-green-50'];
 
   const handleRoleSelect = (roleSlug) => {
-    setSelectedRole(roleSlug);
+    if (roleSlug === 'organization') {
+      setShowOrgSubOptions(true);
+    } else {
+      setSelectedRole(roleSlug);
+      setCurrentStepIndex(0);
+      
+      // Scroll to top of guide header after a short delay to allow state update
+      setTimeout(() => {
+        const guideContainer = document.querySelector('.guide-content');
+        if (guideContainer) {
+          window.scrollTo({
+            top: guideContainer.offsetTop - 80,
+            behavior: 'smooth'
+          });
+        }
+      }, 100);
+    }
+  };
+
+  const handleOrgSubRoleClick = (subRole) => {
+    setSelectedRole(subRole);
     setCurrentStepIndex(0);
+    setShowOrgSubOptions(false);
     
-    // Scroll to center of guide container after a short delay to allow state update
+    // Scroll to top of guide header after a short delay
     setTimeout(() => {
       const guideContainer = document.querySelector('.guide-content');
       if (guideContainer) {
-        const elementRect = guideContainer.getBoundingClientRect();
-        const absoluteElementTop = elementRect.top + window.pageYOffset;
-        const middle = absoluteElementTop - (window.innerHeight / 2) + (guideContainer.offsetHeight / 2);
-        const scrollToPosition = middle - 180; // Scroll 200px above center
-        
         window.scrollTo({
-          top: scrollToPosition,
+          top: guideContainer.offsetTop - 80,
           behavior: 'smooth'
         });
       }
@@ -289,12 +417,13 @@ const Guide = () => {
             {/* Dropdown Content */}
             {isDropdownOpen && (
               <div className="mt-12 opacity-100 transform translate-y-0 transition-all duration-500 ease-out dropdown-content mb-6">
-                <div className="flex flex-wrap justify-center gap-8 max-w-6xl mx-auto">
-                  {roles.map((role, index) => (
+                {!showOrgSubOptions ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                  {roles.filter(role => !role.slug.includes('-')).map((role, index) => (
                     <div
                       key={role.slug}
                       onClick={() => handleRoleSelect(role.slug)}
-                      className={`${cardColors[index]} group relative overflow-hidden rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-2xl transition-all duration-500 cursor-pointer transform hover:-translate-y-2 hover:scale-105 w-full sm:w-80`}
+                      className={`${cardColors[index]} group relative overflow-hidden rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-2xl transition-all duration-500 cursor-pointer transform hover:-translate-y-2 hover:scale-105`}
                     >
                       {/* Gradient overlay on hover */}
                       <div className="absolute inset-0 bg-linear-to-br from-green-400/0 to-green-600/0 group-hover:from-green-400/10 group-hover:to-green-600/20 transition-all duration-500"></div>
@@ -349,7 +478,58 @@ const Guide = () => {
                       <div className="absolute bottom-3 left-3 w-4 h-4 bg-[#27AE60]/10 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-100"></div>
                     </div>
                   ))}
-                </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 max-w-4xl mx-auto mb-6">
+                    <h3 className="col-span-full text-center text-2xl font-bold text-[#1A4A40] mb-4">Select Organization Role</h3>
+                    {['organization-management', 'organization-employee'].map((slug) => {
+                      const role = roles.find(r => r.slug === slug);
+                      return (
+                        <div
+                          key={slug}
+                          onClick={() => handleOrgSubRoleClick(slug)}
+                          className="bg-green-50 group relative overflow-hidden rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-2xl transition-all duration-500 cursor-pointer transform hover:-translate-y-2 hover:scale-105"
+                        >
+                          <div className="absolute inset-0 bg-linear-to-br from-green-400/0 to-green-600/0 group-hover:from-green-400/10 group-hover:to-green-600/20 transition-all duration-500"></div>
+                          <div className="relative p-3">
+                            <div className="flex justify-center mb-2">
+                              <div className="w-12 h-12 bg-linear-to-br from-[#27AE60] to-[#2E8B57] rounded-lg flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300">
+                                <i className={`${role.icon} text-lg text-white`}></i>
+                              </div>
+                            </div>
+                            <h4 className="text-base font-bold text-[#1A4A40] mb-0.5 text-center group-hover:text-[#27AE60] transition-colors duration-300">
+                              {role.title}
+                            </h4>
+                            <p className="text-xs font-semibold text-[#27AE60] mb-1 uppercase tracking-wider text-center bg-[#27AE60]/10 rounded-full px-2 py-0.5 inline-block mx-auto w-full">
+                              {role.subtitle}
+                            </p>
+                            <p className="text-gray-600 mb-2 leading-relaxed text-center text-xs">
+                              {role.description}
+                            </p>
+                            <div className="space-y-0.5">
+                              {role.features.slice(0, 2).map((feature, idx) => (
+                                <div key={idx} className="flex items-center justify-center text-xs text-gray-700 bg-white/60 rounded p-1 backdrop-blur-sm">
+                                  <div className="w-2 h-2 bg-[#27AE60] rounded-full flex items-center justify-center mr-1 shrink-0">
+                                    <i className="fas fa-check text-[6px] text-white"></i>
+                                  </div>
+                                  <span className="font-medium">{feature}</span>
+                                </div>
+                              ))}
+                            </div>
+                            <div className="mt-2 text-center">
+                              <div className="inline-flex items-center text-[#27AE60] font-semibold text-xs group-hover:text-[#1A4A40] transition-colors duration-300">
+                                View Guide
+                                <i className="fas fa-arrow-right ml-1 transform group-hover:translate-x-1 transition-transform duration-300"></i>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="absolute top-3 right-3 w-6 h-6 bg-[#27AE60]/10 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                          <div className="absolute bottom-3 left-3 w-4 h-4 bg-[#27AE60]/10 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-100"></div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -357,22 +537,22 @@ const Guide = () => {
           /* Guide Content */
           <div className="bg-white rounded-xl shadow-xl  overflow-hidden border border-gray-100 guide-content">
             {/* Header */}
-            <div className="bg-linear-to-r from-[#27AE60] to-[#2E8B57] p-8 h-[120px] text-white">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-6">
-                  <div className="w-16 h-16 bg-linear-to-br from-[#27AE60] to-[#2E8B57] rounded-2xl flex items-center justify-center shadow-lg">
+            <div className="bg-linear-to-r from-[#27AE60] to-[#2E8B57] p-8 min-h-[120px] text-white">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center space-x-6 flex-1">
+                  <div className="w-16 h-16 bg-linear-to-br from-[#27AE60] to-[#2E8B57] rounded-2xl flex items-center justify-center shadow-lg shrink-0">
                     <i className={`${selectedRoleData.icon} text-2xl text-white`}></i>
                   </div>
-                  <div>
-                    <h2 className="text-3xl font-bold mb-2">{selectedRoleData.guide.title}</h2>
-                    <p className="text-lg opacity-90">{selectedRoleData.guide.subtitle}</p>
+                  <div className="flex-1">
+                    <h2 className="text-2xl font-bold mb-1">{selectedRoleData.guide.title}</h2>
+                    <p className="text-base opacity-90">{selectedRoleData.guide.subtitle}</p>
                   </div>
                 </div>
                 <button
-                  onClick={() => setSelectedRole(null)}
-                  className="bg-white/20 backdrop-blur-sm text-white px-6 py-3 rounded-lg hover:bg-white/30 transition-all duration-300 font-semibold border border-white/30"
+                  onClick={() => navigate(-1)}
+                  className="bg-white/20 backdrop-blur-sm text-white px-6 py-3 rounded-lg hover:bg-white/30 transition-all duration-300 font-semibold border border-white/30 shrink-0"
                 >
-                  Back to Roles
+                  Back
                 </button>
               </div>
             </div>
@@ -439,23 +619,8 @@ const Guide = () => {
                   ) : (
                     <button
                       onClick={() => {
-                        // Scroll to dropdown position and open it
-                        setIsDropdownOpen(true);
-                        setTimeout(() => {
-                          const dropdownElement = document.querySelector('.dropdown-content');
-                          if (dropdownElement) {
-                            const elementRect = dropdownElement.getBoundingClientRect();
-                            const absoluteElementTop = elementRect.top + window.pageYOffset;
-                            const middle = absoluteElementTop - (window.innerHeight / 2) + (dropdownElement.offsetHeight / 2);
-                            const scrollToPosition = middle - 50; // Scroll 50px above center
-                            
-                            window.scrollTo({
-                              top: scrollToPosition,
-                              behavior: 'smooth'
-                            });
-                          }
-                        }, 100);
-                        setSelectedRole(null);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                        setTimeout(() => setSelectedRole(null), 300);
                       }}
                       className="bg-linear-to-r from-[#27AE60] to-[#2E8B57] text-white px-8 py-4 rounded-lg hover:from-[#2E8B57] hover:to-[#27AE60] transition-all duration-300 font-semibold shadow-md hover:shadow-lg transform hover:scale-105"
                     >
