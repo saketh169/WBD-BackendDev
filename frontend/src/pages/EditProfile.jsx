@@ -70,10 +70,12 @@ const EditProfile = () => {
     formState: { errors },
     setValue,
     reset,
-    watch
+    watch,
+    control
   } = useForm({
     resolver: config ? yupResolver(getValidationSchema(config.fields)) : undefined,
-    mode: 'onBlur'
+    mode: 'onBlur',
+    defaultValues: originalData || {} // Use originalData as default values
   });
 
   // Watch DOB field to calculate age
@@ -103,15 +105,13 @@ const EditProfile = () => {
     const loadProfile = async () => {
       const data = await fetchProfileData();
       if (data) {
-        // Set form values
-        Object.keys(data).forEach(key => {
-          setValue(key, data[key]);
-        });
+        // Reset form with fetched data
+        reset(data);
       }
     };
     
     loadProfile();
-  }, [fetchProfileData, setValue]);
+  }, [fetchProfileData, reset]);
 
   const onSubmit = async (data) => {
     await updateProfile(data);

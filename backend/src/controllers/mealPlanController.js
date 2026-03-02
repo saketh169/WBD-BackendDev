@@ -17,8 +17,8 @@ exports.createMealPlan = async (req, res) => {
       userId
     } = req.body;
 
-    // Get dietitian ID from authenticated user
-    const dietitianId = req.user?.id || req.body.dietitianId;
+    // Get dietitian ID from authenticated user (roleId is the profile document ID in the JWT)
+    const dietitianId = req.user?.roleId || req.body.dietitianId;
 
     // Validate required fields
     if (!planName || !dietType || !calories || !dietitianId || !userId) {

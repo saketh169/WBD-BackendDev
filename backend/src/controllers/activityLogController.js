@@ -22,7 +22,7 @@ exports.logActivityFromFrontend = async (req, res) => {
 
         // organizationId and employeeId come directly from the JWT token
         const organizationId = req.user.organizationId;
-        const employeeId = req.user.employeeId || req.user.userId || req.user.id;
+        const employeeId = req.user.employeeId || req.user.roleId || req.user.userId;
 
         if (!organizationId || !employeeId) {
             return res.status(400).json({
@@ -31,10 +31,10 @@ exports.logActivityFromFrontend = async (req, res) => {
             });
         }
 
-        // Fetch employee name/email from DB
+        // Fetch employee name/email from DB (JWT tokens don't contain name/email)
         const employee = await Employee.findById(employeeId).select('name email');
-        const employeeName = employee?.name || req.user.email || 'Unknown';
-        const employeeEmail = employee?.email || req.user.email || '';
+        const employeeName = employee?.name || 'Unknown';
+        const employeeEmail = employee?.email || '';
 
         const activity = new ActivityLog({
             organizationId,
@@ -96,7 +96,8 @@ exports.logActivity = async (organizationId, employeeId, employeeName, employeeE
  */
 exports.getEmployeeWorkSummary = async (req, res) => {
     try {
-        const organizationId = req.user.roleId; // Organization ID from auth middleware
+        // Organization admins have roleId, employees have organizationId
+        const organizationId = req.user.roleId || req.user.organizationId;
 
         // Get all employees
         const employees = await Employee.find({ 
@@ -172,7 +173,8 @@ exports.getEmployeeWorkSummary = async (req, res) => {
 exports.getEmployeeActivities = async (req, res) => {
     try {
         const { employeeId } = req.params;
-        const organizationId = req.user.roleId;
+        // Organization admins have roleId, employees have organizationId
+        const organizationId = req.user.roleId || req.user.organizationId;
 
         const activities = await ActivityLog.find({
             organizationId,

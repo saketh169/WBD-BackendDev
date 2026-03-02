@@ -25,12 +25,19 @@ const upload = multer({
 // All routes require authentication and organization role
 router.use(authenticateJWT);
 
-// Middleware to check if user is organization
+// Middleware to check if user is organization admin (not employee)
 const requireOrganization = (req, res, next) => {
     if (req.user.role !== 'organization') {
         return res.status(403).json({
             success: false,
             message: 'Access denied. Only organizations can manage employees.'
+        });
+    }
+    // Employees have orgType: 'employee' - they should not manage other employees
+    if (req.user.orgType === 'employee') {
+        return res.status(403).json({
+            success: false,
+            message: 'Access denied. Only organization admins can manage employees.'
         });
     }
     next();

@@ -1,15 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const mealPlanController = require('../controllers/mealPlanController');
-
-// Middleware to verify authentication (you can add JWT verification here)
-const authenticateUser = (req, res, next) => {
-  // For now, allow all requests - add proper authentication later
-  next();
-};
+const { authenticateJWT } = require('../middlewares/authMiddleware');
 
 // Apply authentication middleware to all routes
-router.use(authenticateUser);
+router.use(authenticateJWT);
 
 /**
  * MEAL PLAN ROUTES

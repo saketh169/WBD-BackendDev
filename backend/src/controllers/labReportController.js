@@ -267,9 +267,20 @@ const updateLabReportStatus = async (req, res) => {
         };
 
         if (status === 'reviewed') {
+            // Use roleId from JWT token (profile document ID)
+            const reviewerId = req.user?.roleId || req.body.dietitianId;
+            // Fetch dietitian name from DB since JWT doesn't contain name
+            let reviewerName = req.body.dietitianName || 'Unknown Dietitian';
+            if (reviewerId) {
+                try {
+                    const { Dietitian } = require('../models/userModel');
+                    const dietitian = await Dietitian.findById(reviewerId).select('name');
+                    if (dietitian) reviewerName = dietitian.name;
+                } catch (e) { /* use fallback name */ }
+            }
             updateData.reviewedBy = {
-                dietitianId: req.user?.id || req.user?._id || req.body.dietitianId,
-                dietitianName: req.user?.name || req.body.dietitianName || 'Unknown Dietitian',
+                dietitianId: reviewerId,
+                dietitianName: reviewerName,
                 reviewedAt: new Date()
             };
         }

@@ -41,7 +41,8 @@ router.put('/update-profile', updateUserProfile);
 
 // Subscription Status Route
 const { getSubscriptionStatus } = require('../middlewares/subscriptionMiddleware');
-router.get('/subscription-status', getSubscriptionStatus);
+const { authenticateJWT } = require('../middlewares/authMiddleware');
+router.get('/subscription-status', authenticateJWT, getSubscriptionStatus);
 
 
 module.exports = router;

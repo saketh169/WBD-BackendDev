@@ -235,40 +235,19 @@ export const fetchUserGrowth = createAsyncThunk(
     };
 
     const data = await handleApiCall(async (token) => {
-      // Try to get user registration data over time
-      // This would need a backend endpoint that returns user registration dates
+      // Get user growth data from backend (already aggregated by month)
       const response = await axios.get('/api/user-growth', {
         headers: { Authorization: `Bearer ${token}` },
         withCredentials: true,
       });
 
-      const growthData = response.data.data || response.data || [];
-      const { monthlyPeriods } = getDateRanges();
-
-      // Process user growth data by month
-      const monthlyGrowth = monthlyPeriods.map(period => {
-        const usersInMonth = growthData.filter(user => {
-          const userDate = new Date(user.createdAt);
-          return userDate.getFullYear() === period.year && userDate.getMonth() === period.month - 1;
-        }).length;
-
-        return {
-          month: period.displayMonth,
-          users: usersInMonth,
-          cumulative: 0 // Will calculate below
-        };
-      });
-
-      // Calculate cumulative users
-      let cumulative = 0;
-      monthlyGrowth.forEach(item => {
-        cumulative += item.users;
-        item.cumulative = cumulative;
-      });
+      // Backend already returns aggregated monthly growth data
+      const monthlyGrowth = response.data.monthlyGrowth || [];
+      const totalUsers = response.data.totalUsers || 0;
 
       return {
         monthlyGrowth,
-        totalUsers: cumulative
+        totalUsers
       };
     }, fallbackData);
 

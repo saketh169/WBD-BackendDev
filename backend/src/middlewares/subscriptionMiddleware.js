@@ -458,7 +458,8 @@ async function checkProgressLimit(req, res, next) {
 // Get subscription status endpoint
 async function getSubscriptionStatus(req, res) {
   try {
-    const userId = req.user?.userId;
+    // Use roleId (profile ID) to match how payments/subscriptions are stored, fallback to userId
+    const userId = req.user?.roleId || req.user?.userId;
     
     if (!userId) {
       return res.status(400).json({

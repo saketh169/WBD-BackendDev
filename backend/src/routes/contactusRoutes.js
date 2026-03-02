@@ -9,10 +9,13 @@ const {
 } = require('../controllers/contactusController');
 const { authenticateJWT } = require('../middlewares/authMiddleware');
 
-// Middleware to restrict to organisation role
+// Middleware to restrict to organisation admin role (not employees)
 const requireOrganization = (req, res, next) => {
   if (req.user.role !== 'organization') {
     return res.status(403).json({ success: false, message: 'Access denied. Organizations only.' });
+  }
+  if (req.user.orgType === 'employee') {
+    return res.status(403).json({ success: false, message: 'Access denied. Organization admins only.' });
   }
   next();
 };

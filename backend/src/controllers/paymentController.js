@@ -410,7 +410,8 @@ exports.cancelSubscription = async (req, res) => {
  */
 exports.getPaymentAnalytics = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    // Use roleId (profile ID) to match how payments are stored, fallback to userId
+    const userId = req.user.roleId || req.user.userId;
 
     const result = await paymentService.getPaymentAnalytics(userId);
 
