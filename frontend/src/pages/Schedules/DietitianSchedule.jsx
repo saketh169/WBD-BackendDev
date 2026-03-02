@@ -308,6 +308,20 @@ const DietitianSchedule = () => {
             alert('Please provide a reason for the leave.');
             return;
         }
+
+        // Check for dates with bookings and warn the user
+        const datesWithBookings = selectedDatesToBlock.filter(date => bookingsByDay[date] && bookingsByDay[date].length > 0);
+        if (datesWithBookings.length > 0) {
+            const bookingList = datesWithBookings.map(date => {
+                const count = bookingsByDay[date].length;
+                return `${new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} (${count} booking${count > 1 ? 's' : ''})`;
+            }).join('\n');
+            const confirmed = window.confirm(
+                `⚠️ WARNING: These dates have existing bookings:\n\n${bookingList}\n\nClients will be notified when you block these dates.\n\nDo you want to proceed?`
+            );
+            if (!confirmed) return;
+        }
+
         setIsBlockingMultipleDays(true);
         try {
             const results = await Promise.allSettled(
@@ -767,17 +781,31 @@ const DietitianSchedule = () => {
                                     const emptyCell = index === 0 && dayOfWeek > 0;
                                     const isSelected = selectedDatesToBlock.includes(dateString);
                                     const alreadyBlocked = blockedDays.includes(dateString);
+                                    const hasBookings = bookingsByDay[dateString] && bookingsByDay[dateString].length > 0;
+                                    const bookingCount = bookingsByDay[dateString]?.length || 0;
                                     const isDisabled = isBlockingMultipleDays || alreadyBlocked;
                                     return (
                                         <React.Fragment key={dateString}>
                                             {emptyCell && Array(dayOfWeek).fill(null).map((_, i) => <div key={`empty-${i}`} className="p-2"></div>)}
-                                            <button onClick={() => !alreadyBlocked && toggleDateSelection(dateString)} disabled={isDisabled} className={`p-2 rounded-lg text-sm font-medium transition-all ${alreadyBlocked ? 'bg-gray-100 text-gray-500 cursor-not-allowed opacity-60' : isSelected ? 'bg-emerald-500 text-white shadow-md transform hover:scale-105' : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:scale-105 cursor-pointer'}`} title={alreadyBlocked ? 'Already blocked' : displayDate}>
-                                                <div className="text-xs">{new Date(dateString).getDate()}</div>
-                                                {alreadyBlocked && <div className="text-[7px] font-bold">Blocked</div>}
+                                            <button onClick={() => !alreadyBlocked && toggleDateSelection(dateString)} disabled={isDisabled} className={`p-2 rounded-lg text-sm font-medium transition-all relative flex flex-col items-center justify-center ${alreadyBlocked ? 'bg-gray-100 text-gray-500 cursor-not-allowed opacity-60 border-2 border-gray-400' : hasBookings ? 'bg-white text-orange-600 border-2 border-orange-500 cursor-not-allowed opacity-60' : isSelected ? 'bg-emerald-500 text-white shadow-md transform hover:scale-105' : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:scale-105 cursor-pointer'}`} title={alreadyBlocked ? 'Already blocked' : hasBookings ? `${bookingCount} booking(s) - ${displayDate}` : displayDate}>
+                                                <div className="text-xs font-semibold">{new Date(dateString).getDate()}</div>
+                                                {hasBookings && !alreadyBlocked && <div className="text-[7px] font-bold text-orange-600">
+                                                    <i className="fas fa-users text-[6px]"></i>
+                                                    {bookingCount}
+                                                </div>}
                                             </button>
                                         </React.Fragment>
                                     );
                                 })}
+                            </div>
+                            <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                <p className="text-xs font-semibold text-blue-800 mb-2">Calendar Legend:</p>
+                                <div className="flex justify-evenly text-xs">
+                                    <span className="flex items-center gap-2"><span className="w-5 h-5 bg-gray-100 border border-gray-300 rounded"></span>Available</span>
+                                    <span className="flex items-center gap-2"><span className="w-5 h-5 bg-white border-2 border-orange-500 rounded text-orange-600 flex items-center justify-center text-[8px]"><i className="fas fa-users"></i></span>Has Bookings</span>
+                                    <span className="flex items-center gap-2"><span className="w-5 h-5 bg-gray-100 border-2 border-gray-400 rounded opacity-60"></span>Already Blocked</span>
+                                </div>
+                                <p className="text-[10px] text-blue-600 mt-2 italic"><i className="fas fa-info-circle mr-1"></i>Dates with bookings show the number of clients. You can still block them, but clients will be notified.</p>
                             </div>
                             <div className="mb-4 p-3 bg-gray-50 rounded-lg">
                                 <p className="text-xs font-semibold text-gray-700 mb-2">Quick Select:</p>
@@ -854,15 +882,20 @@ const DietitianSchedule = () => {
                                                 onClick={() => isFullyBlocked && toggleDateSelection(dateString)}
                                                 disabled={isDisabled}
                                                 title={isFullyBlocked ? displayDate : 'Not blocked'}
-                                                className={`p-2 rounded-lg text-sm font-medium transition-all ${isSelected ? 'bg-emerald-500 text-white shadow-md transform hover:scale-105' : isFullyBlocked ? 'bg-red-100 text-red-700 border border-red-300 hover:scale-105 cursor-pointer' : 'bg-gray-100 text-gray-600 cursor-not-allowed opacity-60'}`}
+                                                className={`p-2 rounded-lg text-sm font-medium transition-all flex flex-col items-center justify-center ${isSelected ? 'bg-emerald-500 text-white shadow-md transform hover:scale-105' : isFullyBlocked ? 'bg-white text-gray-700 border-2 border-gray-400 hover:scale-105 cursor-pointer' : 'bg-gray-100 text-gray-500 cursor-not-allowed opacity-60 border border-gray-300'}`}
                                             >
-                                                <div className="text-xs">{new Date(dateString).getDate()}</div>
-                                                {isFullyBlocked && !isSelected && <div className="text-[7px] font-bold text-red-500">Blocked</div>}
-                                                {isSelected && <div className="text-[7px] font-bold">✓</div>}
+                                                <div className="text-xs font-semibold">{new Date(dateString).getDate()}</div>
                                             </button>
                                         </React.Fragment>
                                     );
                                 })}
+                            </div>
+                            <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                <p className="text-xs font-semibold text-blue-800 mb-2">Calendar Legend:</p>
+                                <div className="flex justify-evenly text-xs">
+                                    <span className="flex items-center gap-2"><span className="w-5 h-5 bg-gray-100 border border-gray-300 rounded opacity-60"></span>Not Blocked</span>
+                                    <span className="flex items-center gap-2"><span className="w-5 h-5 bg-white border-2 border-gray-400 rounded"></span>Blocked</span>
+                                </div>
                             </div>
                             <div className="flex gap-3 pt-4 border-t border-gray-200">
                                 <button onClick={handleUnblockMultipleDates} disabled={selectedDatesToBlock.length === 0 || isBlockingMultipleDays} className="flex-1 px-6 py-3 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-md">
