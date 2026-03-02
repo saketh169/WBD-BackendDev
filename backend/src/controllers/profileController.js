@@ -455,15 +455,17 @@ async function getUserDetailsGeneric(req, res) {
 
         // Add additional fields based on role
         if (userRole.toLowerCase() === 'user') {
+            response.dob = user.dob ? user.dob.toISOString().split('T')[0] : null;
             response.age = calculateAge(user.dob);
             response.address = user.address;
             response.gender = user.gender;
         } else if (userRole.toLowerCase() === 'admin') {
+            response.dob = user.dob ? user.dob.toISOString().split('T')[0] : null;
             response.age = calculateAge(user.dob);
             response.address = user.address;
             response.gender = user.gender;
         } else if (userRole.toLowerCase() === 'dietitian') {
-            response.age = calculateAge(user.dob);
+            response.age = user.age || calculateAge(user.dob);
             response.specialization = user.specialization;
             response.experience = user.experience;
             response.licenseNumber = user.licenseNumber;
