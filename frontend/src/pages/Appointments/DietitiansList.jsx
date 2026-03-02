@@ -108,7 +108,7 @@ const DietitiansList = () => {
   // Fetch user's bookings from API using Redux
   useEffect(() => {
     const fetchData = async () => {
-      const userId = localStorage.getItem('userId') || user?.id;
+      const userId = user?.id;
       
       if (!userId) {
         return;

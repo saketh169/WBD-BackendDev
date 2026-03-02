@@ -230,6 +230,9 @@ export const AuthProvider = ({ children, currentRole }) => {
       localStorage.removeItem(`profileImage_${r}`); // Clear any existing profile images
     });
 
+    // Clear standalone userId key (used by some components)
+    localStorage.removeItem('userId');
+
     // Clear axios header
     delete axios.defaults.headers.common['Authorization'];
   };

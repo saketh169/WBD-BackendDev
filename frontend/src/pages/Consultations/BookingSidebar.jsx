@@ -64,7 +64,7 @@ const BookingSidebar = ({
       
       // Refresh slots when sidebar opens
       if (selectedDate) {
-        const userId = user?.id || user?._id || localStorage.getItem("userId") || '';
+        const userId = user?.id || user?._id || '';
         dispatch(fetchBookedSlots({ dietitianId, date: selectedDate, userId }));
         dispatch(fetchUserBookedSlots({ userId, date: selectedDate }));
       }
@@ -73,7 +73,7 @@ const BookingSidebar = ({
 
   // Fetch all user bookings using Redux
   useEffect(() => {
-    const userId = user?.id || user?._id || localStorage.getItem("userId");
+    const userId = user?.id || user?._id;
     if (!userId || !selectedDate || !isOpen) return;
 
     dispatch(fetchUserBookedSlots({ userId, date: selectedDate }));
@@ -84,7 +84,7 @@ const BookingSidebar = ({
     (date) => {
       if (!dietitianId || !date) return;
 
-      const userId = user?.id || user?._id || localStorage.getItem("userId") || '';
+      const userId = user?.id || user?._id || '';
       dispatch(fetchBookedSlots({ dietitianId, date, userId }));
     },
     [dietitianId, user, dispatch]
@@ -230,7 +230,7 @@ const BookingSidebar = ({
 
     // Check subscription limits using Redux
     try {
-      const userId = localStorage.getItem("userId") || user?.id;
+      const userId = user?.id;
       
       const result = await dispatch(checkBookingLimits({
         userId,
@@ -248,8 +248,8 @@ const BookingSidebar = ({
       // If API fails, allow user to proceed (fail-safe)
     }
 
-    // Get userId from localStorage
-    const userId = localStorage.getItem("userId");
+    // Get userId from AuthContext - always use current user's ID
+    const userId = user?.id;
 
     // Prepare data object
     const dataToSend = {
@@ -258,7 +258,7 @@ const BookingSidebar = ({
       type: consultationType,
       consultationType,
       amount: dietitian?.consultationFee || dietitian?.fees || 500,
-      userId: userId || user?.id || "",
+      userId: userId || "",
       userName: user?.name || "",
       userEmail: user?.email || "",
       userPhone: user?.phone || "",

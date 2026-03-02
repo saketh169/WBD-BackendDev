@@ -198,19 +198,26 @@ const PaymentNotificationModal = ({
 
     setIsProcessing(true);
     try {
-      // Use userId from AuthContext - this is the correct userId for bookings
+      // ALWAYS use userId from AuthContext - never trust paymentDetails.userId to avoid stale data
       const userId = user?.id;
+
+      if (!userId) {
+        alert('User session not found. Please log in again.');
+        setIsProcessing(false);
+        return;
+      }
 
       // Generate payment ID
       const paymentId = "PAY_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9);
 
       // Prepare booking data - ENSURE ALL REQUIRED FIELDS ARE PRESENT
+      // Always use current user's data from AuthContext for user-related fields
       const bookingData = {
-        userId: paymentDetails?.userId || userId,
-        username: paymentDetails?.userName || user?.name,
+        userId: userId,
+        username: user?.name || paymentDetails?.userName,
         email: email,
-        userPhone: paymentDetails?.userPhone || user?.phone || '',
-        userAddress: paymentDetails?.userAddress || user?.address || '',
+        userPhone: user?.phone || paymentDetails?.userPhone || '',
+        userAddress: user?.address || paymentDetails?.userAddress || '',
         dietitianId: paymentDetails?.dietitianId,
         dietitianName: paymentDetails?.dietitianName,
         dietitianEmail: paymentDetails?.dietitianEmail,

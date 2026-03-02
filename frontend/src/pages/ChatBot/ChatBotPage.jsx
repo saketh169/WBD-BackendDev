@@ -6,8 +6,10 @@ import NutritionCard from './NutritionCard';
 import axios from 'axios';
 import SubscriptionAlert from '../../middleware/SubscriptionAlert';
 import { RefreshCw, Trash2, MessageCircle } from 'lucide-react';
+import { useAuthContext } from '../../hooks/useAuthContext';
 
 function ChatBotPage() {
+  const { user } = useAuthContext();
   const [messages, setMessages] = useState([
     {
       type: 'bot',
@@ -131,7 +133,7 @@ function ChatBotPage() {
       }
 
       // Call backend API - same pattern as signin/signup
-      const userId = localStorage.getItem('userId') || null;
+      const userId = user?.id || null;
       const response = await axios.post('/api/chatbot/message', {
         message: messageText,
         sessionId: sessionId,
