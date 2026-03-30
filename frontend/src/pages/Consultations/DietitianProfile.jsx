@@ -17,33 +17,17 @@ const renderStarRating = (rating) => {
     if (rating >= i + 1) {
       // Full star
       stars.push(
-        <span key={i} className="text-lg text-emerald-600">
-          ★
-        </span>
+        <i key={i} className="fas fa-star text-lg text-emerald-600"></i>
       );
     } else if (rating > i) {
       // Partial star
-      const percentage = (rating - i) * 100;
       stars.push(
-        <span
-          key={i}
-          className="text-lg relative inline-block text-gray-300"
-        >
-          <span className="text-gray-300">★</span>
-          <span
-            className="absolute left-0 top-0 overflow-hidden text-emerald-600"
-            style={{ width: `${percentage}%` }}
-          >
-            ★
-          </span>
-        </span>
+        <i key={i} className="fas fa-star-half text-lg text-emerald-600"></i>
       );
     } else {
       // Empty star
       stars.push(
-        <span key={i} className="text-lg text-gray-300">
-          ★
-        </span>
+        <i key={i} className="far fa-star text-lg text-gray-300"></i>
       );
     }
   }
@@ -57,7 +41,7 @@ const ProfileHeaderCard = ({ dietitian, testimonialsCount = 0 }) => {
       {/* Profile Image */}
       <div className="shrink-0">
         <img
-          src={dietitian.photo || "https://via.placeholder.com/128?text=Dietitian"}
+          src={dietitian.photo || dietitian.profileImage || "https://via.placeholder.com/128?text=Dietitian"}
           alt={dietitian.name}
           className="w-32 h-32 rounded-full object-cover border-4 border-emerald-600"
           onError={(e) => e.currentTarget.src = 'https://via.placeholder.com/128?text=Dietitian'}
@@ -227,7 +211,7 @@ const TestimonialModal = ({ isOpen, onClose, onSubmit }) => {
                   className="text-2xl focus:outline-none"
                   style={{ color: star <= rating ? "#10B981" : "#E0E0E0" }}
                 >
-                  ★
+                  <i className={star <= rating ? "fas fa-star" : "far fa-star"}></i>
                 </button>
               ))}
             </div>
@@ -242,7 +226,7 @@ const TestimonialModal = ({ isOpen, onClose, onSubmit }) => {
               value={text}
               onChange={(e) => setText(e.target.value)}
               placeholder="Share your experience with this dietitian..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500/20 min-h-[100px] text-gray-700"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500/20 min-h-25 text-gray-700"
               required
             />
           </div>
@@ -311,9 +295,9 @@ export default function DietitianProfile() {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.data.success) {
-        setCanReview({ 
-          allowed: response.data.canReview, 
-          reason: response.data.reason || '' 
+        setCanReview({
+          allowed: response.data.canReview,
+          reason: response.data.reason || ''
         });
       }
     } catch (error) {
@@ -339,14 +323,14 @@ export default function DietitianProfile() {
     const loadDietitian = async () => {
       try {
         setLoading(true);
-        
+
         // First check if dietitian data was passed through navigation state
         const dietitianFromState = location.state?.dietitian;
-        
+
         // Always fetch fresh data from API to get latest testimonials
         if (id || dietitianFromState?._id) {
           const dietitianId = id || dietitianFromState._id;
-          
+
           // Get auth token for user
           const token = localStorage.getItem('authToken_user');
 
@@ -357,14 +341,14 @@ export default function DietitianProfile() {
           } : {};
 
           const response = await axios.get(`/api/dietitians/${dietitianId}`, config);
-          
+
           if (response.data.success) {
             const dietitianData = response.data.data;
             setDietitian(dietitianData);
             setTestimonials(dietitianData.testimonials || []);
             fetchDietitianStats(dietitianData._id);
             checkCanReview(dietitianData._id);
-            
+
             // Auto-open booking sidebar if requested
             if (location.state?.openBooking) {
               setIsBookingSidebarOpen(true);
@@ -430,12 +414,12 @@ export default function DietitianProfile() {
           id: response.data.testimonial._id || `t_${Date.now()}`,
         };
         setTestimonials((prev) => [newTestimonial, ...prev]);
-        
+
         // Update dietitian rating
         if (response.data.newRating) {
           setDietitian(prev => ({ ...prev, rating: response.data.newRating }));
         }
-        
+
         showNotification("Review submitted successfully!", "success");
       }
     } catch (error) {
@@ -445,11 +429,6 @@ export default function DietitianProfile() {
   };
 
   const handleProceedToPayment = (details) => {
-    console.log('====== DietitianProfile - handleProceedToPayment ======');
-    console.log('Details received from BookingSidebar:', details);
-    console.log('Current dietitian object:', dietitian);
-    console.log('======================================================');
-    
     setBookingData(details);
     setNotification({
       show: false,
@@ -471,13 +450,13 @@ export default function DietitianProfile() {
 
       // Close modals
       setIsPaymentModalOpen(false);
-      
+
       // Show success notification
       showNotification(
-        "✨ Consultation booked successfully!\nConfirmation email sent to " + paymentData.email,
+        "Consultation booked successfully!\nConfirmation email sent to " + paymentData.email,
         "success"
       );
-      
+
       // Reset state after a short delay
       setTimeout(() => {
         setBookingData(null);

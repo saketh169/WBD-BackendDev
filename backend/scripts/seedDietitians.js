@@ -2,14 +2,14 @@ const mongoose = require('mongoose');
 const path = require('path');
 const { UserAuth, Dietitian } = require('../models/userModel');
 
-require('dotenv').config({ 
-  path: path.join(__dirname, '..', 'utils', '.env') 
+require('dotenv').config({
+  path: path.join(__dirname, '..', 'utils', '.env')
 });
 
 
 const connectDB = async () => {
   try {
-    const MONGODB_URI = process.env.MONGODB_URL || "mongodb://localhost:27017/NutriConnectDatabase" ;
+    const MONGODB_URI = process.env.MONGODB_URL || "mongodb://localhost:27017/NutriConnectDatabase";
     if (!MONGODB_URI) {
       throw new Error('MONGODB_URI is not defined');
     }
@@ -583,7 +583,7 @@ async function seedDietitians() {
     for (const mock of mockDietitians) {
       // Generate fake data for required fields
       const email = mock.name === 'Dr.Neha Agarwal' ? 'dietitian1@gmail.com' : mock.name.toLowerCase().replace(/\s+/g, '').replace(/\./g, '') + '@dietitian.com';
-      
+
       // Check if already exists
       const existingUser = await UserAuth.findOne({ email });
       if (existingUser) {
@@ -631,7 +631,7 @@ async function seedDietitians() {
         licenseIssuer: 'ida', // Default
         idProofType: 'aadhaar', // Default
         specializationDomain: 'sports_nutrition', // Default
-        profileImage: profileImageBuffer, // Use downloaded image buffer for seeding
+        profileImage: mock.photo, // Just use the Unsplash URL directly
         files: {}, // Empty
         verificationStatus: {
           resume: 'Verified',

@@ -283,7 +283,7 @@ const ContactPage = () => {
       {submittedData && (
         <div id="submitted-message" className='max-w-6xl mx-auto mt-12 bg-white p-8 rounded-2xl shadow-lg border-t-4 border-[#28B463]'>
           <h2 className='text-2xl font-bold text-[#2C3E50] mb-6 text-center'>
-            Your Message Has Been Sent! 🎉
+            Your Message Has Been Sent!
           </h2>
           <div className='space-y-4 text-left text-gray-700'>
             <p className='border-b border-gray-200 pb-2'>

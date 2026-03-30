@@ -1,6 +1,15 @@
 import React, { useState, useMemo, useEffect, useContext, useCallback } from 'react';
 import AuthContext from '../../contexts/AuthContext';
 import axios from 'axios';
+import { io } from 'socket.io-client';
+
+// Helper function to decode HTML entities
+const decodeHtmlEntities = (text) => {
+    if (!text) return text;
+    const textarea = document.createElement('textarea');
+    textarea.innerHTML = text;
+    return textarea.value;
+};
 const PRIMARY_GREEN = '#10B981';
 const DARK_GREEN = '#059669';
 const ACCENT_GREEN = '#34D399';
@@ -71,9 +80,9 @@ const DietitianSchedule = () => {
     const [activeDayKey, setActiveDayKey] = useState(initialDay);
 
     useEffect(() => {
+        // User context is used implicitly for authentication
         if (user) {
-            console.log('Dietitian Name:', user.name);
-            console.log('Dietitian ID:', user.id);
+            // User is loaded
         }
     }, [user]);
 
@@ -174,6 +183,75 @@ const DietitianSchedule = () => {
         }
     }, [user?.id, token]);
 
+    // Fetch blocked days list for sidebar highlight
+    const fetchBlockedDays = useCallback(async () => {
+        if (!user?.id) return;
+        try {
+            // Check each of the next 30 days if they are fully blocked
+            // We piggyback on the booked-slots API which already returns blockedSlots
+            const days = [];
+            const allSlots = ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00', '18:30', '19:00', '19:30', '20:00'];
+            const checks = sortedDays.map(async ([, dayInfo]) => {
+                try {
+                    const resp = await axios.get(`/api/bookings/dietitian/${user.id}/booked-slots`, {
+                        params: { date: dayInfo.fullDateKey, userId: user.id },
+                        headers: { Authorization: `Bearer ${token}` }
+                    });
+                    if (resp.data?.success) {
+                        const bs = resp.data.blockedSlots || [];
+                        if (bs.length >= allSlots.length) days.push(dayInfo.fullDateKey);
+                    }
+                } catch (error) {
+                    console.error('Error fetching blocked slots:', error);
+                }
+            });
+            await Promise.all(checks);
+            setBlockedDays(days);
+        } catch (err) {
+            console.error('Error fetching blocked days:', err);
+        }
+    }, [user?.id, token, sortedDays]);
+
+    // Real-time WebSocket listener for booking changes
+    useEffect(() => {
+        if (!user?.id || !token) return;
+
+        const socket = io(import.meta.env.VITE_API_URL || 'http://localhost:5000', {
+            withCredentials: true,
+        });
+
+        socket.on('connect', () => {
+            console.log('Connected to real-time server (DietitianSchedule)');
+            socket.emit('register_dietitian', user.id);
+        });
+
+        const refreshData = () => {
+            console.log('Refreshing schedule data due to socket event');
+            const fetchBookings = async () => {
+                try {
+                    const response = await axios.get(`/api/bookings/dietitian/${user.id}`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (response.data.success) setBookings(response.data.data);
+                } catch (error) {
+                    console.error('Error fetching bookings:', error);
+                }
+            };
+            fetchBookings();
+            if (isDrawerOpen && drawerDate) {
+                fetchDietitianSlots(drawerDate);
+            }
+            fetchBlockedDays();
+        };
+
+        socket.on('new_booking', refreshData);
+        socket.on('booking_updated', refreshData);
+
+        return () => {
+            socket.disconnect();
+        };
+    }, [user?.id, token, isDrawerOpen, drawerDate, fetchDietitianSlots, fetchBlockedDays]);
+
     const bookingsByDay = useMemo(() => {
         const grouped = {};
         bookings.forEach(booking => {
@@ -205,35 +283,6 @@ const DietitianSchedule = () => {
     useEffect(() => {
         if (activeDayInfo?.fullDateKey) setDrawerDate(activeDayInfo.fullDateKey);
     }, [activeDayInfo]);
-
-    // Fetch blocked days list for sidebar highlight
-    const fetchBlockedDays = useCallback(async () => {
-        if (!user?.id) return;
-        try {
-            // Check each of the next 30 days if they are fully blocked
-            // We piggyback on the booked-slots API which already returns blockedSlots
-            const days = [];
-            const allSlots = ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00', '18:30', '19:00', '19:30', '20:00'];
-            const checks = sortedDays.map(async ([, dayInfo]) => {
-                try {
-                    const resp = await axios.get(`/api/bookings/dietitian/${user.id}/booked-slots`, {
-                        params: { date: dayInfo.fullDateKey, userId: user.id },
-                        headers: { Authorization: `Bearer ${token}` }
-                    });
-                    if (resp.data?.success) {
-                        const bs = resp.data.blockedSlots || [];
-                        if (bs.length >= allSlots.length) days.push(dayInfo.fullDateKey);
-                    }
-                } catch (error) {
-                    console.error('Error fetching blocked slots:', error);
-                }
-            });
-            await Promise.all(checks);
-            setBlockedDays(days);
-        } catch (err) {
-            console.error('Error fetching blocked days:', err);
-        }
-    }, [user?.id, token, sortedDays]);
 
     useEffect(() => { fetchBlockedDays(); }, [fetchBlockedDays]);
 
@@ -317,7 +366,7 @@ const DietitianSchedule = () => {
                 return `${new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} (${count} booking${count > 1 ? 's' : ''})`;
             }).join('\n');
             const confirmed = window.confirm(
-                `⚠️ WARNING: These dates have existing bookings:\n\n${bookingList}\n\nClients will be notified when you block these dates.\n\nDo you want to proceed?`
+                `WARNING: These dates have existing bookings:\n\n${bookingList}\n\nClients will be notified when you block these dates.\n\nDo you want to proceed?`
             );
             if (!confirmed) return;
         }
@@ -455,10 +504,9 @@ const DietitianSchedule = () => {
                         setShowModal(true);
                     } else if (isBooked) {
                         const bookingDetail = bookingDetails.find(detail => detail.time === time);
+                        // Booking detail retrieved for rescheduling
                         if (bookingDetail) {
-                            console.log('User ID for booked slot:', bookingDetail.userId);
-                            console.log('User name for booked slot:', bookingDetail.userName || 'Name not available');
-                            console.log('Full booking details:', bookingDetail);
+                            // Booking info available
                         }
                         setSelectedSlot(time);
                         setModalType('reschedule');
@@ -567,9 +615,13 @@ const DietitianSchedule = () => {
                                         <span className="font-bold text-gray-800 text-base">{appointment.time || 'N/A'}</span>
                                         <span className={`px-3 py-1 ml-auto text-xs font-bold rounded-full uppercase tracking-tight whitespace-nowrap ${appointment.status === 'confirmed' ? 'bg-emerald-100 text-emerald-700' : appointment.status === 'cancelled' ? 'bg-red-100 text-red-700' : appointment.status === 'completed' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>{appointment.status || appointment.consultationType}</span>
                                     </div>
-                                    <h3 className="appointment-title text-lg font-bold text-gray-800 mb-2">{appointment.specialization}</h3>
+                                    <h3 className="appointment-title text-lg font-bold text-gray-800 mb-2 truncate">{appointment.clientName || 'Booked Client'}</h3>
+                                    <p className="appointment-details text-sm text-gray-600 mb-2 flex items-center gap-2 min-w-0">
+                                        <i className="fas fa-notes-medical text-emerald-600 opacity-70 text-sm shrink-0"></i>
+                                        <span className="flex-1 min-w-0">{decodeHtmlEntities(appointment.specialization) || 'General Consultation'}</span>
+                                    </p>
                                     <p className="appointment-details text-sm text-gray-600 mb-3 flex items-center gap-2">
-                                        <i className="fas fa-notes-medical text-emerald-600 opacity-70 text-sm"></i>
+                                        <i className="fas fa-video text-emerald-600 opacity-70 text-sm"></i>
                                         {appointment.consultationType}
                                     </p>
                                     <div className="client-info flex items-center gap-3 mt-0 pt-3 border-t-2 border-gray-100">
@@ -579,9 +631,9 @@ const DietitianSchedule = () => {
                                             <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold text-white shadow-md border-2 border-emerald-200" style={{ backgroundColor: DARK_GREEN }}>{appointment.clientName.charAt(0)}</div>
                                         )}
                                         <div className="flex-1 min-w-0">
-                                            <span className="client-name text-sm font-bold text-gray-800 truncate block">{appointment.clientName}</span>
+                                            <span className="client-name text-sm font-bold text-gray-800 truncate block">Client</span>
                                             {appointment.clientEmail && (
-                                                <a href={`mailto:${appointment.clientEmail}`} className="text-xs text-emerald-600 hover:text-emerald-700 underline truncate block transition-colors" title={appointment.clientEmail}>
+                                                <a href={`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(appointment.clientEmail)}`} target="_blank" rel="noopener noreferrer" className="text-xs text-emerald-600 hover:text-emerald-700 underline truncate block transition-colors" title={`Email ${appointment.clientEmail} via Gmail`}>
                                                     <i className="fas fa-envelope mr-1"></i>Contact
                                                 </a>
                                             )}

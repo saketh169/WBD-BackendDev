@@ -9,7 +9,6 @@ import axios from 'axios';
 const Notification = ({ show, message, type, onClose }) => {
   useEffect(() => {
     if (show) {
-      console.log("Notification shown:", message, type);
     }
   }, [show, message, type]);
 
@@ -273,11 +272,6 @@ const AllDietitiansPage = () => {
   };
 
   const handleProceedToPayment = (details) => {
-    console.log('====== AllDietitiansPage - handleProceedToPayment ======');
-    console.log('Details received from BookingSidebar:', details);
-    console.log('Current dietitian:', currentDietitian);
-    console.log('======================================================');
-    
     setPaymentDetails({
       amount: details.amount || currentDietitian?.fees || 500,
       dietitianId: details.dietitianId || currentDietitian?._id,
@@ -313,7 +307,8 @@ const AllDietitiansPage = () => {
       
       // Show success notification
       showNotification(
-        `✨ Consultation booked successfully!\nConfirmation email sent to ${paymentData.email}`,
+        `Consultation booked successfully! Confirmation email sent to ${paymentData.email}`,
+        // (Star notification is handled by alert styling)
         "success"
       );
       

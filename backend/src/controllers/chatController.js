@@ -61,7 +61,7 @@ exports.getUserConversations = async (req, res) => {
   try {
     const { userId, userType } = req.params;
 
-    const query = userType === 'client' 
+    const query = userType === 'client'
       ? { clientId: userId }
       : { dietitianId: userId };
 
@@ -122,7 +122,9 @@ exports.getMessages = async (req, res) => {
 // Send a message
 exports.sendMessage = async (req, res) => {
   try {
-    const { conversationId, senderId, senderType, content, messageType, videoLink, labReport, mealPreferences, consultationReport } = req.body;
+    const { conversationId, senderType, content, messageType, videoLink, labReport, mealPreferences, consultationReport } = req.body;
+    // Use authenticated user ID from JWT — never trust senderId from body
+    const senderId = req.user.roleId || req.user.employeeId;
 
     if (!conversationId || !senderId || !senderType || !content) {
       return res.status(400).json({
@@ -170,6 +172,10 @@ exports.sendMessage = async (req, res) => {
       updatedAt: new Date()
     });
 
+    // Notify clients via Socket.io
+    const { notifyNewMessage } = require('../utils/socket');
+    notifyNewMessage(conversationId, message);
+
     res.json({
       success: true,
       data: message
@@ -187,7 +193,9 @@ exports.sendMessage = async (req, res) => {
 exports.editMessage = async (req, res) => {
   try {
     const { messageId } = req.params;
-    const { content, userId } = req.body;
+    const { content } = req.body;
+    // Use authenticated user ID from JWT
+    const userId = req.user.roleId || req.user.employeeId;
 
     if (!content) {
       return res.status(400).json({
@@ -206,7 +214,7 @@ exports.editMessage = async (req, res) => {
     }
 
     // Verify the user is the sender
-    if (message.senderId.toString() !== userId) {
+    if (message.senderId.toString() !== userId.toString()) {
       return res.status(403).json({
         success: false,
         message: 'Unauthorized to edit this message'
@@ -234,7 +242,8 @@ exports.editMessage = async (req, res) => {
 exports.deleteMessage = async (req, res) => {
   try {
     const { messageId } = req.params;
-    const { userId } = req.body;
+    // Use authenticated user ID from JWT
+    const userId = req.user.roleId || req.user.employeeId;
 
     const message = await Message.findById(messageId);
 
@@ -246,7 +255,7 @@ exports.deleteMessage = async (req, res) => {
     }
 
     // Verify the user is the sender
-    if (message.senderId.toString() !== userId) {
+    if (message.senderId.toString() !== userId.toString()) {
       return res.status(403).json({
         success: false,
         message: 'Unauthorized to delete this message'
@@ -274,7 +283,8 @@ exports.deleteMessage = async (req, res) => {
 exports.markAsRead = async (req, res) => {
   try {
     const { conversationId } = req.params;
-    const { userId } = req.body;
+    // Use authenticated user ID from JWT
+    const userId = req.user.roleId || req.user.employeeId;
 
     await Message.updateMany(
       {

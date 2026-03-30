@@ -125,7 +125,13 @@ paymentSchema.virtual('isSubscriptionActive').get(function() {
 });
 
 // Method to activate subscription
-paymentSchema.methods.activateSubscription = function() {
+paymentSchema.methods.activateSubscription = async function() {
+  // Deactivate any previous active subscriptions for this user
+  await this.constructor.updateMany(
+    { userId: this.userId, isActive: true, _id: { $ne: this._id } },
+    { $set: { isActive: false } }
+  );
+
   const startDate = new Date();
   const endDate = new Date();
   

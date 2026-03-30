@@ -213,7 +213,6 @@ const Payment = () => {
       // Show specific error messages
       const errorMessages = Object.values(errors).join('\n');
       alert(`Please fix the following errors:\n\n${errorMessages}`);
-      console.log('Validation errors:', errors);
     }
   };
 
@@ -619,8 +618,9 @@ const Payment = () => {
               )}
 
               <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
-                <p className="text-xs text-blue-800">
-                  🔒 Your credentials are encrypted and secure. We never store your banking password.
+                <p className="text-xs text-blue-800 flex items-center gap-2">
+                  <i className="fas fa-lock text-blue-600"></i>
+                  Your credentials are encrypted and secure. We never store your banking password.
                 </p>
               </div>
             </div>
@@ -643,29 +643,23 @@ const Payment = () => {
               {[
                 {
                   name: "Google Pay",
-                  logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Google_Pay_Logo.svg/512px-Google_Pay_Logo.svg.png",
-                  bgColor: "#FFFFFF",
-                  textColor: "#4285F4",
+                  logo: "/images/Gpay.jpg",
                   brandColor: "#4285F4"
                 },
                 {
                   name: "PhonePe",
-                  logo: "https://i.pinimg.com/736x/88/ff/f3/88fff330d69dcd30c90efbfa6410376d.jpg",
-                  bgColor: "#FFFFFF",
+                  logo: "/images/PhonePay.png",
                   textColor: "#5F259F",
                   brandColor: "#5F259F"
                 },
                 {
                   name: "Paytm",
-                  logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/24/Paytm_Logo_%28standalone%29.svg/512px-Paytm_Logo_%28standalone%29.svg.png",
-                  bgColor: "#FFFFFF",
-                  textColor: "#00BAF2",
+                  logo: "/images/Paytm.jpg",
                   brandColor: "#00BAF2"
                 },
                 {
                   name: "BHIM",
-                  logo: "https://brandlogos.net/wp-content/uploads/2022/04/bhim-logo-brandlogos.net_.png",
-                  bgColor: "#FFFFFF",
+                  logo: "/images/Bhimpay.jpg",
                   textColor: "#ED1C24",
                   brandColor: "#ED1C24"
                 }
@@ -690,24 +684,14 @@ const Payment = () => {
                   }}
                 >
                   <div className="flex flex-col items-center justify-center h-16">
-                    {(app.name === "Google Pay" || app.name === "Paytm") ? (
-                      <>
-                        <img
-                          src={app.logo}
-                          alt={app.name}
-                          className="max-h-12 max-w-full object-contain"
-                        />
-                      </>
-                    ) : (
-                      <div className="text-center">
-                        <p className="text-lg font-bold" style={{ color: app.textColor }}>
-                          {app.name}
-                        </p>
-                        {app.name === "BHIM" && (
-                          <p className="text-xs mt-1" style={{ color: app.textColor }}>UPI</p>
-                        )}
-                      </div>
-                    )}
+                    {(app.logo) ? (
+                      <img
+                        src={app.logo}
+                        alt={app.name}
+                        className="max-h-12 max-w-full object-contain"
+                        onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = 'https://via.placeholder.com/96x32?text=UPI'; }}
+                      />
+                    ) : null}
                   </div>
                 </button>
               ))}
@@ -1037,8 +1021,9 @@ const Payment = () => {
                         Cancel
                       </button>
                     </div>
-                    <p className="text-xs text-gray-500 mt-6">
-                      🔒 Your payment information is secure and encrypted
+                    <p className="text-xs text-gray-500 mt-6 flex items-center gap-2">
+                      <i className="fas fa-lock text-gray-400"></i>
+                      Your payment information is secure and encrypted
                     </p>
                   </>
                 )}

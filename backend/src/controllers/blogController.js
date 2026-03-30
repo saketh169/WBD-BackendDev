@@ -1,18 +1,24 @@
 const { Blog } = require('../models/blogModel');
-const { User, Dietitian } = require('../models/userModel');
+const { User, Dietitian, Admin, Organization, Employee } = require('../models/userModel');
 
-// Helper function to get author details
-const getAuthorDetails = async (userId, role) => {
+// Helper: extract profile ID from JWT payload
+const getProfileId = (user) => user.roleId || user.employeeId;
+
+// Helper: look up user's display name from DB
+const getUserName = async (user) => {
     try {
-        let author = null;
-        if (role === 'user') {
-            author = await User.findById(userId).select('name');
-        } else if (role === 'dietitian') {
-            author = await Dietitian.findById(userId).select('name');
+        let Model;
+        const profileId = getProfileId(user);
+        if (user.employeeId) {
+            Model = Employee;
+        } else {
+            const models = { user: User, dietitian: Dietitian, admin: Admin, organization: Organization };
+            Model = models[user.role];
         }
-        return author ? author.name : 'Unknown';
-    } catch (error) {
-        console.error('Error fetching author details:', error);
+        if (!Model || !profileId) return 'Unknown';
+        const doc = await Model.findById(profileId).select('name');
+        return doc ? doc.name : 'Unknown';
+    } catch {
         return 'Unknown';
     }
 };
@@ -20,15 +26,18 @@ const getAuthorDetails = async (userId, role) => {
 exports.createBlog = async (req, res) => {
     try {
         const { title, content, category, tags, excerpt } = req.body;
-        const { userId, userName, userRole } = req.user; // From auth middleware
+        const userId = getProfileId(req.user);
+        const userRole = req.user.role;
 
         // Validate that only users and dietitians can create blogs
         if (!['user', 'dietitian'].includes(userRole)) {
-            return res.status(403).json({ 
-                success: false, 
-                message: 'Only users and dietitians can create blog posts' 
+            return res.status(403).json({
+                success: false,
+                message: 'Only users and dietitians can create blog posts'
             });
         }
+
+        const userName = await getUserName(req.user);
 
         // Handle featured image from request
         let featuredImage = null;
@@ -63,29 +72,28 @@ exports.createBlog = async (req, res) => {
         });
     } catch (error) {
         console.error('Create blog error:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Failed to create blog post',
-            error: error.message 
+        res.status(500).json({
+            success: false,
+            message: 'Failed to create blog post'
         });
     }
 };
 // GET ALL BLOGS (with filters)
 exports.getAllBlogs = async (req, res) => {
     try {
-        const { 
-            category, 
-            search, 
-            sortBy = 'createdAt', 
+        const {
+            category,
+            search,
+            sortBy = 'createdAt',
             order = 'desc',
             page = 1,
             limit = 10
         } = req.query;
 
         // Build filter query
-        const filter = { 
-            isPublished: true, 
-            status: 'active' 
+        const filter = {
+            isPublished: true,
+            status: 'active'
         };
 
         if (category && category !== 'all') {
@@ -127,10 +135,9 @@ exports.getAllBlogs = async (req, res) => {
         });
     } catch (error) {
         console.error('Get blogs error:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Failed to fetch blog posts',
-            error: error.message 
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch blog posts'
         });
     }
 };
@@ -138,26 +145,35 @@ exports.getAllBlogs = async (req, res) => {
 exports.getBlogById = async (req, res) => {
     try {
         const { id } = req.params;
+        
+        // Validate MongoDB ObjectId
+        const mongoose = require('mongoose');
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid blog ID format'
+            });
+        }
 
         const blog = await Blog.findById(id)
             .select('-reports'); // Don't include reports in public view
 
         if (!blog) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'Blog post not found' 
+            return res.status(404).json({
+                success: false,
+                message: 'Blog post not found'
             });
         }
 
         // Check if blog is accessible
         if (!blog.isPublished || blog.status !== 'active') {
             // Only author can view unpublished or removed blogs
-            if (req.user && req.user.userId.toString() === blog.author.userId.toString()) {
+            if (req.user && getProfileId(req.user)?.toString() === blog.author.userId.toString()) {
                 // Allow author to view
             } else {
-                return res.status(403).json({ 
-                    success: false, 
-                    message: 'This blog post is not available' 
+                return res.status(403).json({
+                    success: false,
+                    message: 'This blog post is not available'
                 });
             }
         }
@@ -172,10 +188,9 @@ exports.getBlogById = async (req, res) => {
         });
     } catch (error) {
         console.error('Get blog error:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Failed to fetch blog post',
-            error: error.message 
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch blog post'
         });
     }
 };
@@ -184,22 +199,31 @@ exports.updateBlog = async (req, res) => {
     try {
         const { id } = req.params;
         const { title, content, category, tags, excerpt, isPublished } = req.body;
-        const { userId } = req.user;
+        const userId = getProfileId(req.user);
+        
+        // Validate MongoDB ObjectId
+        const mongoose = require('mongoose');
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid blog ID format'
+            });
+        }
 
         const blog = await Blog.findById(id);
 
         if (!blog) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'Blog post not found' 
+            return res.status(404).json({
+                success: false,
+                message: 'Blog post not found'
             });
         }
 
         // Check if user is the author
         if (blog.author.userId.toString() !== userId.toString()) {
-            return res.status(403).json({ 
-                success: false, 
-                message: 'You are not authorized to edit this blog post' 
+            return res.status(403).json({
+                success: false,
+                message: 'You are not authorized to edit this blog post'
             });
         }
 
@@ -230,10 +254,9 @@ exports.updateBlog = async (req, res) => {
         });
     } catch (error) {
         console.error('Update blog error:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Failed to update blog post',
-            error: error.message 
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update blog post'
         });
     }
 };
@@ -241,25 +264,35 @@ exports.updateBlog = async (req, res) => {
 exports.deleteBlog = async (req, res) => {
     try {
         const { id } = req.params;
-        const { userId, userRole } = req.user;
+        const userId = getProfileId(req.user);
+        const userRole = req.user.role;
+        
+        // Validate MongoDB ObjectId
+        const mongoose = require('mongoose');
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid blog ID format'
+            });
+        }
 
         const blog = await Blog.findById(id);
 
         if (!blog) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'Blog post not found' 
+            return res.status(404).json({
+                success: false,
+                message: 'Blog post not found'
             });
         }
 
         // Check if user is the author or an organization (for moderation)
         const isAuthor = blog.author.userId.toString() === userId.toString();
-        const isOrganization = userRole === 'organization';
+        const isOrganization = ['organization', 'employee'].includes(userRole);
 
         if (!isAuthor && !isOrganization) {
-            return res.status(403).json({ 
-                success: false, 
-                message: 'You are not authorized to delete this blog post' 
+            return res.status(403).json({
+                success: false,
+                message: 'You are not authorized to delete this blog post'
             });
         }
 
@@ -271,10 +304,9 @@ exports.deleteBlog = async (req, res) => {
         });
     } catch (error) {
         console.error('Delete blog error:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Failed to delete blog post',
-            error: error.message 
+        res.status(500).json({
+            success: false,
+            message: 'Failed to delete blog post'
         });
     }
 };
@@ -282,14 +314,14 @@ exports.deleteBlog = async (req, res) => {
 exports.toggleLike = async (req, res) => {
     try {
         const { id } = req.params;
-        const { userId } = req.user;
+        const userId = getProfileId(req.user);
 
         const blog = await Blog.findById(id);
 
         if (!blog) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'Blog post not found' 
+            return res.status(404).json({
+                success: false,
+                message: 'Blog post not found'
             });
         }
 
@@ -302,7 +334,7 @@ exports.toggleLike = async (req, res) => {
             // Unlike
             blog.likes.splice(likeIndex, 1);
             await blog.save();
-            
+
             return res.status(200).json({
                 success: true,
                 message: 'Blog post unliked',
@@ -313,7 +345,7 @@ exports.toggleLike = async (req, res) => {
             // Like
             blog.likes.push({ userId });
             await blog.save();
-            
+
             return res.status(200).json({
                 success: true,
                 message: 'Blog post liked',
@@ -323,10 +355,9 @@ exports.toggleLike = async (req, res) => {
         }
     } catch (error) {
         console.error('Toggle like error:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Failed to process like',
-            error: error.message 
+        res.status(500).json({
+            success: false,
+            message: 'Failed to process like'
         });
     }
 };
@@ -335,21 +366,23 @@ exports.addComment = async (req, res) => {
     try {
         const { id } = req.params;
         const { content } = req.body;
-        const { userId, userName, userRole } = req.user;
+        const userId = getProfileId(req.user);
+        const userRole = req.user.role;
+        const userName = await getUserName(req.user);
 
         if (!content || content.trim().length === 0) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Comment content is required' 
+            return res.status(400).json({
+                success: false,
+                message: 'Comment content is required'
             });
         }
 
         const blog = await Blog.findById(id);
 
         if (!blog) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'Blog post not found' 
+            return res.status(404).json({
+                success: false,
+                message: 'Blog post not found'
             });
         }
 
@@ -371,10 +404,9 @@ exports.addComment = async (req, res) => {
         });
     } catch (error) {
         console.error('Add comment error:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Failed to add comment',
-            error: error.message 
+        res.status(500).json({
+            success: false,
+            message: 'Failed to add comment'
         });
     }
 };
@@ -382,35 +414,36 @@ exports.addComment = async (req, res) => {
 exports.deleteComment = async (req, res) => {
     try {
         const { id, commentId } = req.params;
-        const { userId, userRole } = req.user;
+        const userId = getProfileId(req.user);
+        const userRole = req.user.role;
 
         const blog = await Blog.findById(id);
 
         if (!blog) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'Blog post not found' 
+            return res.status(404).json({
+                success: false,
+                message: 'Blog post not found'
             });
         }
 
         const comment = blog.comments.id(commentId);
 
         if (!comment) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'Comment not found' 
+            return res.status(404).json({
+                success: false,
+                message: 'Comment not found'
             });
         }
 
         // Check if user is the comment author, blog author, or organization
         const isCommentAuthor = comment.userId.toString() === userId.toString();
         const isBlogAuthor = blog.author.userId.toString() === userId.toString();
-        const isOrganization = userRole === 'organization';
+        const isOrganization = ['organization', 'employee'].includes(userRole);
 
         if (!isCommentAuthor && !isBlogAuthor && !isOrganization) {
-            return res.status(403).json({ 
-                success: false, 
-                message: 'You are not authorized to delete this comment' 
+            return res.status(403).json({
+                success: false,
+                message: 'You are not authorized to delete this comment'
             });
         }
 
@@ -424,10 +457,9 @@ exports.deleteComment = async (req, res) => {
         });
     } catch (error) {
         console.error('Delete comment error:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Failed to delete comment',
-            error: error.message 
+        res.status(500).json({
+            success: false,
+            message: 'Failed to delete comment'
         });
     }
 };
@@ -436,21 +468,22 @@ exports.reportBlog = async (req, res) => {
     try {
         const { id } = req.params;
         const { reason } = req.body;
-        const { userId, userName } = req.user;
+        const userId = getProfileId(req.user);
+        const userName = await getUserName(req.user);
 
         if (!reason || reason.trim().length === 0) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Report reason is required' 
+            return res.status(400).json({
+                success: false,
+                message: 'Report reason is required'
             });
         }
 
         const blog = await Blog.findById(id);
 
         if (!blog) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'Blog post not found' 
+            return res.status(404).json({
+                success: false,
+                message: 'Blog post not found'
             });
         }
 
@@ -460,9 +493,9 @@ exports.reportBlog = async (req, res) => {
         );
 
         if (alreadyReported) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'You have already reported this blog post' 
+            return res.status(400).json({
+                success: false,
+                message: 'You have already reported this blog post'
             });
         }
 
@@ -473,12 +506,12 @@ exports.reportBlog = async (req, res) => {
         };
 
         blog.reports.push(newReport);
-        
+
         // If multiple reports, flag the blog
         if (blog.reports.length >= 3) {
             blog.status = 'flagged';
         }
-        
+
         await blog.save();
 
         res.status(200).json({
@@ -487,10 +520,9 @@ exports.reportBlog = async (req, res) => {
         });
     } catch (error) {
         console.error('Report blog error:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Failed to report blog post',
-            error: error.message 
+        res.status(500).json({
+            success: false,
+            message: 'Failed to report blog post'
         });
     }
 };
@@ -521,10 +553,9 @@ exports.getReportedBlogs = async (req, res) => {
         });
     } catch (error) {
         console.error('Get reported blogs error:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Failed to fetch reported blogs',
-            error: error.message 
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch reported blogs'
         });
     }
 };
@@ -532,7 +563,7 @@ exports.getReportedBlogs = async (req, res) => {
 exports.dismissReports = async (req, res) => {
     try {
         const { id } = req.params;
-        const { userId } = req.user;
+        const userId = getProfileId(req.user);
 
         // Find the blog
         const blog = await Blog.findById(id);
@@ -563,17 +594,16 @@ exports.dismissReports = async (req, res) => {
         });
     } catch (error) {
         console.error('Dismiss reports error:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Failed to dismiss reports',
-            error: error.message 
+        res.status(500).json({
+            success: false,
+            message: 'Failed to dismiss reports'
         });
     }
 };
 // GET USER'S OWN BLOGS
 exports.getMyBlogs = async (req, res) => {
     try {
-        const { userId } = req.user;
+        const userId = getProfileId(req.user);
         const { page = 1, limit = 10 } = req.query;
 
         const skip = (parseInt(page) - 1) * parseInt(limit);
@@ -598,10 +628,9 @@ exports.getMyBlogs = async (req, res) => {
         });
     } catch (error) {
         console.error('Get my blogs error:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Failed to fetch your blogs',
-            error: error.message 
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch your blogs'
         });
     }
 };
@@ -623,10 +652,9 @@ exports.getCategories = async (req, res) => {
         });
     } catch (error) {
         console.error('Get categories error:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Failed to fetch categories',
-            error: error.message 
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch categories'
         });
     }
 };

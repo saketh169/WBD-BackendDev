@@ -48,18 +48,18 @@ const handleApiCall = async (apiCall, mockData) => {
 // Fetch all active users by role
 export const fetchUsersByRole = createAsyncThunk(
   'admin/fetchUsersByRole',
-  async (role) => {
+  async ({ role, page = 1, limit = 10 }) => {
     const mockData = mockAllUsers[role] || [];
     const data = await handleApiCall(async (token) => {
-      const response = await axios.get(`/api/crud/${role}-list`, {
+      const response = await axios.get(`/api/crud/${role}-list?page=${page}&limit=${limit}`, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         withCredentials: true,
       });
-      return response.data.data || response.data;
-    }, mockData);
+      return response.data; // Return full response to get pagination metadata
+    }, { data: mockData, page, limit, total: mockData.length, pages: 1 });
 
     return { role, data };
   }
@@ -68,18 +68,18 @@ export const fetchUsersByRole = createAsyncThunk(
 // Search users by role
 export const searchUsersByRole = createAsyncThunk(
   'admin/searchUsersByRole',
-  async ({ role, query }) => {
+  async ({ role, query, page = 1, limit = 10 }) => {
     const mockData = mockAllUsers[role] || [];
     const data = await handleApiCall(async (token) => {
-      const response = await axios.get(`/api/crud/${role}-list/search?q=${encodeURIComponent(query)}`, {
+      const response = await axios.get(`/api/crud/${role}-list/search?q=${encodeURIComponent(query)}&page=${page}&limit=${limit}`, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         withCredentials: true,
       });
-      return response.data.data || response.data;
-    }, mockData);
+      return response.data; // Return full response
+    }, { data: mockData, page, limit, total: mockData.length, pages: 1 });
 
     return { role, data };
   }
@@ -88,9 +88,12 @@ export const searchUsersByRole = createAsyncThunk(
 // Fetch removed accounts
 export const fetchRemovedAccounts = createAsyncThunk(
   'admin/fetchRemovedAccounts',
-  async (query = '') => {
+  async ({ query = '', page = 1, limit = 10 } = {}) => {
     const data = await handleApiCall(async (token) => {
-      const endpoint = query ? `/api/crud/removed-accounts/search?q=${encodeURIComponent(query)}` : '/api/crud/removed-accounts';
+      const baseEndpoint = query ? `/api/crud/removed-accounts/search?q=${encodeURIComponent(query)}` : '/api/crud/removed-accounts';
+      const separator = baseEndpoint.includes('?') ? '&' : '?';
+      const endpoint = `${baseEndpoint}${separator}page=${page}&limit=${limit}`;
+
       const response = await axios.get(endpoint, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -98,8 +101,8 @@ export const fetchRemovedAccounts = createAsyncThunk(
         },
         withCredentials: true,
       });
-      return response.data.data || response.data;
-    }, mockRemovedAccounts);
+      return response.data; // Return full response
+    }, { data: mockRemovedAccounts, page, limit, total: mockRemovedAccounts.length, pages: 1 });
 
     return data;
   }
@@ -154,7 +157,13 @@ const initialState = {
     organization: [],
     _isSearchResult: false,
   },
+  usersPagination: {
+    user: { page: 1, limit: 10, total: 0, pages: 1 },
+    dietitian: { page: 1, limit: 10, total: 0, pages: 1 },
+    organization: { page: 1, limit: 10, total: 0, pages: 1 },
+  },
   removedAccounts: [],
+  removedAccountsPagination: { page: 1, limit: 10, total: 0, pages: 1 },
   activeRole: 'user',
   removedRole: 'user',
   searchTerm: '',
@@ -217,7 +226,13 @@ const adminSlice = createSlice({
       })
       .addCase(fetchUsersByRole.fulfilled, (state, action) => {
         const { role, data } = action.payload;
-        state.users[role] = data;
+        state.users[role] = data?.data || data || [];
+        state.usersPagination[role] = {
+          page: data?.page || 1,
+          limit: data?.limit || 10,
+          total: data?.total || 0,
+          pages: data?.pages || 1,
+        }
         state.users._isSearchResult = false;
         state.isLoading = false;
         state.error = null;
@@ -229,7 +244,13 @@ const adminSlice = createSlice({
       })
       .addCase(searchUsersByRole.fulfilled, (state, action) => {
         const { role, data } = action.payload;
-        state.users[role] = data;
+        state.users[role] = data?.data || data || [];
+        state.usersPagination[role] = {
+          page: data?.page || 1,
+          limit: data?.limit || 10,
+          total: data?.total || 0,
+          pages: data?.pages || 1,
+        }
         state.users._isSearchResult = true;
         state.isLoading = false;
         state.error = null;
@@ -240,7 +261,13 @@ const adminSlice = createSlice({
         state.isLoading = true;
       })
       .addCase(fetchRemovedAccounts.fulfilled, (state, action) => {
-        state.removedAccounts = action.payload;
+        state.removedAccounts = action.payload.data || action.payload;
+        state.removedAccountsPagination = {
+          page: action.payload.page || 1,
+          limit: action.payload.limit || 10,
+          total: action.payload.total || 0,
+          pages: action.payload.pages || 1
+        };
         state.isLoading = false;
         state.error = null;
       })

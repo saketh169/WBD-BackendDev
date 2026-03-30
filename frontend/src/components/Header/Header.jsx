@@ -15,22 +15,7 @@ const getBasePath = (currentPath) => {
   return ''; // Base path for non-logged-in users
 };
 
-// Font Awesome: inject once on script start (moved outside component)
-if (typeof document !== 'undefined' && !document.getElementById('font-awesome-link')) {
-  const link = document.createElement('link');
-  link.id = 'font-awesome-link';
-  link.rel = 'stylesheet';
-  link.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css';
-  link.integrity = 'sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==';
-  link.crossOrigin = 'anonymous';
-  link.referrerPolicy = 'no-referrer';
-  link.async = true; // Load asynchronously to not block page render
-  document.head.appendChild(link);
-}
-
-const FontAwesomeLink = () => {
-  return null; // Font Awesome already loaded globally
-};
+// Font Awesome is imported globally in main.jsx via @fortawesome/fontawesome-free
 
 // Floating Contact Button component (positioned top-right just below header)
 // **MODIFIED to accept contactPath**
@@ -59,7 +44,7 @@ const Header = () => {
   const getCurrentRoleFromPath = () => {
     if (currentPath.startsWith('/admin')) return 'admin';
     if (currentPath.startsWith('/organization')) return 'organization';
-    if (currentPath.startsWith('/employee')) return 'organization'; // employees use org auth
+    if (currentPath.startsWith('/employee')) return 'employee';
     if (currentPath.startsWith('/dietitian')) return 'dietitian';
     if (currentPath.startsWith('/user')) return 'user';
     return null;
@@ -84,6 +69,7 @@ const Header = () => {
           user: '/api/getuserdetails',
           dietitian: '/api/getdietitiandetails',
           organization: '/api/getorganizationdetails',
+          employee: '/api/getorganizationdetails',
           admin: '/api/getadmindetails'
         };
 
@@ -161,26 +147,15 @@ const Header = () => {
 
   // --- Logout Handler ---
   const handleLogout = () => {
-    console.log('[Header] Logging out user...');
-
-    // Determine current role from path
-    let currentRole = null;
-    if (currentPath.startsWith('/admin')) currentRole = 'admin';
-    else if (currentPath.startsWith('/organization')) currentRole = 'organization';
-    else if (currentPath.startsWith('/employee')) currentRole = 'employee';
-    else if (currentPath.startsWith('/dietitian')) currentRole = 'dietitian';
-    else if (currentPath.startsWith('/user')) currentRole = 'user';
-
+    // ONLY clear the CURRENT role's session - do NOT clear all roles
+    // This prevents logging out other users who are logged in with different roles
     if (currentRole) {
       localStorage.removeItem(`authToken_${currentRole}`);
       localStorage.removeItem(`authUser_${currentRole}`);
-      console.log(`[Header] Removed authToken_${currentRole}`);
+      localStorage.removeItem(`profileImage_${currentRole}`);
     }
 
-    // Clear profile image for this session
-    localStorage.removeItem('profileImage');
-
-    console.log('[Header] Redirecting to home...');
+    setProfileImage(null);
     navigate('/');
   };
   // --- END Logout Handler ---
@@ -193,7 +168,7 @@ const Header = () => {
     const outlineButtonClass = `bg-transparent border border-[#28B463] text-[#28B463] ${isMobile ? 'w-28' : 'px-5'} py-2 rounded-full font-semibold hover:bg-[#28B463] hover:text-white transition-all duration-300 cursor-pointer text-center`;
 
     if (isLoggedInArea) {
-      const iconButtonBaseClass = "relative flex items-center justify-center p-2 rounded-full transition-all duration-300 group";
+      const iconButtonBaseClass = "relative flex items-center justify-center w-13 h-13 p-0 rounded-full transition-all duration-300 group";
       const tooltipTextClass = "absolute top-full mt-2 px-3 py-1 bg-gray-700 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap z-10";
 
       // If in any role area, show Profile, Payment (for users), and Logout buttons
@@ -211,13 +186,12 @@ const Header = () => {
                 src={profileImage}
                 alt="Profile"
                 className="w-9 h-9 rounded-full object-cover"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                  // Fallback to icon if image fails to load
+                onError={() => {
+                  setProfileImage(null);
                 }}
               />
             ) : (
-              <i className="fas fa-user-circle text-3xl"></i>
+              <i className="fas fa-user-circle text-4xl"></i>
             )}
             <span className={tooltipTextClass}>Profile</span>
           </button>
@@ -263,7 +237,6 @@ const Header = () => {
     return (
       <>
         <header className="bg-white shadow-sm py-2 sticky top-0 z-50 border-b-2 border-[#28B463]">
-          <FontAwesomeLink />
           <div className="flex items-center justify-between">
             {/* Logo with left padding */}
             <div className="pl-4 md:pl-8 lg:pl-16">
@@ -303,7 +276,6 @@ const Header = () => {
   return (
     <>
       <header className={`${isProfilePage ? 'bg-[#E8F5E9]' : 'bg-white'} shadow-sm ${isLoggedInArea ? 'py-2' : 'py-3'} px-4 md:px-8 lg:px-16 sticky top-0 z-50 border-b-2 border-[#28B463]`}>
-        <FontAwesomeLink />
 
         <div className="max-w-7xl mx-auto  flex items-center justify-between">
           {/* Logo */}

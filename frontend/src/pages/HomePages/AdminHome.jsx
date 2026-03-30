@@ -12,15 +12,7 @@ const AdminHome = () => {
     { title: 'Verify Partner Organizations', icon: 'fas fa-shield-halved', text: 'Oversee and verify all Certifying Organizations to ensure compliance and minimize fraud.', slug: 'verify_orgs', route: '/admin/verify-organizations' },
   ];
 
-  // === 2. Live Platform Metrics Mock Data (Core KPIs) ===
-  const platformMetrics = [
-    { title: 'Active Diet Plans', value: '4,521', icon: 'fas fa-clipboard-list', color: 'text-green-600', link: '/admin/analytics' },
-    { title: 'Total Brokerage Earnings', value: '$85K', icon: 'fas fa-sack-dollar', color: 'text-yellow-600', link: '/admin/analytics' },
-    { title: 'New Consultations (Last 7D)', value: '1,290', icon: 'fas fa-calendar-check', color: 'text-blue-600', link: '/admin/analytics' },
-    { title: 'Pending Support Queries', value: '18', icon: 'fas fa-headset', color: 'text-red-600', link: '/admin/queries' },
-  ];
-
-  // === 3. FAQ State and Logic ===
+  // === 2. FAQ State and Logic ===
   const [openFaq, setOpenFaq] = useState(null);
   const faqs = [
     { q: 'How do I remove or suspend a user/dietitian?', a: 'Go to the User Management panel, search for the account, and use the "Deactivate" or "Permanently Remove" options. Requires two-factor authentication for sensitive actions.' },
@@ -85,43 +77,12 @@ const AdminHome = () => {
         </div>
       </section>
 
-      {/* ======================================================= */}
-      {/* 2. LIVE PLATFORM METRICS */}
-      {/* ======================================================= */}
-      <section id="metrics" className="py-12 px-4 sm:px-6 md:px-8 bg-white min-h-[100] animate-fade-in-up animate-delay-[350ms]">
-        <div className="max-w-6xl mx-auto text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold text-[#1A4A40] mb-4">Live Platform Snapshot 📊</h2>
-          <p className="text-gray-600 mb-10 text-lg">Key performance indicators across all user segments.</p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {platformMetrics.map((item, index) => (
-              <button
-                key={index}
-                onClick={() => navigate(item.link)}
-                className="group bg-gray-50 p-6 rounded-xl shadow-lg border-b-4 border-gray-300 hover:shadow-2xl hover:bg-gray-100 transition-all duration-300"
-              >
-                <div className={`text-5xl mb-3 ${item.color}`}>
-                  <i className={item.icon}></i>
-                </div>
-                <h3 className="text-4xl font-extrabold text-[#1A4A40] mb-1">{item.value}</h3>
-                <p className="text-lg font-semibold text-[#2F4F4F]">{item.title}</p>
-              </button>
-            ))}
-          </div>
-
-          <button
-            onClick={() => navigate('/admin/analytics')}
-            className={`mt-10 bg-[#1A4A40] text-white font-bold py-3 px-8 rounded-full shadow-lg hover:bg-[${primaryGreen}] transition-colors`}
-          >
-            View Full Analytics
-          </button>
-        </div>
-      </section>
 
       {/* ======================================================= */}
-      {/* 3. CORE GOVERNANCE DUTIES */}
+      {/* 2. CORE GOVERNANCE DUTIES */}
       {/* ======================================================= */}
-      <section id="duties" className="py-12 px-4 sm:px-6 md:px-8 bg-gray-100 min-h-[125] animate-fade-in-up animate-delay-[500ms]">
+      <section id="duties" className="py-30 px-4 sm:px-6 md:px-8 bg-gray-100 min-h-[125] animate-fade-in-up animate-delay-[500ms]">
         <div className="max-w-6xl mx-auto text-center">
           <h2 className="text-3xl sm:text-4xl font-bold text-[#1A4A40] mb-4">Core Administrative Duties</h2>
           <p className="text-gray-600 mb-10 text-lg">Central responsibilities for maintaining system health and user integrity.</p>
@@ -145,9 +106,9 @@ const AdminHome = () => {
       </section>
 
       {/* ======================================================= */}
-      {/* 4. ADMIN GUIDE SECTION */}
+      {/* 3. ADMIN GUIDE SECTION */}
       {/* ======================================================= */}
-      <section id="guide" className="py-12 px-4 sm:px-6 md:px-8 bg-gradient-to-r from-[#27AE60] to-[#1A4A40] min-h-[125] animate-fade-in-up animate-delay-[600ms]">
+      <section id="guide" className="py-25 px-4 sm:px-6 md:px-8 bg-linear-to-r from-[#27AE60] to-[#1A4A40] min-h-[125] animate-fade-in-up animate-delay-[600ms]">
         <div className="max-w-6xl mx-auto text-white">
           <div className="flex items-start justify-between gap-8">
             <div className="flex-1">
@@ -174,7 +135,7 @@ const AdminHome = () => {
       {/* ======================================================= */}
       {/* 5. ADMIN FAQs (Support Focus) */}
       {/* ======================================================= */}
-      <section id="faqs" className="py-12 px-4 sm:px-6 md:px-8 bg-white min-h-[125] animate-fade-in-up animate-delay-[700ms]">
+      <section id="faqs" className="py-30 px-4 sm:px-6 md:px-8 bg-white min-h-[125] animate-fade-in-up animate-delay-[700ms]">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-3xl sm:text-4xl font-bold text-[#1A4A40] text-center mb-12">
             Admin Team Support FAQs

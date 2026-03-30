@@ -87,7 +87,16 @@ const submitLabReport = async (req, res) => {
         // Parse submitted categories if it's a string
         let categoriesArray = [];
         if (typeof submittedCategories === 'string') {
-            categoriesArray = JSON.parse(submittedCategories);
+            try {
+                categoriesArray = JSON.parse(submittedCategories);
+            } catch (e) {
+                // If it's a comma-separated string instead of JSON, split it manually
+                if (submittedCategories.includes(',')) {
+                    categoriesArray = submittedCategories.split(',').map(item => item.trim());
+                } else if (submittedCategories.trim() !== '') {
+                    categoriesArray = [submittedCategories.trim()];
+                }
+            }
         } else if (Array.isArray(submittedCategories)) {
             categoriesArray = submittedCategories;
         }
@@ -116,7 +125,6 @@ const submitLabReport = async (req, res) => {
         // Create lab report data
         const labReportData = {
             userId: clientId, // Using clientId from request as userId
-            dietitianId: req.body.dietitianId, // Add dietitian ID if provided
             clientName,
             clientAge: parseInt(clientAge),
             clientPhone,
@@ -124,6 +132,11 @@ const submitLabReport = async (req, res) => {
             submittedCategories: categoriesArray,
             uploadedFiles
         };
+
+        // Only add dietitianId if it's a valid string format (not the literal word "string" from swagger)
+        if (req.body.dietitianId && req.body.dietitianId !== 'string') {
+            labReportData.dietitianId = req.body.dietitianId;
+        }
 
         // Add category-specific data
         if (categoriesArray.includes('Hormonal_Issues')) {
@@ -185,18 +198,24 @@ const submitLabReport = async (req, res) => {
         const labReport = new LabReport(labReportData);
         await labReport.save();
 
+        const responseData = labReport.toObject();
+        if (responseData.uploadedFiles) {
+            responseData.uploadedFiles.forEach(file => {
+                delete file.data;
+            });
+        }
+
         res.status(201).json({
             success: true,
             message: 'Lab report submitted successfully',
-            data: labReport
+            data: responseData
         });
 
     } catch (error) {
         console.error('Error submitting lab report:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to submit lab report',
-            error: error.message
+            message: 'Failed to submit lab report'
         });
     }
 };
@@ -206,12 +225,20 @@ const getClientLabReports = async (req, res) => {
     try {
         const { clientId, dietitianId } = req.params;
 
-        // Build query to filter by both client and dietitian
+        // Build query to fetch reports
         const query = {};
         if (clientId) query.userId = clientId;
-        if (dietitianId) query.dietitianId = dietitianId;
+        if (dietitianId) {
+            // Find reports specifically tagged for this dietitian OR reports that have no dietitian tagged (general client uploads)
+            query.$or = [
+                { dietitianId: dietitianId },
+                { dietitianId: { $exists: false } },
+                { dietitianId: null }
+            ];
+        }
 
         const labReports = await LabReport.find(query)
+            .select('-uploadedFiles.data')
             .sort({ createdAt: -1 })
             .populate('dietitianId', 'name')
             .populate('reviewedBy.dietitianId', 'name');
@@ -225,8 +252,7 @@ const getClientLabReports = async (req, res) => {
         console.error('Error fetching lab reports:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to fetch lab reports',
-            error: error.message
+            message: 'Failed to fetch lab reports'
         });
     }
 };
@@ -236,7 +262,8 @@ const getLabReportsByClient = async (req, res) => {
     try {
         const { clientId } = req.params;
 
-        const labReports = await LabReport.find({ clientId })
+        const labReports = await LabReport.find({ userId: clientId })
+            .select('-uploadedFiles.data')
             .sort({ createdAt: -1 })
             .populate('reviewedBy.dietitianId', 'name');
 
@@ -249,8 +276,7 @@ const getLabReportsByClient = async (req, res) => {
         console.error('Error fetching lab reports:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to fetch lab reports',
-            error: error.message
+            message: 'Failed to fetch lab reports'
         });
     }
 };
@@ -268,7 +294,7 @@ const updateLabReportStatus = async (req, res) => {
 
         if (status === 'reviewed') {
             // Use roleId from JWT token (profile document ID)
-            const reviewerId = req.user?.roleId || req.body.dietitianId;
+            const reviewerId = req.user?.roleId;
             // Fetch dietitian name from DB since JWT doesn't contain name
             let reviewerName = req.body.dietitianName || 'Unknown Dietitian';
             if (reviewerId) {
@@ -289,7 +315,7 @@ const updateLabReportStatus = async (req, res) => {
             reportId,
             updateData,
             { new: true }
-        );
+        ).select('-uploadedFiles.data');
 
         if (!labReport) {
             return res.status(404).json({
@@ -308,8 +334,7 @@ const updateLabReportStatus = async (req, res) => {
         console.error('Error updating lab report:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to update lab report',
-            error: error.message
+            message: 'Failed to update lab report'
         });
     }
 };

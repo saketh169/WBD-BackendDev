@@ -7,10 +7,13 @@ const Settings = require('../models/settingsModel');
 // Get all users
 exports.getUsersList = async (req, res) => {
     try {
-        const users = await User.find({}, 'name email phone');
-        res.json({ data: users });
+        const total = await User.countDocuments({});
+
+        res.json({
+            total
+        });
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching users', error: error.message });
+        res.status(500).json({ message: 'Error fetching users' });
     }
 };
 
@@ -53,37 +56,79 @@ exports.getUserGrowth = async (req, res) => {
             totalUsers: users.length
         });
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching user growth data', error: error.message });
+        res.status(500).json({ message: 'Error fetching user growth data' });
     }
 };
 
 // Get all dietitians
 exports.getDietitiansList = async (req, res) => {
     try {
-        const dietitians = await Dietitian.find({}, 'name email phone specialization fees');
-        res.json({ data: dietitians });
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 1000;
+        const skip = (page - 1) * limit;
+
+        const dietitians = await Dietitian.find({}, 'name email phone specialization fees').skip(skip).limit(limit);
+        const total = await Dietitian.countDocuments({});
+
+        res.json({
+            data: dietitians,
+            pagination: {
+                total,
+                page,
+                limit,
+                pages: Math.ceil(total / limit)
+            }
+        });
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching dietitians', error: error.message });
+        res.status(500).json({ message: 'Error fetching dietitians' });
     }
 };
 
 // Get verifying organizations
 exports.getVerifyingOrganizations = async (req, res) => {
     try {
-        const organizations = await Organization.find({ documentUploadStatus: 'pending' }, 'name email phone');
-        res.json({ data: organizations });
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 1000;
+        const skip = (page - 1) * limit;
+
+        const organizations = await Organization.find({ documentUploadStatus: 'pending' }, 'name email phone').skip(skip).limit(limit);
+        const total = await Organization.countDocuments({ documentUploadStatus: 'pending' });
+
+        res.json({
+            data: organizations,
+            pagination: {
+                total,
+                page,
+                limit,
+                pages: Math.ceil(total / limit)
+            }
+        });
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching organizations', error: error.message });
+        res.status(500).json({ message: 'Error fetching organizations' });
     }
 };
 
 // Get all organizations
 exports.getAllOrganizations = async (req, res) => {
     try {
-        const organizations = await Organization.find({}, 'name email phone');
-        res.json({ data: organizations });
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 1000;
+        const skip = (page - 1) * limit;
+
+        const organizations = await Organization.find({}, 'name email phone').skip(skip).limit(limit);
+        const total = await Organization.countDocuments({});
+
+        res.json({
+            data: organizations,
+            pagination: {
+                total,
+                page,
+                limit,
+                pages: Math.ceil(total / limit)
+            }
+        });
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching organizations', error: error.message });
+        res.status(500).json({ message: 'Error fetching organizations' });
     }
 };
 
@@ -94,7 +139,7 @@ exports.getActiveDietPlans = async (req, res) => {
         const activePlans = await MealPlan.find({ isActive: true });
         res.json({ data: activePlans });
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching active diet plans', error: error.message });
+        res.status(500).json({ message: 'Error fetching active diet plans' });
     }
 };
 
@@ -123,7 +168,7 @@ exports.getSubscriptions = async (req, res) => {
         }));
         res.json({ data: formatted });
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching subscriptions', error: error.message });
+        res.status(500).json({ message: 'Error fetching subscriptions' });
     }
 };
 
@@ -184,7 +229,7 @@ exports.getMembershipRevenue = async (req, res) => {
             yearly: yearlyRevenue
         });
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching membership revenue', error: error.message });
+        res.status(500).json({ message: 'Error fetching membership revenue' });
     }
 };
 
@@ -294,7 +339,7 @@ exports.getConsultationRevenue = async (req, res) => {
             yearly: yearlyRevenue
         });
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching consultation revenue', error: error.message });
+        res.status(500).json({ message: 'Error fetching consultation revenue' });
     }
 };
 
@@ -431,7 +476,7 @@ exports.getRevenueAnalytics = async (req, res) => {
         });
     } catch (error) {
         console.error('Error fetching revenue analytics:', error);
-        res.status(500).json({ message: 'Error fetching revenue analytics', error: error.message });
+        res.status(500).json({ message: 'Error fetching revenue analytics' });
     }
 };
 
@@ -475,7 +520,7 @@ exports.getDietitianRevenue = async (req, res) => {
         });
     } catch (error) {
         console.error('Error fetching dietitian revenue:', error);
-        res.status(500).json({ message: 'Error fetching dietitian revenue', error: error.message });
+        res.status(500).json({ message: 'Error fetching dietitian revenue' });
     }
 };
 
@@ -525,6 +570,6 @@ exports.getUserRevenue = async (req, res) => {
         });
     } catch (error) {
         console.error('Error fetching user revenue:', error);
-        res.status(500).json({ message: 'Error fetching user revenue', error: error.message });
+        res.status(500).json({ message: 'Error fetching user revenue' });
     }
 };

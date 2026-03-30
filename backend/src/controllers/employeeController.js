@@ -57,8 +57,7 @@ exports.getAllEmployees = async (req, res) => {
         console.error('Error fetching employees:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to fetch employees',
-            error: error.message
+            message: 'Failed to fetch employees'
         });
     }
 };
@@ -158,8 +157,7 @@ exports.addEmployee = async (req, res) => {
         console.error('Error adding employee:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to add employee',
-            error: error.message
+            message: 'Failed to add employee'
         });
     }
 };
@@ -303,8 +301,7 @@ exports.bulkUploadEmployees = async (req, res) => {
         console.error('Error in bulk upload:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to upload employees',
-            error: error.message
+            message: 'Failed to upload employees'
         });
     }
 };
@@ -373,8 +370,7 @@ exports.updateEmployee = async (req, res) => {
         console.error('Error updating employee:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to update employee',
-            error: error.message
+            message: 'Failed to update employee'
         });
     }
 };
@@ -412,8 +408,7 @@ exports.deleteEmployee = async (req, res) => {
         console.error('Error deleting employee:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to delete employee',
-            error: error.message
+            message: 'Failed to delete employee'
         });
     }
 };
@@ -451,8 +446,7 @@ exports.inactivateEmployee = async (req, res) => {
         console.error('Error inactivating employee:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to inactivate employee',
-            error: error.message
+            message: 'Failed to inactivate employee'
         });
     }
 };
@@ -490,8 +484,7 @@ exports.activateEmployee = async (req, res) => {
         console.error('Error activating employee:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to activate employee',
-            error: error.message
+            message: 'Failed to activate employee'
         });
     }
 };
@@ -526,8 +519,7 @@ exports.getEmployeeById = async (req, res) => {
         console.error('Error fetching employee:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to fetch employee',
-            error: error.message
+            message: 'Failed to fetch employee'
         });
     }
 };
@@ -576,8 +568,7 @@ exports.getEmployeeStats = async (req, res) => {
         console.error('Error fetching employee stats:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to fetch employee statistics',
-            error: error.message
+            message: 'Failed to fetch employee statistics'
         });
     }
 };

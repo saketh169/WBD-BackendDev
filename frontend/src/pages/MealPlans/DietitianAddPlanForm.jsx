@@ -360,8 +360,6 @@ const DietitianAddPlanForm = () => {
     // Log dietitian name and ID for debugging
     useEffect(() => {
         if (user) {
-            console.log('Dietitian Name:', user.name);
-            console.log('Dietitian ID:', user.id);
         }
     }, [user]);
 

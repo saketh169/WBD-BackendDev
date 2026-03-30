@@ -59,12 +59,10 @@ const BookingSidebar = ({
     if (isOpen && dietitianId) {
       // Clear previous data when opening for a new dietitian
       dispatch(clearBookedSlots());
-      console.log("Current User ID from auth context:", user?.id || user?._id);
-      console.log("Selected Dietitian ID:", dietitianId);
       
       // Refresh slots when sidebar opens
       if (selectedDate) {
-        const userId = user?.id || user?._id || '';
+        const userId = user?.id || '';
         dispatch(fetchBookedSlots({ dietitianId, date: selectedDate, userId }));
         dispatch(fetchUserBookedSlots({ userId, date: selectedDate }));
       }
@@ -73,7 +71,7 @@ const BookingSidebar = ({
 
   // Fetch all user bookings using Redux
   useEffect(() => {
-    const userId = user?.id || user?._id;
+    const userId = user?.id;
     if (!userId || !selectedDate || !isOpen) return;
 
     dispatch(fetchUserBookedSlots({ userId, date: selectedDate }));
@@ -84,7 +82,7 @@ const BookingSidebar = ({
     (date) => {
       if (!dietitianId || !date) return;
 
-      const userId = user?.id || user?._id || '';
+      const userId = user?.id || '';
       dispatch(fetchBookedSlots({ dietitianId, date, userId }));
     },
     [dietitianId, user, dispatch]
@@ -95,9 +93,6 @@ const BookingSidebar = ({
   // Load available slots and booked slots
   useEffect(() => {
     if (!selectedDate || !dietitianId) return;
-
-    console.log("Selected date on calendar:", selectedDate);
-
     const loadSlots = () => {
       setMessage("");
       setAvailableSlots({ morning: [], afternoon: [], evening: [] });
@@ -270,8 +265,6 @@ const BookingSidebar = ({
       dietitianSpecialization:
         dietitian?.specialties?.[0] || dietitian?.specialization || "",
     };
-
-    console.log("Data being sent to payment:", dataToSend);
     onProceedToPayment(dataToSend);
   };
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from 'axios';
+import { io } from 'socket.io-client';
 import Sidebar from "../../components/Sidebar/Sidebar";
 import Status from "../../middleware/StatusBadge";
 import { useAuthContext } from "../../hooks/useAuthContext";
@@ -53,7 +54,7 @@ const DietitianDashboard = () => {
         }
       });
       const data = response.data;
-      
+
       if (data.success) {
         setNotifications(data.data.notifications || []);
         setActivities(data.data.activities || []);
@@ -70,15 +71,36 @@ const DietitianDashboard = () => {
     fetchDashboardData();
   }, [user?.id, token, fetchDashboardData]);
 
-  // Real-time polling for notifications (every 30 seconds)
+  // Real-time updates handled by WebSocket listener
+
+  // Real-time WebSocket listener for new bookings
   useEffect(() => {
     if (!user?.id || !token) return;
-    
-    const pollInterval = setInterval(() => {
-      fetchDashboardData(false); // Don't show loading spinner on poll
-    }, 30000); // Poll every 30 seconds
 
-    return () => clearInterval(pollInterval);
+    // Connect to backend Socket.IO server
+    const socket = io(import.meta.env.VITE_API_URL || 'http://localhost:5000', {
+      withCredentials: true,
+    });
+
+    socket.on('connect', () => {
+      console.log('Connected to real-time server');
+      socket.emit('register_dietitian', user.id);
+    });
+
+    socket.on('new_booking', (bookingData) => {
+      console.log('New booking received!', bookingData);
+      alert("A new appointment has just been booked!");
+      fetchDashboardData(false);
+    });
+
+    socket.on('booking_updated', (bookingData) => {
+      console.log('Booking update received!', bookingData);
+      fetchDashboardData(false);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
   }, [user?.id, token, fetchDashboardData]);
 
   // Set profile image from user data when available
@@ -142,6 +164,46 @@ const DietitianDashboard = () => {
     }
   };
 
+  const handleRemoveProfilePhoto = async () => {
+    if (!window.confirm('Are you sure you want to remove your profile photo?')) {
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      let authToken = token;
+      if (!authToken) {
+        authToken = localStorage.getItem('authToken_dietitian');
+      }
+
+      if (!authToken) {
+        alert('Session expired. Please login again.');
+        navigate('/signin?role=dietitian');
+        return;
+      }
+
+      const response = await axios.delete('/api/deletedietitian', {
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        }
+      });
+
+      if (response.data.success) {
+        setProfileImage(mockDietitian.profileImage);
+        setShowImageModal(false);
+        alert('Profile photo removed successfully!');
+        window.location.reload();
+      } else {
+        alert(`Removal failed: ${response.data.message || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Remove error:', error);
+      alert(`Remove error: ${error.response?.data?.message || error.message}`);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleLogout = () => {
     logout(); // Use context logout method
     navigate("/");
@@ -168,6 +230,10 @@ const DietitianDashboard = () => {
                 alt={`${user?.name || mockDietitian.name}'s Profile`}
                 className="w-32 h-32 rounded-full object-cover border-4 border-green-600 cursor-pointer hover:opacity-80 transition"
                 onClick={() => setShowImageModal(true)}
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  setProfileImage("/images/dummy_user.png");
+                }}
               />
               <label
                 htmlFor="profileUpload"
@@ -266,13 +332,12 @@ const DietitianDashboard = () => {
           ) : notifications.length > 0 ? (
             <ul className="space-y-3">
               {notifications.map((notification, index) => (
-                <li key={notification.id || index} className="flex items-start gap-3 text-gray-700 p-3 border-b border-gray-100 last:border-b-0 hover:bg-gray-50 transition rounded-lg">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
-                    notification.type === 'appointment' ? 'bg-blue-100' :
+                <li key={`${notification.id || notification._id || 'notif'}-${index}`} className="flex items-start gap-3 text-gray-700 p-3 border-b border-gray-100 last:border-b-0 hover:bg-gray-50 transition rounded-lg">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${notification.type === 'appointment' ? 'bg-blue-100' :
                     notification.type === 'new_booking' ? 'bg-yellow-100' :
-                    notification.type === 'verification' ? 'bg-green-100' :
-                    'bg-gray-100'
-                  }`}>
+                      notification.type === 'verification' ? 'bg-green-100' :
+                        'bg-gray-100'
+                    }`}>
                     <i className={`${notification.icon} ${notification.iconColor}`}></i>
                   </div>
                   <div className="flex-1">
@@ -306,26 +371,24 @@ const DietitianDashboard = () => {
           ) : activities.length > 0 ? (
             <ul className="space-y-3">
               {activities.slice(0, 5).map((activity, index) => (
-                <li key={activity.id || index} className="flex items-start gap-3 text-sm text-gray-700 p-2 border-b border-gray-100 last:border-b-0 hover:bg-gray-50 transition">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-                    activity.type === 'booking' ? 'bg-blue-100' : 'bg-green-100'
-                  }`}>
+                <li key={`${activity.id || activity._id || 'act'}-${index}`} className="flex items-start gap-3 text-sm text-gray-700 p-2 border-b border-gray-100 last:border-b-0 hover:bg-gray-50 transition">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${activity.type === 'booking' ? 'bg-blue-100' : 'bg-green-100'
+                    }`}>
                     <i className={`${activity.icon} ${activity.iconColor} text-xs`}></i>
                   </div>
                   <div className="flex-1">
-                    <span 
+                    <span
                       className="font-medium text-gray-800"
                       dangerouslySetInnerHTML={{ __html: activity.description }}
                     ></span>
                     <p className="text-xs text-gray-500 mt-1">{activity.details}</p>
                   </div>
                   {activity.status && (
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-                      activity.status === 'confirmed' ? 'bg-green-100 text-green-700' :
+                    <span className={`text-xs px-2 py-1 rounded-full ${activity.status === 'confirmed' ? 'bg-green-100 text-green-700' :
                       activity.status === 'completed' ? 'bg-blue-100 text-blue-700' :
-                      activity.status === 'cancelled' ? 'bg-red-100 text-red-700' :
-                      'bg-gray-100 text-gray-700'
-                    }`}>
+                        activity.status === 'cancelled' ? 'bg-red-100 text-red-700' :
+                          'bg-gray-100 text-gray-700'
+                      }`}>
                       {activity.status}
                     </span>
                   )}
@@ -391,8 +454,12 @@ const DietitianDashboard = () => {
                   >
                     <i className="fas fa-camera"></i> Change Photo
                   </button>
-                  <button
-                    onClick={() => setShowImageModal(false)}
+                  <button                    onClick={handleRemoveProfilePhoto}
+                    className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-full font-medium hover:bg-red-700 transition"
+                  >
+                    <i className="fas fa-trash"></i> Remove Photo
+                  </button>
+                  <button                    onClick={() => setShowImageModal(false)}
                     className="flex items-center gap-2 px-4 py-2 border border-gray-400 text-gray-700 rounded-full font-medium hover:bg-gray-100 transition"
                   >
                     <i className="fas fa-times"></i> Close

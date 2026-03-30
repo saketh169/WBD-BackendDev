@@ -11,7 +11,7 @@ const getSettings = async (req, res) => {
     }
     res.status(200).json(settings);
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching settings', error: error.message });
+    res.status(500).json({ message: 'Error fetching settings' });
   }
 };
 
@@ -77,7 +77,7 @@ const updateSettings = async (req, res) => {
     });
   } catch (error) {
     console.error('Error updating settings:', error);
-    res.status(500).json({ message: 'Error updating settings', error: error.message });
+    res.status(500).json({ message: 'Error updating settings' });
   }
 };
 
@@ -93,7 +93,7 @@ const sendPolicyEmail = async (req, res) => {
     const result = await sendPolicyChangeEmail(recipients, subject, message);
     res.status(200).json({ message: 'Emails sent successfully', ...result });
   } catch (error) {
-    res.status(500).json({ message: 'Error sending emails', error: error.message });
+    res.status(500).json({ message: 'Error sending emails' });
   }
 };
 

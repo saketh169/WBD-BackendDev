@@ -3,10 +3,11 @@ const rateLimit = require('express-rate-limit');
 
 const helmetMiddleware = helmet();
 
+// General API rate limiter: 2000 requests per 15 minutes per IP (relaxed for testing)
 const rateLimiter = rateLimit({
-  windowMs: 10000,
-  max: 100000,
-  message: 'Too many requests from this IP, please try again after 10 seconds',
+  windowMs: 15 * 60 * 1000,
+  max: 2000,
+  message: 'Too many requests from this IP, please try again after 15 minutes',
   standardHeaders: true,
   legacyHeaders: false,
   skip: (req) => {
@@ -15,11 +16,21 @@ const rateLimiter = rateLimit({
   },
 });
 
+// Auth-specific rate limiter: 100 attempts per 15 minutes per IP (relaxed for testing)
 const authRateLimiter = rateLimit({
-  windowMs: 10000,
-  max: 100000,
-  message: 'Too many login attempts, please try again after 10 seconds',
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: 'Too many authentication attempts, please try again after 15 minutes',
   skipSuccessfulRequests: true,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// OTP-specific rate limiter: 30 OTP requests per 10 minutes per IP (relaxed for testing)
+const otpRateLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 30,
+  message: 'Too many OTP requests, please try again later',
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -27,7 +38,8 @@ const authRateLimiter = rateLimit({
 const sanitizeInput = (req, res, next) => {
   const cleanString = (str) => {
     if (typeof str !== 'string') return str;
-    return str.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/&/g, '&amp;');
+    // Replace & first to avoid double-encoding &lt; → &amp;lt;
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   };
 
   if (req.query) {
@@ -57,22 +69,10 @@ const sanitizeInput = (req, res, next) => {
   next();
 };
 
-const corsHeaders = (req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
-  }
-
-  next();
-};
-
 module.exports = {
   helmetMiddleware,
   rateLimiter,
   authRateLimiter,
+  otpRateLimiter,
   sanitizeInput,
-  corsHeaders,
 };

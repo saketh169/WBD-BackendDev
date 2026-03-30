@@ -1,6 +1,10 @@
 const mongoose = require('mongoose');
 const { sendAccountRemovalEmail } = require('../services/emailService');
 const bcrypt = require('bcryptjs');
+
+// Escape regex special characters to prevent ReDoS
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 const {
     UserAuth,
     User,
@@ -46,7 +50,7 @@ exports.getUsersByRole = async (req, res) => {
         const { role } = req.params;
         // Remove '-list' suffix to get the actual role
         const actualRole = role.replace('-list', '');
-        const { q: searchQuery } = req.query;
+        const { q: searchQuery, page = 1, limit = 10 } = req.query;
 
         // Prevent admin management
         if (actualRole.toLowerCase() === 'admin') {
@@ -68,31 +72,43 @@ exports.getUsersByRole = async (req, res) => {
 
         // Add search functionality
         if (searchQuery) {
+            const safeQuery = escapeRegex(searchQuery);
             query = {
                 $or: [
-                    { name: { $regex: searchQuery, $options: 'i' } },
-                    { email: { $regex: searchQuery, $options: 'i' } }
+                    { name: { $regex: safeQuery, $options: 'i' } },
+                    { email: { $regex: safeQuery, $options: 'i' } }
                 ]
             };
         }
 
-        const users = await Model.find(query)
-            .select('-__v -createdAt -updatedAt') // Exclude version and timestamps
-            .sort({ createdAt: -1 })
-            .limit(100); // Limit results for performance
+        const pageNumber = parseInt(page, 10) || 1;
+        const pageSize = parseInt(limit, 10) || 10;
+        const skip = (pageNumber - 1) * pageSize;
+
+        const [users, total] = await Promise.all([
+            Model.find(query)
+                .select('-__v -createdAt -updatedAt') // Exclude version and timestamps
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(pageSize),
+            Model.countDocuments(query)
+        ]);
 
         res.status(200).json({
             success: true,
             data: users,
-            count: users.length
+            count: users.length,
+            total,
+            page: pageNumber,
+            limit: pageSize,
+            pages: Math.ceil(total / pageSize)
         });
 
     } catch (error) {
         console.error('Error fetching users by role:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to fetch users',
-            error: error.message
+            message: 'Failed to fetch users'
         });
     }
 };
@@ -139,7 +155,7 @@ exports.getUserDetails = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to fetch user details',
-            error: error.message
+            // error detail logged server-side only
         });
     }
 };
@@ -150,8 +166,8 @@ exports.removeUser = async (req, res) => {
         const { role, id } = req.params;
         // Remove '-list' suffix to get the actual role
         const actualRole = role.replace('-list', '');
-        const adminToken = req.headers.authorization?.replace('Bearer ', '') ||
-            req.headers['admin-auth-token'];
+        // Use admin ID from JWT — never store raw tokens in the database
+        const adminId = req.user?.roleId || req.user?.employeeId || req.user?.userId || 'unknown';
         const { reason } = req.body;
 
         // Reason is mandatory
@@ -199,7 +215,7 @@ exports.removeUser = async (req, res) => {
             phone: user.phone,
             role: actualRole.toLowerCase(),
             accountType: actualRole.charAt(0).toUpperCase() + actualRole.slice(1),
-            removedBy: adminToken, // In real app, decode admin info from token
+            removedBy: adminId,
             removalReason: reason.trim(),
             originalPasswordHash: originalPasswordHash, // Store original password hash
             originalData: user.toObject()
@@ -234,7 +250,7 @@ exports.removeUser = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to remove user',
-            error: error.message
+            // error detail logged server-side only
         });
     }
 };
@@ -242,29 +258,42 @@ exports.removeUser = async (req, res) => {
 // Get removed accounts with optional search
 exports.getRemovedAccounts = async (req, res) => {
     try {
-        const { q: searchQuery } = req.query;
+        const { q: searchQuery, page = 1, limit = 10 } = req.query;
 
         let query = {};
 
         // Add search functionality
         if (searchQuery) {
+            const safeQuery = escapeRegex(searchQuery);
             query = {
                 $or: [
-                    { name: { $regex: searchQuery, $options: 'i' } },
-                    { email: { $regex: searchQuery, $options: 'i' } }
+                    { name: { $regex: safeQuery, $options: 'i' } },
+                    { email: { $regex: safeQuery, $options: 'i' } }
                 ]
             };
         }
 
-        const removedAccounts = await RemovedAccount.find(query)
-            .select('-__v') // Exclude version, but keep originalData for details view
-            .sort({ removedOn: -1 })
-            .limit(100);
+        const pageNumber = parseInt(page, 10) || 1;
+        const pageSize = parseInt(limit, 10) || 10;
+        const skip = (pageNumber - 1) * pageSize;
+
+        const [removedAccounts, total] = await Promise.all([
+            RemovedAccount.find(query)
+                .select('-__v') // Exclude version, but keep originalData for details view
+                .sort({ removedOn: -1 })
+                .skip(skip)
+                .limit(pageSize),
+            RemovedAccount.countDocuments(query)
+        ]);
 
         res.status(200).json({
             success: true,
             data: removedAccounts,
-            count: removedAccounts.length
+            count: removedAccounts.length,
+            total,
+            page: pageNumber,
+            limit: pageSize,
+            pages: Math.ceil(total / pageSize)
         });
 
     } catch (error) {
@@ -272,7 +301,7 @@ exports.getRemovedAccounts = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to fetch removed accounts',
-            error: error.message
+            // error detail logged server-side only
         });
     }
 };
@@ -346,7 +375,7 @@ exports.restoreAccount = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to restore account',
-            error: error.message
+            // error detail logged server-side only
         });
     }
 };
@@ -375,7 +404,7 @@ exports.permanentDeleteAccount = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to permanently delete account',
-            error: error.message
+            // error detail logged server-side only
         });
     }
 };

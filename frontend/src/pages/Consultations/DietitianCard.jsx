@@ -31,6 +31,7 @@ const DietitianCard = ({ dietitian, onBookAppointment }) => {
   const {
     _id: id,
     photo,
+    profileImage,
     name,
     specialties = [],
     experience = 0,
@@ -61,14 +62,14 @@ const DietitianCard = ({ dietitian, onBookAppointment }) => {
   };
 
   return (
-    <div 
+    <div
       className="rounded-2xl shadow-lg bg-white p-6 mb-6 flex flex-col gap-4 hover:shadow-xl transition-all duration-300 border border-gray-200 hover:border-[#28B463] cursor-pointer group"
       onClick={handleCardClick}
     >
       <div className="flex gap-6 items-start">
         <div className="relative">
           <img
-            src={photo || "https://via.placeholder.com/128?text=Dietitian"}
+            src={photo || profileImage || "https://via.placeholder.com/128?text=Dietitian"}
             alt={name}
             className="rounded-xl object-cover shrink transition-transform duration-300 group-hover:scale-105 border-4 border-[#28B463]"
             style={{
@@ -148,8 +149,8 @@ const DietitianCard = ({ dietitian, onBookAppointment }) => {
                 {onlineConsultation && offlineConsultation
                   ? "Online & In-person"
                   : onlineConsultation
-                  ? "Online only"
-                  : "In-person only"}
+                    ? "Online only"
+                    : "In-person only"}
               </div>
             </div>
           </div>

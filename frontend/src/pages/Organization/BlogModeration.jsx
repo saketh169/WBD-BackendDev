@@ -156,9 +156,7 @@ const BlogModeration = () => {
     };
 
     const stripHtmlTags = (html) => {
-        const tmp = document.createElement('DIV');
-        tmp.innerHTML = html;
-        return tmp.textContent || tmp.innerText || '';
+        return html ? html.replace(/<[^>]*>/g, '') : '';
     };
 
     return (
@@ -168,7 +166,7 @@ const BlogModeration = () => {
                 <div className="fixed top-4 right-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg shadow-lg z-50 max-w-sm">
                     <div className="flex items-center">
                         <div className="py-1">
-                            <svg className="fill-current h-6 w-6 text-green-500 mr-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                            <svg className="fill-current h-6 w-6 text-green-500 mr-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" aria-hidden="true">
                                 <path d="M2.93 17.07A10 10 0 1 1 17.07 2.93 10 10 0 0 1 2.93 17.07zm12.73-1.41A8 8 0 1 0 4.34 4.34a8 8 0 0 0 11.32 11.32zM15 9a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V7a1 1 0 0 1 2 0v1h4a1 1 0 0 1 1 1z" />
                             </svg>
                         </div>
@@ -184,7 +182,7 @@ const BlogModeration = () => {
                 <div className="fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg shadow-lg z-50 max-w-sm">
                     <div className="flex items-center">
                         <div className="py-1">
-                            <svg className="fill-current h-6 w-6 text-red-500 mr-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                            <svg className="fill-current h-6 w-6 text-red-500 mr-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" aria-hidden="true">
                                 <path d="M2.93 17.07A10 10 0 1 1 17.07 2.93 10 10 0 0 1 2.93 17.07zm12.73-1.41A8 8 0 1 0 4.34 4.34a8 8 0 0 0 11.32 11.32zM13.41 12l1.42 1.41a1 1 0 1 1-1.42 1.42L12 13.4l-1.41 1.42a1 1 0 1 1-1.42-1.42L10.59 12l-1.42-1.41a1 1 0 1 1 1.42-1.42L12 10.59l1.41-1.42a1 1 0 1 1 1.42 1.42L13.41 12z" />
                             </svg>
                         </div>
@@ -369,6 +367,7 @@ const BlogModeration = () => {
                             <button
                                 onClick={() => setShowDetailsModal(false)}
                                 className="text-gray-500 hover:text-gray-700 text-2xl"
+                                aria-label="Close"
                             >
                                 ×
                             </button>

@@ -17,34 +17,38 @@ const SubscriptionAlert = ({
 
   const limitInfo = {
     booking: {
-      icon: '📅',
+      icon: 'fas fa-calendar-check',
       title: 'Booking Limit Reached',
-      upgradeMessage: 'Upgrade to book more consultations'
+      upgradeMessage: 'Upgrade to book more consultations',
+      color: '#E8B86D'
     },
     advance: {
-      icon: '⏰',
+      icon: 'fas fa-hourglass-end',
       title: 'Advance Booking Restricted',
-      upgradeMessage: 'Upgrade to book further in advance'
+      upgradeMessage: 'Upgrade to book further in advance',
+      color: '#E8B86D'
     },
     chatbot: {
-      icon: '🤖',
+      icon: 'fas fa-robot',
       title: 'Chatbot Limit Reached',
-      upgradeMessage: 'Upgrade for more chatbot queries'
+      upgradeMessage: 'Upgrade for more chatbot queries',
+      color: '#27AE60'
     },
     blog: {
-      icon: '📝',
+      icon: 'fas fa-pen-fancy',
       title: 'Blog Post Limit Reached',
-      upgradeMessage: 'Upgrade to post more blogs'
+      upgradeMessage: 'Upgrade to post more blogs',
+      color: '#3498DB'
     }
   };
 
   const info = limitInfo[limitType] || limitInfo.booking;
 
   const planBenefits = {
-    free: ['Limited features', 'No consultations', 'Basic chatbot'],
-    basic: ['2 consultations/month', '4 user daily progress plans', '20 chatbot queries/day'],
-    premium: ['8 consultations/month', '15 user daily progress plans', '50 chatbot queries/day'],
-    ultimate: ['20 consultations/month', 'Unlimited user daily progress plans', 'Unlimited chatbot']
+    free: ['3 consultations/month', '5 progress plans', '25 chatbot queries/day'],
+    basic: ['5 consultations/month', '10 progress plans', '40 chatbot queries/day'],
+    premium: ['12 consultations/month', '20 progress plans', '75 chatbot queries/day'],
+    ultimate: ['Unlimited consultations', 'Unlimited progress plans', 'Unlimited chatbot']
   };
 
   return (
@@ -69,7 +73,9 @@ const SubscriptionAlert = ({
         )}
 
         {/* Icon */}
-        <div className="text-6xl mb-4 text-center">{info.icon}</div>
+        <div className="text-3xl mb-4 text-center" style={{ color: info.color }}>
+          <i className={`${info.icon}`}></i>
+        </div>
 
         {/* Title */}
         <h2 className="text-2xl font-bold text-center mb-3" style={{ color: '#1A4A40' }}>

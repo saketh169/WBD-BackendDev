@@ -78,7 +78,7 @@ const DietitianVerify = () => {
   const [modal, setModal] = useState({
     active: false,
     message: '',
-    onConfirm: () => {}
+    onConfirm: () => { }
   })
   const [fileViewer, setFileViewer] = useState({ active: false, file: null })
   const [currentPage, setCurrentPage] = useState(1)
@@ -107,7 +107,7 @@ const DietitianVerify = () => {
       const response = await axios.get('/api/verify/dietitians', {
         withCredentials: true
       });
-      
+
       const data = response.data;
       setDietitians(data.map((d, index) => ({ ...d, rowId: index + 1 })));
     } catch (error) {
@@ -128,10 +128,10 @@ const DietitianVerify = () => {
         },
         withCredentials: true,
       });
-      
+
       // Log activity
       const dietitian = dietitians.find(d => d._id === dietitianId);
-      
+
       if (dietitian) {
         axios.post('/api/organization/log-activity', {
           activityType: 'verification_approved',
@@ -145,7 +145,7 @@ const DietitianVerify = () => {
           withCredentials: true
         }).catch(err => console.warn('Activity log failed:', err));
       }
-      
+
       handleNotify(`Document ${FIELD_MAP[field].name} verified.`, 'success');
       fetchDietitians(); // Refresh data
     } catch (error) {
@@ -162,10 +162,10 @@ const DietitianVerify = () => {
         },
         withCredentials: true,
       });
-      
+
       // Log activity
       const dietitian = dietitians.find(d => d._id === dietitianId);
-      
+
       if (dietitian) {
         axios.post('/api/organization/log-activity', {
           activityType: 'verification_rejected',
@@ -179,7 +179,7 @@ const DietitianVerify = () => {
           withCredentials: true
         }).catch(err => console.warn('Activity log failed:', err));
       }
-      
+
       handleNotify(`Document ${FIELD_MAP[field].name} rejected.`, 'error');
       fetchDietitians(); // Refresh data
     } catch (error) {
@@ -196,10 +196,10 @@ const DietitianVerify = () => {
         },
         withCredentials: true,
       });
-      
+
       // Log activity
       const dietitian = dietitians.find(d => d._id === dietitianId);
-      
+
       if (dietitian) {
         axios.post('/api/organization/log-activity', {
           activityType: 'verification_approved',
@@ -213,7 +213,7 @@ const DietitianVerify = () => {
           withCredentials: true
         }).catch(err => console.warn('Activity log failed:', err));
       }
-      
+
       handleNotify('Dietitian has been finally approved!', 'success');
       fetchDietitians(); // Refresh data
       setExpandedRow(null); // Close the expanded row
@@ -235,10 +235,10 @@ const DietitianVerify = () => {
         },
         withCredentials: true,
       });
-      
+
       // Log activity
       const dietitian = dietitians.find(d => d._id === dietitianId);
-      
+
       if (dietitian) {
         axios.post('/api/organization/log-activity', {
           activityType: 'verification_rejected',
@@ -252,7 +252,7 @@ const DietitianVerify = () => {
           withCredentials: true
         }).catch(err => console.warn('Activity log failed:', err));
       }
-      
+
       handleNotify('Dietitian has been finally rejected.', 'error', 5000, true);
       fetchDietitians(); // Refresh data
       setExpandedRow(null); // Close the expanded row
@@ -293,7 +293,7 @@ const DietitianVerify = () => {
         withCredentials: true,
       });
       const data = response.data;
-      const dataUrl = `data:${data.file.mime};base64,${data.file.base64}`;
+      const dataUrl = data.file.url;
       setFileViewer({ active: true, file: { dataUrl, mime: data.file.mime } });
     } catch (error) {
       console.error('Error fetching file:', error);
@@ -310,7 +310,7 @@ const DietitianVerify = () => {
         withCredentials: true,
       });
       const data = response.data;
-      const dataUrl = `data:${data.file.mime};base64,${data.file.base64}`;
+      const dataUrl = data.file.url;
       const link = document.createElement('a');
       link.href = dataUrl;
       link.download = `${fileName}.${fileExt}`;
@@ -363,31 +363,28 @@ const DietitianVerify = () => {
         {/* Modern Notification */}
         {notification && (
           <div
-            className={`fixed top-6 right-6 z-50 p-4 rounded-2xl shadow-xl border-l-4 backdrop-blur-sm animate-in slide-in-from-right-4 duration-500 w-full max-w-md ${
-              notification.type === 'success'
+            className={`fixed top-6 right-6 z-50 p-4 rounded-2xl shadow-xl border-l-4 backdrop-blur-sm animate-in slide-in-from-right-4 duration-500 w-full max-w-md ${notification.type === 'success'
                 ? 'bg-emerald-50/95 border-emerald-400 text-emerald-800 shadow-emerald-100'
                 : notification.type === 'error'
-                ? 'bg-red-50/95 border-red-400 text-red-800 shadow-red-100'
-                : 'bg-blue-50/95 border-blue-400 text-blue-800 shadow-blue-100'
-            }`}
+                  ? 'bg-red-50/95 border-red-400 text-red-800 shadow-red-100'
+                  : 'bg-blue-50/95 border-blue-400 text-blue-800 shadow-blue-100'
+              }`}
           >
             <div className='flex items-start justify-between'>
               <div className='flex items-start'>
-                <div className={`p-2 rounded-xl mr-3 ${
-                  notification.type === 'success'
+                <div className={`p-2 rounded-xl mr-3 ${notification.type === 'success'
                     ? 'bg-emerald-100'
                     : notification.type === 'error'
-                    ? 'bg-red-100'
-                    : 'bg-blue-100'
-                }`}>
+                      ? 'bg-red-100'
+                      : 'bg-blue-100'
+                  }`}>
                   <i
-                    className={`text-lg ${
-                      notification.type === 'success'
+                    className={`text-lg ${notification.type === 'success'
                         ? 'fa-check-circle text-emerald-600'
                         : notification.type === 'error'
-                        ? 'fa-exclamation-triangle text-red-600'
-                        : 'fa-info-circle text-blue-600'
-                    }`}
+                          ? 'fa-exclamation-triangle text-red-600'
+                          : 'fa-info-circle text-blue-600'
+                      }`}
                   ></i>
                 </div>
                 <div>
@@ -424,7 +421,7 @@ const DietitianVerify = () => {
                 <button
                   className='flex-1 bg-slate-100 text-slate-700 py-3 px-6 rounded-2xl font-semibold hover:bg-slate-200 transition-all duration-200 shadow-sm hover:shadow-md'
                   onClick={() => {
-                    setModal({ active: false, message: '', onConfirm: () => {} })
+                    setModal({ active: false, message: '', onConfirm: () => { } })
                   }}
                 >
                   <i className='fas fa-times mr-2'></i> Cancel
@@ -519,322 +516,316 @@ const DietitianVerify = () => {
                 </tr>
               ) : (
                 paginatedDietitians.map(d => {
-                const overallStatus =
-                  d.verificationStatus.finalReport || 'Not Received'
-                const documentUploadStatus = d.documentUploadStatus || 'pending'
-                const displayStatus =
-                  documentUploadStatus === 'verified' ? 'Verified' : 
-                  overallStatus === 'Not Received' ? 'Pending' : overallStatus
-                const statusColor =
-                  documentUploadStatus === 'verified'
-                    ? 'text-emerald-600'
-                    : overallStatus === 'Rejected'
-                    ? 'text-red-600'
-                    : 'text-amber-600'
+                  const overallStatus =
+                    d.verificationStatus.finalReport || 'Not Received'
+                  const documentUploadStatus = d.documentUploadStatus || 'pending'
+                  const displayStatus =
+                    documentUploadStatus === 'verified' ? 'Verified' :
+                      overallStatus === 'Not Received' ? 'Pending' : overallStatus
+                  const statusColor =
+                    documentUploadStatus === 'verified'
+                      ? 'text-emerald-600'
+                      : overallStatus === 'Rejected'
+                        ? 'text-red-600'
+                        : 'text-amber-600'
 
-                return (
-                  <React.Fragment key={d._id}>
-                    <tr
-                      id={`dietitian-row-${d._id}`}
-                      className='hover:bg-emerald-100/70 cursor-pointer transition-all duration-300 group border-b border-emerald-100'
-                      onClick={() => toggleDocumentDetails(d.rowId)}
-                    >
-                      <td className='py-3 px-8'>
-                        <div className='flex items-center'>
-                          <div className='p-3 bg-emerald-100 rounded-xl mr-4 group-hover:bg-emerald-200 transition-colors duration-200'>
-                            <i className='fas fa-user-md text-emerald-600 text-lg'></i>
+                  return (
+                    <React.Fragment key={d._id}>
+                      <tr
+                        id={`dietitian-row-${d._id}`}
+                        className='hover:bg-emerald-100/70 cursor-pointer transition-all duration-300 group border-b border-emerald-100'
+                        onClick={() => toggleDocumentDetails(d.rowId)}
+                      >
+                        <td className='py-3 px-8'>
+                          <div className='flex items-center'>
+                            <div className='p-3 bg-emerald-100 rounded-xl mr-4 group-hover:bg-emerald-200 transition-colors duration-200'>
+                              <i className='fas fa-user-md text-emerald-600 text-lg'></i>
+                            </div>
+                            <div>
+                              <div className='font-bold text-slate-800 text-lg'>{d.name}</div>
+                              <div className='text-sm text-slate-500'>Dietitian</div>
+                            </div>
                           </div>
-                          <div>
-                            <div className='font-bold text-slate-800 text-lg'>{d.name}</div>
-                            <div className='text-sm text-slate-500'>Dietitian</div>
+                        </td>
+                        <td className='py-3 px-8'>
+                          <div className='flex items-center'>
+                            <div className={`p-2 rounded-xl mr-3 ${documentUploadStatus === 'verified'
+                                ? 'bg-emerald-100'
+                                : overallStatus === 'Rejected'
+                                  ? 'bg-red-100'
+                                  : 'bg-amber-100'
+                              }`}>
+                              <i
+                                className={`fas fa-${STATUS_ICONS[overallStatus]} ${documentUploadStatus === 'verified'
+                                    ? 'text-emerald-600'
+                                    : overallStatus === 'Rejected'
+                                      ? 'text-red-600'
+                                      : 'text-amber-600'
+                                  }`}
+                              ></i>
+                            </div>
+                            <span className={`font-bold text-lg ${statusColor}`}>
+                              {displayStatus}
+                            </span>
+                            <i className='fas fa-chevron-down text-slate-400 ml-auto group-hover:text-emerald-500 transition-colors duration-200'></i>
                           </div>
-                        </div>
-                      </td>
-                      <td className='py-3 px-8'>
-                        <div className='flex items-center'>
-                          <div className={`p-2 rounded-xl mr-3 ${
-                            documentUploadStatus === 'verified'
-                              ? 'bg-emerald-100'
-                              : overallStatus === 'Rejected'
-                              ? 'bg-red-100'
-                              : 'bg-amber-100'
-                          }`}>
-                            <i
-                              className={`fas fa-${STATUS_ICONS[overallStatus]} ${
-                                documentUploadStatus === 'verified'
-                                  ? 'text-emerald-600'
-                                  : overallStatus === 'Rejected'
-                                  ? 'text-red-600'
-                                  : 'text-amber-600'
-                              }`}
-                            ></i>
-                          </div>
-                          <span className={`font-bold text-lg ${statusColor}`}>
-                            {displayStatus}
-                          </span>
-                          <i className='fas fa-chevron-down text-slate-400 ml-auto group-hover:text-emerald-500 transition-colors duration-200'></i>
-                        </div>
-                      </td>
-                    </tr>
-                    {expandedRow === d.rowId && (
-                      <tr>
-                        <td colSpan='2' className='p-0'>
-                          <div className='bg-linear-to-r from-slate-50 to-emerald-50/30 p-8 border-t border-slate-200'>
-                            <div className='max-w-6xl mx-auto'>
-                              <div className='flex items-center mb-8'>
-                                <div className='p-3 bg-emerald-100 rounded-2xl mr-4'>
-                                  <i className='fas fa-folder-open text-emerald-600 text-xl'></i>
+                        </td>
+                      </tr>
+                      {expandedRow === d.rowId && (
+                        <tr>
+                          <td colSpan='2' className='p-0'>
+                            <div className='bg-linear-to-r from-slate-50 to-emerald-50/30 p-8 border-t border-slate-200'>
+                              <div className='max-w-6xl mx-auto'>
+                                <div className='flex items-center mb-8'>
+                                  <div className='p-3 bg-emerald-100 rounded-2xl mr-4'>
+                                    <i className='fas fa-folder-open text-emerald-600 text-xl'></i>
+                                  </div>
+                                  <div>
+                                    <h3 className='text-xl font-bold text-slate-800'>
+                                      Document Verification
+                                    </h3>
+                                    <p className='text-slate-600'>Review and verify documents for {d.name}</p>
+                                  </div>
                                 </div>
-                                <div>
-                                  <h3 className='text-xl font-bold text-slate-800'>
-                                    Document Verification
-                                  </h3>
-                                  <p className='text-slate-600'>Review and verify documents for {d.name}</p>
-                                </div>
-                              </div>
 
-                              <div className='grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8'>
-                                {Object.keys(FIELD_MAP).map(field => {
-                                  const status =
-                                    d.verificationStatus[field] ||
-                                    (field === 'finalReport'
-                                      ? 'Not Received'
-                                      : 'Not Uploaded')
-                                  const fileExists = [
-                                    'Received',
-                                    'Pending',
-                                    'Verified',
-                                    'Rejected'
-                                  ].includes(status)
-                                  const fieldInfo = FIELD_MAP[field]
-                                  const isOptional = fieldInfo.optional
+                                <div className='grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8'>
+                                  {Object.keys(FIELD_MAP).map(field => {
+                                    const status =
+                                      d.verificationStatus[field] ||
+                                      (field === 'finalReport'
+                                        ? 'Not Received'
+                                        : 'Not Uploaded')
+                                    const fileExists = [
+                                      'Received',
+                                      'Pending',
+                                      'Verified',
+                                      'Rejected'
+                                    ].includes(status)
+                                    const fieldInfo = FIELD_MAP[field]
+                                    const isOptional = fieldInfo.optional
 
-                                  return (
-                                    <div
-                                      key={field}
-                                      className='bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:shadow-lg transition-all duration-200'
-                                    >
-                                      <div className='flex items-start justify-between mb-4'>
-                                        <div className='flex items-center'>
-                                          <div className={`p-3 rounded-xl mr-4 ${
-                                            status === 'Verified'
-                                              ? 'bg-emerald-100'
-                                              : status === 'Rejected'
-                                              ? 'bg-red-100'
-                                              : status === 'Received' || status === 'Pending'
-                                              ? 'bg-amber-100'
-                                              : 'bg-slate-100'
-                                          }`}>
-                                            <i
-                                              className={`${fieldInfo.icon} text-lg ${
-                                                status === 'Verified'
-                                                  ? 'text-emerald-600'
-                                                  : status === 'Rejected'
-                                                  ? 'text-red-600'
+                                    return (
+                                      <div
+                                        key={field}
+                                        className='bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:shadow-lg transition-all duration-200'
+                                      >
+                                        <div className='flex items-start justify-between mb-4'>
+                                          <div className='flex items-center'>
+                                            <div className={`p-3 rounded-xl mr-4 ${status === 'Verified'
+                                                ? 'bg-emerald-100'
+                                                : status === 'Rejected'
+                                                  ? 'bg-red-100'
                                                   : status === 'Received' || status === 'Pending'
-                                                  ? 'text-amber-600'
-                                                  : 'text-slate-500'
-                                              }`}
-                                            ></i>
-                                          </div>
-                                          <div>
-                                            <h4 className='font-bold text-slate-800 text-lg'>
-                                              {fieldInfo.name}
-                                            </h4>
-                                            {isOptional && (
-                                              <span className='text-sm text-slate-500 bg-slate-100 px-2 py-1 rounded-lg'>
-                                                Optional
-                                              </span>
-                                            )}
+                                                    ? 'bg-amber-100'
+                                                    : 'bg-slate-100'
+                                              }`}>
+                                              <i
+                                                className={`${fieldInfo.icon} text-lg ${status === 'Verified'
+                                                    ? 'text-emerald-600'
+                                                    : status === 'Rejected'
+                                                      ? 'text-red-600'
+                                                      : status === 'Received' || status === 'Pending'
+                                                        ? 'text-amber-600'
+                                                        : 'text-slate-500'
+                                                  }`}
+                                              ></i>
+                                            </div>
+                                            <div>
+                                              <h4 className='font-bold text-slate-800 text-lg'>
+                                                {fieldInfo.name}
+                                              </h4>
+                                              {isOptional && (
+                                                <span className='text-sm text-slate-500 bg-slate-100 px-2 py-1 rounded-lg'>
+                                                  Optional
+                                                </span>
+                                              )}
+                                            </div>
                                           </div>
                                         </div>
-                                      </div>
 
-                                      <div className='flex items-center justify-between'>
-                                        <span
-                                          className={`px-4 py-2 rounded-xl text-sm font-bold ${
-                                            status === 'Verified'
-                                              ? 'bg-emerald-100 text-emerald-800'
-                                              : status === 'Rejected'
-                                              ? 'bg-red-100 text-red-800'
-                                              : status === 'Received' || status === 'Pending'
-                                              ? 'bg-amber-100 text-amber-800'
-                                              : 'bg-slate-100 text-slate-800'
-                                          }`}
-                                        >
-                                          {status}
-                                        </span>
+                                        <div className='flex items-center justify-between'>
+                                          <span
+                                            className={`px-4 py-2 rounded-xl text-sm font-bold ${status === 'Verified'
+                                                ? 'bg-emerald-100 text-emerald-800'
+                                                : status === 'Rejected'
+                                                  ? 'bg-red-100 text-red-800'
+                                                  : status === 'Received' || status === 'Pending'
+                                                    ? 'bg-amber-100 text-amber-800'
+                                                    : 'bg-slate-100 text-slate-800'
+                                              }`}
+                                          >
+                                            {status}
+                                          </span>
 
-                                        {fileExists && (
-                                          <div className='flex gap-2'>
+                                          {fileExists && (
+                                            <div className='flex gap-2'>
+                                              <button
+                                                className='p-2 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-xl transition-all duration-200'
+                                                onClick={e => {
+                                                  e.preventDefault()
+                                                  viewFile(d._id, field)
+                                                }}
+                                                title='View Document'
+                                              >
+                                                <i className='fas fa-eye'></i>
+                                              </button>
+                                              <button
+                                                className='p-2 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-xl transition-all duration-200'
+                                                onClick={e => {
+                                                  e.preventDefault()
+                                                  downloadFile(
+                                                    d._id,
+                                                    field,
+                                                    fieldInfo.name,
+                                                    fieldInfo.ext
+                                                  )
+                                                }}
+                                                title='Download Document'
+                                              >
+                                                <i className='fas fa-download'></i>
+                                              </button>
+                                            </div>
+                                          )}
+                                        </div>
+
+                                        {status === 'Pending' && field !== 'finalReport' && (
+                                          <div className='flex gap-3 mt-4'>
                                             <button
-                                              className='p-2 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-xl transition-all duration-200'
-                                              onClick={e => {
-                                                e.preventDefault()
-                                                viewFile(d._id, field)
-                                              }}
-                                              title='View Document'
+                                              className='flex-1 bg-linear-to-r from-emerald-500 to-teal-600 text-white py-2 px-4 rounded-xl hover:from-emerald-600 hover:to-teal-700 transition-all duration-200 shadow-sm hover:shadow-md font-semibold'
+                                              onClick={() =>
+                                                verifyDocument(d._id, field)
+                                              }
                                             >
-                                              <i className='fas fa-eye'></i>
+                                              <i className='fas fa-check mr-2'></i> Verify
                                             </button>
                                             <button
-                                              className='p-2 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-xl transition-all duration-200'
-                                              onClick={e => {
-                                                e.preventDefault()
-                                                downloadFile(
-                                                  d._id,
-                                                  field,
-                                                  fieldInfo.name,
-                                                  fieldInfo.ext
-                                                )
-                                              }}
-                                              title='Download Document'
+                                              className='flex-1 bg-linear-to-r from-red-500 to-rose-600 text-white py-2 px-4 rounded-xl hover:from-red-600 hover:to-rose-700 transition-all duration-200 shadow-sm hover:shadow-md font-semibold'
+                                              onClick={() =>
+                                                rejectDocument(d._id, field)
+                                              }
                                             >
-                                              <i className='fas fa-download'></i>
+                                              <i className='fas fa-times mr-2'></i> Reject
                                             </button>
                                           </div>
                                         )}
                                       </div>
+                                    )
+                                  })}
+                                </div>
 
-                                      {status === 'Pending' && field !== 'finalReport' && (
-                                        <div className='flex gap-3 mt-4'>
-                                          <button
-                                            className='flex-1 bg-linear-to-r from-emerald-500 to-teal-600 text-white py-2 px-4 rounded-xl hover:from-emerald-600 hover:to-teal-700 transition-all duration-200 shadow-sm hover:shadow-md font-semibold'
-                                            onClick={() =>
-                                              verifyDocument(d._id, field)
-                                            }
-                                          >
-                                            <i className='fas fa-check mr-2'></i> Verify
-                                          </button>
-                                          <button
-                                            className='flex-1 bg-linear-to-r from-red-500 to-rose-600 text-white py-2 px-4 rounded-xl hover:from-red-600 hover:to-rose-700 transition-all duration-200 shadow-sm hover:shadow-md font-semibold'
-                                            onClick={() =>
-                                              rejectDocument(d._id, field)
-                                            }
-                                          >
-                                            <i className='fas fa-times mr-2'></i> Reject
-                                          </button>
-                                        </div>
-                                      )}
+                                {/* Modern Upload Report */}
+                                <div className='bg-white p-6 rounded-2xl shadow-lg border border-slate-200'>
+                                  <div className='flex items-center mb-4'>
+                                    <div className='p-3 bg-emerald-100 rounded-xl mr-4'>
+                                      <i className='fas fa-upload text-emerald-600 text-lg'></i>
                                     </div>
-                                  )
-                                })}
-                              </div>
-
-                            {/* Modern Upload Report */}
-                            <div className='bg-white p-6 rounded-2xl shadow-lg border border-slate-200'>
-                              <div className='flex items-center mb-4'>
-                                <div className='p-3 bg-emerald-100 rounded-xl mr-4'>
-                                  <i className='fas fa-upload text-emerald-600 text-lg'></i>
-                                </div>
-                                <div>
-                                  <h4 className='text-xl font-bold text-slate-800'>
-                                    Upload Final Verification Report
-                                  </h4>
-                                  <p className='text-slate-600 text-sm'>PDF files only</p>
-                                </div>
-                              </div>
-                              <p className='text-slate-600 mb-6 leading-relaxed'>
-                                Upload a detailed report before final approval or rejection of this dietitian.
-                              </p>
-                              <div className='relative'>
-                                <input
-                                  type='file'
-                                  accept='.pdf'
-                                  onChange={e =>
-                                    handleFileUpload(d._id, e.target.files[0])
-                                  }
-                                  className='w-full p-4 border-2 border-dashed border-slate-300 rounded-xl text-slate-600 bg-slate-50 hover:bg-slate-100 hover:border-emerald-400 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100'
-                                />
-                                <div className='absolute inset-0 flex items-center justify-center pointer-events-none'>
-                                  <div className='text-center'>
-                                    <i className='fas fa-cloud-upload-alt text-3xl text-slate-400 mb-2'></i>
-                                    <p className='text-slate-500 text-sm'>Drop PDF here or click to browse</p>
+                                    <div>
+                                      <h4 className='text-xl font-bold text-slate-800'>
+                                        Upload Final Verification Report
+                                      </h4>
+                                      <p className='text-slate-600 text-sm'>PDF files only</p>
+                                    </div>
+                                  </div>
+                                  <p className='text-slate-600 mb-6 leading-relaxed'>
+                                    Upload a detailed report before final approval or rejection of this dietitian.
+                                  </p>
+                                  <div className='relative'>
+                                    <input
+                                      type='file'
+                                      accept='.pdf'
+                                      onChange={e =>
+                                        handleFileUpload(d._id, e.target.files[0])
+                                      }
+                                      className='w-full p-4 border-2 border-dashed border-slate-300 rounded-xl text-slate-600 bg-slate-50 hover:bg-slate-100 hover:border-emerald-400 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100'
+                                    />
+                                    <div className='absolute inset-0 flex items-center justify-center pointer-events-none'>
+                                      <div className='text-center'>
+                                        <i className='fas fa-cloud-upload-alt text-3xl text-slate-400 mb-2'></i>
+                                        <p className='text-slate-500 text-sm'>Drop PDF here or click to browse</p>
+                                      </div>
+                                    </div>
                                   </div>
                                 </div>
+
+                                <div className='flex flex-col sm:flex-row gap-4 mb-6'>
+                                  <button
+                                    className={`flex-1 bg-linear-to-r from-emerald-500 to-teal-600 text-white py-4 px-6 rounded-2xl font-bold hover:from-emerald-600 hover:to-teal-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 hover:bg-emerald-600`}
+                                    onClick={() => finalVerify(d._id)}
+                                    disabled={
+                                      ![
+                                        'Received',
+                                        'Verified',
+                                        'Rejected'
+                                      ].includes(d.verificationStatus.finalReport)
+                                    }
+                                  >
+                                    <i className='fas fa-check-circle mr-2'></i>{' '}
+                                    Final Approve
+                                  </button>
+                                  <button
+                                    className='flex-1 bg-linear-to-r from-red-500 to-rose-600 text-white py-4 px-6 rounded-2xl font-bold hover:from-red-600 hover:to-rose-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:-translate-y-0.5'
+                                    onClick={() => finalReject(d._id)}
+                                    disabled={
+                                      ![
+                                        'Received',
+                                        'Verified',
+                                        'Rejected'
+                                      ].includes(d.verificationStatus.finalReport)
+                                    }
+                                  >
+                                    <i className='fas fa-times-circle mr-2'></i>{' '}
+                                    Final Reject
+                                  </button>
+                                </div>
+
+                                {/* Full border separator */}
+                                <div className='border-t-2 border-emerald-200 pt-6 hover:border-emerald-300 transition-colors duration-300'></div>
                               </div>
                             </div>
-
-                              <div className='flex flex-col sm:flex-row gap-4 mb-6'>
-                                <button
-                                  className={`flex-1 bg-linear-to-r from-emerald-500 to-teal-600 text-white py-4 px-6 rounded-2xl font-bold hover:from-emerald-600 hover:to-teal-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 hover:bg-emerald-600`}
-                                  onClick={() => finalVerify(d._id)}
-                                  disabled={
-                                    ![
-                                      'Received',
-                                      'Verified',
-                                      'Rejected'
-                                    ].includes(d.verificationStatus.finalReport)
-                                  }
-                                >
-                                  <i className='fas fa-check-circle mr-2'></i>{' '}
-                                  Final Approve
-                                </button>
-                                <button
-                                  className='flex-1 bg-linear-to-r from-red-500 to-rose-600 text-white py-4 px-6 rounded-2xl font-bold hover:from-red-600 hover:to-rose-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:-translate-y-0.5'
-                                  onClick={() => finalReject(d._id)}
-                                  disabled={
-                                    ![
-                                      'Received',
-                                      'Verified',
-                                      'Rejected'
-                                    ].includes(d.verificationStatus.finalReport)
-                                  }
-                                >
-                                  <i className='fas fa-times-circle mr-2'></i>{' '}
-                                  Final Reject
-                                </button>
-                              </div>
-
-                              {/* Full border separator */}
-                              <div className='border-t-2 border-emerald-200 pt-6 hover:border-emerald-300 transition-colors duration-300'></div>
-                            </div>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </React.Fragment>
-                )
-              }))}
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  )
+                }))}
             </tbody>
           </table>
         </div>
 
         {/* Pagination */}
         <div className='flex items-center justify-between mt-6 px-2'>
-            <p className='text-sm text-slate-500'>
-              Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, sortedDietitians.length)} of {sortedDietitians.length} dietitians
-            </p>
-            <div className='flex items-center gap-2'>
+          <p className='text-sm text-slate-500'>
+            Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, sortedDietitians.length)} of {sortedDietitians.length} dietitians
+          </p>
+          <div className='flex items-center gap-2'>
+            <button
+              onClick={() => handlePageChange(Math.max(currentPage - 1, 1))}
+              disabled={currentPage === 1}
+              className='px-3 py-1.5 rounded-lg border border-emerald-300 text-emerald-700 text-sm font-medium hover:bg-emerald-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors'
+            >
+              <i className='fas fa-chevron-left mr-1'></i> Prev
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
               <button
-                onClick={() => handlePageChange(Math.max(currentPage - 1, 1))}
-                disabled={currentPage === 1}
-                className='px-3 py-1.5 rounded-lg border border-emerald-300 text-emerald-700 text-sm font-medium hover:bg-emerald-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors'
-              >
-                <i className='fas fa-chevron-left mr-1'></i> Prev
-              </button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                <button
-                  key={page}
-                  onClick={() => handlePageChange(page)}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                    page === currentPage
-                      ? 'bg-emerald-600 text-white shadow'
-                      : 'border border-emerald-300 text-emerald-700 hover:bg-emerald-50'
+                key={page}
+                onClick={() => handlePageChange(page)}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${page === currentPage
+                    ? 'bg-emerald-600 text-white shadow'
+                    : 'border border-emerald-300 text-emerald-700 hover:bg-emerald-50'
                   }`}
-                >
-                  {page}
-                </button>
-              ))}
-              <button
-                onClick={() => handlePageChange(Math.min(currentPage + 1, totalPages))}
-                disabled={currentPage === totalPages}
-                className='px-3 py-1.5 rounded-lg border border-emerald-300 text-emerald-700 text-sm font-medium hover:bg-emerald-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors'
               >
-                Next <i className='fas fa-chevron-right ml-1'></i>
+                {page}
               </button>
-            </div>
+            ))}
+            <button
+              onClick={() => handlePageChange(Math.min(currentPage + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className='px-3 py-1.5 rounded-lg border border-emerald-300 text-emerald-700 text-sm font-medium hover:bg-emerald-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors'
+            >
+              Next <i className='fas fa-chevron-right ml-1'></i>
+            </button>
           </div>
+        </div>
 
         {/* Modern Footer */}
         <div className='mt-16 text-center'>
@@ -845,7 +836,9 @@ const DietitianVerify = () => {
           <p className='text-sm text-slate-500'>
             Contact our support team at{' '}
             <a
-              href='mailto:support@dietitianverify.com'
+              href='https://mail.google.com/mail/?view=cm&fs=1&to=support%40dietitianverify.com'
+              target='_blank'
+              rel='noopener noreferrer'
               className='text-emerald-600 hover:text-emerald-700 font-semibold transition-colors duration-200 inline-flex items-center'
             >
               <i className='fas fa-envelope mr-2'></i>

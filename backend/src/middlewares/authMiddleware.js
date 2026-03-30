@@ -1,73 +1,89 @@
 ﻿const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
+const { JWT_SECRET } = require('../utils/jwtConfig');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-for-development';
-
-// JWT authentication helper
+// Core JWT authentication — extracts and verifies token, sets req.user
 function authenticateJWT(req, res, next) {
   const authHeader = req.headers.authorization;
-  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+  const token = authHeader && authHeader.split(' ')[1];
 
   if (!token) {
-    console.log('No token provided in request');
     return res.status(401).json({ success: false, message: 'No token provided' });
   }
 
-  jwt.verify(token, JWT_SECRET, (err, user) => {
+  jwt.verify(token, JWT_SECRET, (err, decoded) => {
     if (err) {
-      console.error('JWT verification failed:', err.message);
-      console.error('Token preview:', token.substring(0, 20) + '...');
-      console.error('JWT_SECRET exists:', !!process.env.JWT_SECRET);
-      return res.status(403).json({ success: false, message: 'Invalid token', error: err.message });
+      const message = err.name === 'TokenExpiredError' ? 'Token expired' : 'Invalid token';
+      return res.status(403).json({ success: false, message });
     }
-    console.log('Token verified successfully. User:', { userId: user.userId, role: user.role });
-    req.user = user;
+    req.user = decoded;
     next();
   });
 }
 
-// Middleware for dietitian-only access
+// Optional JWT — sets req.user if token is present and valid, but does NOT reject anonymous requests
+function optionalAuthenticateJWT(req, res, next) {
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return next(); // No token — continue as anonymous
+  }
+
+  jwt.verify(token, JWT_SECRET, (err, decoded) => {
+    if (!err) {
+      req.user = decoded;
+    }
+    next(); // Always continue, even if token is invalid
+  });
+}
+
+// Factory: creates role-checking middleware (must be used AFTER authenticateJWT)
+function requireRole(...allowedRoles) {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: 'Authentication required' });
+    }
+    if (!allowedRoles.includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        message: `${allowedRoles.join(' or ')} access required`,
+      });
+    }
+    next();
+  };
+}
+
+// Convenience: authenticate + dietitian role in one step
 function ensureDietitianAuthenticated(req, res, next) {
-  const authHeader = req.headers.authorization;
-  const token = authHeader && authHeader.split(' ')[1];
-
-  if (!token) {
-    return res.status(401).json({ success: false, message: 'No token provided' });
-  }
-
-  jwt.verify(token, JWT_SECRET, (err, user) => {
-    if (err) {
-      return res.status(403).json({ success: false, message: 'Invalid token' });
-    }
-    if (user.role !== 'dietitian') {
-      return res.status(403).json({ success: false, message: 'Dietitian access required' });
-    }
-    req.user = user;
-    next();
+  authenticateJWT(req, res, (err) => {
+    if (err) return;
+    requireRole('dietitian')(req, res, next);
   });
 }
 
-// Middleware for organization-only access
+// Convenience: authenticate + organization role (excludes employees)
 function ensureOrganizationAuthenticated(req, res, next) {
-  const authHeader = req.headers.authorization;
-  const token = authHeader && authHeader.split(' ')[1];
-
-  if (!token) {
-    return res.status(401).json({ success: false, message: 'No token provided' });
-  }
-
-  jwt.verify(token, JWT_SECRET, (err, user) => {
-    if (err) {
-      return res.status(403).json({ success: false, message: 'Invalid token' });
-    }
-    if (user.role !== 'organization') {
+  authenticateJWT(req, res, (err) => {
+    if (err) return;
+    if (req.user.role !== 'organization') {
       return res.status(403).json({ success: false, message: 'Organization access required' });
     }
-    req.user = user;
+    // Block employees from org-admin-only endpoints
+    if (req.user.orgType === 'employee') {
+      return res.status(403).json({ success: false, message: 'Organization admin access required' });
+    }
     next();
   });
 }
 
+// Convenience: authenticate + admin role in one step
+function ensureAdminAuthenticated(req, res, next) {
+  authenticateJWT(req, res, (err) => {
+    if (err) return;
+    requireRole('admin')(req, res, next);
+  });
+}
 
 // Middleware to validate MongoDB ObjectId for dietitian
 function validateDietitianObjectId(req, res, next) {
@@ -85,28 +101,6 @@ function validateOrganizationObjectId(req, res, next) {
     return res.status(400).json({ success: false, message: 'Invalid organization ID' });
   }
   next();
-}
-
-
-// Middleware for admin-only access
-function ensureAdminAuthenticated(req, res, next) {
-  const authHeader = req.headers.authorization;
-  const token = authHeader && authHeader.split(' ')[1];
-
-  if (!token) {
-    return res.status(401).json({ success: false, message: 'No token provided' });
-  }
-
-  jwt.verify(token, JWT_SECRET, (err, user) => {
-    if (err) {
-      return res.status(403).json({ success: false, message: 'Invalid token' });
-    }
-    if (user.role !== 'admin') {
-      return res.status(403).json({ success: false, message: 'Admin access required' });
-    }
-    req.user = user;
-    next();
-  });
 }
 function handleMulterError(err, req, res, next) {
   if (err instanceof require('multer').MulterError) {
@@ -139,6 +133,8 @@ function handleMulterError(err, req, res, next) {
 
 module.exports = {
   authenticateJWT,
+  optionalAuthenticateJWT,
+  requireRole,
   ensureDietitianAuthenticated,
   ensureOrganizationAuthenticated,
   ensureAdminAuthenticated,

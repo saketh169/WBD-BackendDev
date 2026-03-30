@@ -2,6 +2,7 @@ const Payment = require('../models/paymentModel');
 const Booking = require('../models/bookingModel');
 const { Blog } = require('../models/blogModel');
 const Progress = require('../models/progressModel');
+const { ChatHistory } = require('../models/chatbotModels');
 
 // Progress plan types available for each subscription tier
 const PROGRESS_PLAN_ACCESS = {
@@ -40,32 +41,32 @@ const PROGRESS_PLAN_ACCESS = {
 // Subscription feature limits configuration
 const SUBSCRIPTION_LIMITS = {
   free: {
-    monthlyBookings: 0,
-    advanceBookingDays: 0,
-    chatbotDailyQueries: 5,
+    monthlyBookings: 3,
+    advanceBookingDays: 5,
+    chatbotDailyQueries: 25,
     monthlyBlogPosts: 0,
-    monthlyMealPlans: 0,
+    monthlyMealPlans: 1,
     progressPlans: PROGRESS_PLAN_ACCESS.free // Array of accessible plan types
   },
   basic: {
-    monthlyBookings: 2,
-    advanceBookingDays: 3,
-    chatbotDailyQueries: 20,
-    monthlyBlogPosts: 2,
-    monthlyMealPlans: 4,
+    monthlyBookings: 5,
+    advanceBookingDays: 7,
+    chatbotDailyQueries: 40,
+    monthlyBlogPosts: 3,
+    monthlyMealPlans: 5,
     progressPlans: PROGRESS_PLAN_ACCESS.basic
   },
   premium: {
-    monthlyBookings: 8,
-    advanceBookingDays: 7,
-    chatbotDailyQueries: 50,
-    monthlyBlogPosts: 8,
-    monthlyMealPlans: 15,
+    monthlyBookings: 12,
+    advanceBookingDays: 14,
+    chatbotDailyQueries: 75,
+    monthlyBlogPosts: 10,
+    monthlyMealPlans: 20,
     progressPlans: PROGRESS_PLAN_ACCESS.premium
   },
   ultimate: {
-    monthlyBookings: 20,
-    advanceBookingDays: 21,
+    monthlyBookings: -1, // unlimited
+    advanceBookingDays: 30,
     chatbotDailyQueries: -1, // unlimited
     monthlyBlogPosts: -1, // unlimited
     monthlyMealPlans: -1, // unlimited
@@ -112,8 +113,8 @@ async function getUserSubscription(userId) {
 // Check booking limits
 async function checkBookingLimit(req, res, next) {
   try {
-    // Get userId from request body (booking creation) or from JWT roleId (fallback to userId)
-    const userId = req.body.userId || req.user?.roleId || req.user?.userId;
+    // Get userId from JWT (preferred) — never trust body for identity
+    const userId = req.user?.roleId || req.user?.employeeId || req.user?.userId;
     
     if (!userId) {
       return res.status(400).json({
@@ -124,11 +125,15 @@ async function checkBookingLimit(req, res, next) {
 
     const { planType, limits, hasSubscription } = await getUserSubscription(userId);
     
-    // Allow free users or users without subscription to proceed (they won't have subscription restrictions)
-    // This is for backwards compatibility - existing bookings should still work
+    // Free users cannot book — require a subscription
     if (!hasSubscription || planType === 'free') {
-      req.subscriptionInfo = { planType: 'free', limits, hasSubscription: false };
-      return next();
+      return res.status(403).json({
+        success: false,
+        message: 'Booking consultations requires a subscription. Please subscribe to a plan to book appointments!',
+        limitReached: true,
+        planType: 'free',
+        requiresSubscription: true
+      });
     }
 
     // Check monthly booking count
@@ -139,7 +144,7 @@ async function checkBookingLimit(req, res, next) {
     const bookingsThisMonth = await Booking.countDocuments({
       userId,
       createdAt: { $gte: startOfMonth },
-      status: { $in: ['confirmed', 'completed'] }
+      status: { $in: ['confirmed', 'completed', 'pending'] }
     });
 
     if (limits.monthlyBookings !== -1 && bookingsThisMonth >= limits.monthlyBookings) {
@@ -179,8 +184,7 @@ async function checkBookingLimit(req, res, next) {
     console.error('Error checking booking limit:', error);
     res.status(500).json({
       success: false,
-      message: 'Error checking subscription limits',
-      error: error.message
+      message: 'Error checking subscription limits'
     });
   }
 }
@@ -188,8 +192,13 @@ async function checkBookingLimit(req, res, next) {
 // Check blog posting limits
 async function checkBlogLimit(req, res, next) {
   try {
-    // Use roleId from JWT to match userId in payments collection (fallback to userId)
-    const userId = req.user?.roleId || req.user?.userId || req.body.author?.userId;
+    // Dietitians and admins are service providers — skip subscription check
+    if (req.user?.role === 'dietitian' || req.user?.role === 'admin') {
+      return next();
+    }
+
+    // Use roleId from JWT to match userId in payments collection
+    const userId = req.user?.roleId || req.user?.employeeId || req.user?.userId;
     
     if (!userId) {
       return res.status(400).json({
@@ -200,10 +209,15 @@ async function checkBlogLimit(req, res, next) {
 
     const { planType, limits, hasSubscription } = await getUserSubscription(userId);
     
-    // Allow users without subscription to proceed (for backwards compatibility)
+    // Free users cannot post blogs — require a subscription
     if (!hasSubscription || planType === 'free') {
-      req.subscriptionInfo = { planType: 'free', limits, hasSubscription: false };
-      return next();
+      return res.status(403).json({
+        success: false,
+        message: 'Blog posting requires a subscription. Please subscribe to a plan to start posting!',
+        limitReached: true,
+        planType: 'free',
+        requiresSubscription: true
+      });
     }
 
     // Check monthly blog post count
@@ -245,8 +259,7 @@ async function checkBlogLimit(req, res, next) {
     console.error('Error checking blog limit:', error);
     res.status(500).json({
       success: false,
-      message: 'Error checking subscription limits',
-      error: error.message
+      message: 'Error checking subscription limits'
     });
   }
 }
@@ -254,8 +267,8 @@ async function checkBlogLimit(req, res, next) {
 // Check chatbot query limits
 async function checkChatbotLimit(req, res, next) {
   try {
-    // Use roleId from JWT to match userId in payments collection (fallback to userId)
-    const userId = req.user?.roleId || req.user?.userId || req.body.userId;
+    // Use roleId from JWT to match userId in payments collection
+    const userId = req.user?.roleId || req.user?.employeeId || req.user?.userId;
     const sessionId = req.body.sessionId;
     
     // If no userId, treat as anonymous free user, use sessionId for tracking
@@ -277,20 +290,31 @@ async function checkChatbotLimit(req, res, next) {
       return next();
     }
 
-    // Check daily query count (stored in user session or database)
-    // Using a simple in-memory cache for demo - in production, use Redis
-    if (!global.chatbotQueryCache) {
-      global.chatbotQueryCache = {};
+    // Count today's queries from the database (persistent across restarts)
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    let queriesUsedToday = 0;
+
+    if (!isAnonymous) {
+      // For logged-in users, count by userId in ChatHistory
+      const chatHistories = await ChatHistory.find({
+        userId: userId,
+        createdAt: { $gte: startOfDay }
+      });
+      queriesUsedToday = chatHistories.reduce((count, chat) => {
+        return count + chat.messages.filter(m => m.type === 'user').length;
+      }, 0);
+    } else if (sessionId) {
+      // For anonymous users, count by sessionId
+      const chatHistories = await ChatHistory.find({
+        sessionId: sessionId,
+        createdAt: { $gte: startOfDay }
+      });
+      queriesUsedToday = chatHistories.reduce((count, chat) => {
+        return count + chat.messages.filter(m => m.type === 'user').length;
+      }, 0);
     }
-
-    const today = new Date().toDateString();
-    const cacheKey = `${identifier}_${today}`;
-
-    if (!global.chatbotQueryCache[cacheKey]) {
-      global.chatbotQueryCache[cacheKey] = 0;
-    }
-
-    const queriesUsedToday = global.chatbotQueryCache[cacheKey];
 
     if (queriesUsedToday >= limits.chatbotDailyQueries) {
       return res.status(403).json({
@@ -303,15 +327,12 @@ async function checkChatbotLimit(req, res, next) {
       });
     }
 
-    // Increment query count
-    global.chatbotQueryCache[cacheKey]++;
-
     // Attach limits info to request
     req.subscriptionInfo = { 
       planType, 
       limits, 
-      queriesUsedToday: global.chatbotQueryCache[cacheKey],
-      queriesRemaining: limits.chatbotDailyQueries - global.chatbotQueryCache[cacheKey]
+      queriesUsedToday: queriesUsedToday + 1,
+      queriesRemaining: limits.chatbotDailyQueries - queriesUsedToday - 1
     };
     
     next();
@@ -319,8 +340,7 @@ async function checkChatbotLimit(req, res, next) {
     console.error('Error checking chatbot limit:', error);
     res.status(500).json({
       success: false,
-      message: 'Error checking subscription limits',
-      error: error.message
+      message: 'Error checking subscription limits'
     });
   }
 }
@@ -328,8 +348,13 @@ async function checkChatbotLimit(req, res, next) {
 // Check meal plan limits (for when meal plans are received)
 async function checkMealPlanLimit(req, res, next) {
   try {
-    // Use roleId from JWT to match userId in payments collection (fallback to userId)
-    const userId = req.user?.roleId || req.user?.userId || req.body.userId || req.params.userId;
+    // Dietitians are service providers — skip subscription check for them
+    if (req.user?.role === 'dietitian' || req.user?.role === 'admin') {
+      return next();
+    }
+
+    // For regular users, check their own subscription
+    const userId = req.body.userId || req.user?.roleId || req.user?.employeeId || req.user?.userId;
     
     if (!userId) {
       return res.status(400).json({
@@ -381,16 +406,18 @@ async function checkMealPlanLimit(req, res, next) {
     next();
   } catch (error) {
     console.error('Error checking meal plan limit:', error);
-    // Don't block meal plan creation if check fails
-    next();
+    res.status(500).json({
+      success: false,
+      message: 'Error checking subscription limits'
+    });
   }
 }
 
 // Check progress plan access based on subscription
 async function checkProgressLimit(req, res, next) {
   try {
-    // Use roleId from JWT to match userId in payments collection (fallback to userId)
-    const userId = req.user?.roleId || req.user?.userId;
+    // Use roleId from JWT to match userId in payments collection
+    const userId = req.user?.roleId || req.user?.employeeId || req.user?.userId;
     
     if (!userId) {
       return res.status(400).json({
@@ -450,16 +477,18 @@ async function checkProgressLimit(req, res, next) {
     next();
   } catch (error) {
     console.error('Error checking progress plan access:', error);
-    // Don't block progress creation if check fails
-    next();
+    res.status(500).json({
+      success: false,
+      message: 'Error checking subscription limits'
+    });
   }
 }
 
 // Get subscription status endpoint
 async function getSubscriptionStatus(req, res) {
   try {
-    // Use roleId (profile ID) to match how payments/subscriptions are stored, fallback to userId
-    const userId = req.user?.roleId || req.user?.userId;
+    // Use roleId (profile ID) to match how payments/subscriptions are stored
+    const userId = req.user?.roleId || req.user?.employeeId || req.user?.userId;
     
     if (!userId) {
       return res.status(400).json({
@@ -479,7 +508,7 @@ async function getSubscriptionStatus(req, res) {
       Booking.countDocuments({
         userId,
         createdAt: { $gte: startOfMonth },
-        status: { $in: ['confirmed', 'completed'] }
+        status: { $in: ['confirmed', 'completed', 'pending'] }
       }),
       Blog.countDocuments({
         'author.userId': userId,
@@ -487,9 +516,16 @@ async function getSubscriptionStatus(req, res) {
       })
     ]);
 
-    const today = new Date().toDateString();
-    const cacheKey = `${userId}_${today}`;
-    const chatbotQueriesUsed = global.chatbotQueryCache?.[cacheKey] || 0;
+    // Count chatbot queries from DB (persistent)
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const chatHistories = await ChatHistory.find({
+      userId: userId,
+      createdAt: { $gte: startOfDay }
+    });
+    const chatbotQueriesUsed = chatHistories.reduce((count, chat) => {
+      return count + chat.messages.filter(m => m.type === 'user').length;
+    }, 0);
 
     res.json({
       success: true,
@@ -523,8 +559,7 @@ async function getSubscriptionStatus(req, res) {
     console.error('Error getting subscription status:', error);
     res.status(500).json({
       success: false,
-      message: 'Error fetching subscription status',
-      error: error.message
+      message: 'Error fetching subscription status'
     });
   }
 }

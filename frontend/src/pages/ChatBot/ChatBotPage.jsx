@@ -43,22 +43,27 @@ function ChatBotPage() {
     fetchTopFAQs();
   }, []);
 
-  // Fetch top FAQs from backend
+  // Fetch top FAQs from backend with retry logic
   const fetchTopFAQs = async () => {
     try {
       const response = await axios.get('/api/chatbot/top-faqs');
-      if (response.data.success && response.data.faqs) {
+      if (response.data.success && response.data.faqs && response.data.faqs.length > 0) {
         setFaqQuestions(response.data.faqs);
+        console.log('[OK] Quick Questions loaded from database');
+      } else {
+        throw new Error('No FAQs returned');
       }
     } catch (error) {
       console.error('Error fetching FAQs:', error);
       // Fallback FAQs if backend is unavailable
-      setFaqQuestions([
+      const fallbackFAQs = [
         'What is NutriConnect?',
+        'How can I lose weight?',
         'How to use the ChatBot?',
-        'What are the benefits?',
-        'How can I lose weight?'
-      ]);
+        'What are the benefits?'
+      ];
+      setFaqQuestions(fallbackFAQs);
+      console.log('[WARNING] Using fallback Quick Questions (backend unavailable)');
     }
   };
 
@@ -182,9 +187,52 @@ function ChatBotPage() {
     }
   };
 
-  // Handle FAQ button clicks
-  const handleFAQClick = (question) => {
-    handleSendMessage(question);
+  // Handle FAQ button clicks with loading feedback
+  const handleFAQClick = async (question) => {
+    // Show visual feedback immediately
+    const userMessage = {
+      type: 'user',
+      content: question,
+      timestamp: new Date(),
+      isQuickQuestion: true // Mark as quick question for visual indication
+    };
+    setMessages(prev => [...prev, userMessage]);
+    setIsTyping(true);
+    setTypingMessage('Finding answer...');
+
+    try {
+      const userId = user?.id || null;
+      const response = await axios.post('/api/chatbot/message', {
+        message: question,
+        sessionId: sessionId,
+        userId: userId
+      });
+
+      if (response.data.success) {
+        const botMessage = {
+          type: 'bot',
+          content: response.data.message,
+          timestamp: new Date(),
+          nutritionData: response.data.nutritionData || null,
+          source: response.data.source,
+          isQuickQuestionMatch: response.data.source === 'faq' // Confirm FAQ match
+        };
+        setMessages(prev => [...prev, botMessage]);
+      } else {
+        throw new Error('Failed to get answer');
+      }
+    } catch (error) {
+      console.error('Error handling quick question:', error);
+      const errorMessage = {
+        type: 'bot',
+        content: 'Sorry, I couldn\'t find an answer to that question. Please try asking another way.',
+        timestamp: new Date(),
+        isError: true
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsTyping(false);
+    }
   };
 
   return (
@@ -234,8 +282,8 @@ function ChatBotPage() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Frequently Asked Questions Section - Fixed at Bottom */}
-      {/* TODO: Fetch from backend API endpoint - Top 4 from Database */}
+      {/* Quick Questions Section - Fixed at Bottom */}
+      {/* Displays top 4 most-clicked FAQs from database with real-time click tracking */}
       <div className="bg-linear-to-r from-slate-50 to-emerald-50 px-6 py-3 border-t-2 border-emerald-200 shrink-0">
         <div className="flex justify-between items-center">
           <div className="flex-1">

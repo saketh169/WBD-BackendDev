@@ -3,10 +3,7 @@ const jwt = require('jsonwebtoken');
 // Mongoose Models
 const { UserAuth, User, Admin, Dietitian, Organization, Employee } = require('../models/userModel');
 const otpService = require('../services/otpService');
-
-// Environment variables (loaded by dotenv at server.js startup)
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-for-development';
-const ADMIN_SIGNIN_KEY = process.env.ADMIN_SIGNIN_KEY || 'Nutri@2025';
+const { JWT_SECRET, ADMIN_SIGNIN_KEY } = require('../utils/jwtConfig');
 
 const PROFILE_MODELS = {
     user: User,
@@ -20,14 +17,13 @@ const checkGlobalConflict = async (field, value, errorMessage) => {
 
     if (!value) return null;
 
-    for (const Model of models) {
-        const query = {};
-        query[field] = value;
+    const query = { [field]: value };
+    const results = await Promise.all(
+        models.map(Model => Model.findOne(query).lean())
+    );
 
-        const existing = await Model.findOne(query).lean();
-        if (existing) {
-            return { message: errorMessage };
-        }
+    if (results.some(result => result !== null)) {
+        return { message: errorMessage };
     }
     return null;
 };
@@ -259,10 +255,11 @@ exports.signinController = async (req, res) => {
     }
 };
 
+const { uploadStreamToCloudinary } = require('../utils/cloudinary');
 exports.docUploadController = async (req, res) => {
     try {
         const { role } = req.params;
-        const userId = req.user?.roleId || req.body.userId; // From token or request
+        const userId = req.user?.roleId; // From authenticated token only
 
         if (!role || !userId) {
             return res.status(400).json({
@@ -291,25 +288,29 @@ exports.docUploadController = async (req, res) => {
         const verificationStatusUpdate = {};
 
         if (req.files && req.files.length > 0) {
-            req.files.forEach(file => {
+            for (const file of req.files) {
                 const fieldName = file.fieldname;
 
-                // For dietitian role, store files directly in the files object (Buffer)
-                if (role === 'dietitian') {
-                    filesUpdate[fieldName] = file.buffer;
-                    // Set verification status to "Pending" for uploaded files
-                    verificationStatusUpdate[fieldName] = 'Pending';
-                } else {
-                    // For other roles, use the old document structure
-                    documents[fieldName] = {
-                        filename: file.originalname,
-                        mimetype: file.mimetype,
-                        size: file.size,
-                        data: file.buffer,
-                        uploadedAt: new Date()
-                    };
+                try {
+                    const result = await uploadStreamToCloudinary(file.buffer, `user_docs/${role}_${userId}`);
+
+                    if (role === 'dietitian') {
+                        filesUpdate[fieldName] = result.secure_url;
+                        verificationStatusUpdate[fieldName] = 'Pending';
+                    } else {
+                        documents[fieldName] = {
+                            filename: file.originalname,
+                            mimetype: file.mimetype,
+                            size: file.size,
+                            url: result.secure_url,
+                            uploadedAt: new Date()
+                        };
+                    }
+                } catch (uploadErr) {
+                    console.error('Cloudinary upload error:', uploadErr);
+                    return res.status(500).json({ message: 'Error uploading file to secure storage' });
                 }
-            });
+            }
         }
 
         // Update user profile based on role
@@ -392,42 +393,36 @@ exports.changePasswordController = async (req, res) => {
     }
 
     try {
-        // Get user ID from JWT token
-        const authHeader = req.headers['authorization'];
-        if (!authHeader) {
-            return res.status(401).json({ message: 'No authorization token provided.' });
+        // Employees use a separate model (Employee) with their own passwordHash
+        const isEmployee = req.user.orgType === 'employee';
+        let account;
+
+        if (isEmployee) {
+            account = await Employee.findById(req.user.employeeId);
+        } else {
+            account = await UserAuth.findById(req.user.userId);
         }
 
-        const token = authHeader.split(' ')[1];
-        if (!token) {
-            return res.status(401).json({ message: 'Invalid token format.' });
-        }
-
-        const decoded = jwt.verify(token, JWT_SECRET);
-        const userId = decoded.userId;
-
-        // Find user in central Auth collection
-        const authUser = await UserAuth.findById(userId);
-        if (!authUser) {
+        if (!account) {
             return res.status(404).json({ message: 'User not found.' });
         }
 
         // Verify old password
-        const isMatch = await bcrypt.compare(oldPassword, authUser.passwordHash);
+        const isMatch = await bcrypt.compare(oldPassword, account.passwordHash);
         if (!isMatch) {
             return res.status(401).json({ message: 'Current password is incorrect.' });
         }
 
         // Check if new password is same as old password
-        const isSameAsOld = await bcrypt.compare(newPassword, authUser.passwordHash);
+        const isSameAsOld = await bcrypt.compare(newPassword, account.passwordHash);
         if (isSameAsOld) {
             return res.status(400).json({ message: 'New password must be different from the current password.' });
         }
 
         // Hash new password and update
         const hashedPassword = await bcrypt.hash(newPassword, 12);
-        authUser.passwordHash = hashedPassword;
-        await authUser.save();
+        account.passwordHash = hashedPassword;
+        await account.save();
 
         return res.status(200).json({
             message: 'Password changed successfully!',
@@ -436,14 +431,6 @@ exports.changePasswordController = async (req, res) => {
 
     } catch (error) {
         console.error('Error during password change:', error);
-
-        if (error.name === 'JsonWebTokenError') {
-            return res.status(401).json({ message: 'Invalid token.' });
-        }
-        if (error.name === 'TokenExpiredError') {
-            return res.status(401).json({ message: 'Token expired. Please login again.' });
-        }
-
         res.status(500).json({ message: 'Internal Server Error during password change.' });
     }
 };
@@ -496,6 +483,10 @@ exports.verifyLoginOTPController = async (req, res) => {
             return res.status(404).json({ message: 'User not found.' });
         }
 
+        // Fetch profile to get name for response
+        const ProfileModel = PROFILE_MODELS[role];
+        const profile = ProfileModel ? await ProfileModel.findById(authUser.roleId) : null;
+
         const expiresIn = rememberMe ? '7d' : '1d';
         const token = jwt.sign(
             { userId: authUser._id, role: authUser.role, roleId: authUser.roleId },
@@ -507,6 +498,9 @@ exports.verifyLoginOTPController = async (req, res) => {
             message: 'Login successful!',
             token,
             role: authUser.role,
+            roleId: authUser.roleId,
+            name: profile?.name || '',
+            email: authUser.email,
             expiresIn
         });
 
@@ -540,5 +534,30 @@ exports.resendLoginOTPController = async (req, res) => {
     } catch (error) {
         console.error('Error resending login OTP:', error);
         res.status(500).json({ message: 'Internal server error. Please try again.' });
+    }
+};
+
+// REFRESH TOKEN CONTROLLER
+// Issues a new JWT when the current one is still valid but close to expiry
+exports.refreshTokenController = async (req, res) => {
+    try {
+        // req.user is set by authenticateJWT middleware
+        const { userId, role, roleId, employeeId, organizationId, orgType } = req.user;
+
+        // Issue a new token with same claims
+        const payload = employeeId
+            ? { employeeId, organizationId, role, orgType }
+            : { userId, role, roleId };
+
+        const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '1d' });
+
+        return res.status(200).json({
+            success: true,
+            token,
+            message: 'Token refreshed successfully.'
+        });
+    } catch (error) {
+        console.error('Error refreshing token:', error);
+        res.status(500).json({ message: 'Internal server error during token refresh.' });
     }
 };

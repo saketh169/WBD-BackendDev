@@ -231,11 +231,12 @@ const Signup = () => {
             if (responseData.token) {
                 // Handle token storage with role-specific key so multiple roles can be logged in simultaneously
                 localStorage.setItem(`authToken_${responseData.role}`, responseData.token);
-            }
-
-            // Store roleId from response for document upload
-            if (responseData.roleId) {
-                localStorage.setItem('userId', responseData.roleId);
+                // Store roleId in the role-scoped user object
+                if (responseData.roleId) {
+                    const userData = JSON.parse(localStorage.getItem(`authUser_${responseData.role}`) || '{}');
+                    userData.id = responseData.roleId;
+                    localStorage.setItem(`authUser_${responseData.role}`, JSON.stringify(userData));
+                }
             }
 
             // Redirect to document upload for specific roles

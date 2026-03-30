@@ -55,7 +55,6 @@ const sendContactConfirmationEmail = async (contactData) => {
       subject: 'Query Received - NutriConnect Support',
       html: confirmationHtml
     });
-    console.log('Contact confirmation email sent successfully to:', email);
     return { success: true };
   } catch (error) {
     console.error('Error sending contact confirmation email:', error);
@@ -103,7 +102,6 @@ const sendContactReplyEmail = async (queryData, replyMessage) => {
       subject: 'Reply to your query - NutriConnect Support',
       html: htmlTemplate
     });
-    console.log('Contact reply email sent successfully to:', email);
     return { success: true };
   } catch (error) {
     console.error('Error sending contact reply email:', error);

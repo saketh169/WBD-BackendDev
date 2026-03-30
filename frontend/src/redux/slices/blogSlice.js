@@ -279,7 +279,7 @@ export const reportBlog = createAsyncThunk(
 // Fetch reported blogs (for moderation)
 export const fetchReportedBlogs = createAsyncThunk(
   'blog/fetchReportedBlogs',
-  async ({ page = 1, role }, { rejectWithValue }) => {
+  async ({ page = 1, role, limit = 100 }, { rejectWithValue }) => {
     try {
       const token = getAuthToken(role);
       if (!token) return rejectWithValue('Not authenticated');
@@ -287,7 +287,7 @@ export const fetchReportedBlogs = createAsyncThunk(
       const config = { headers: { Authorization: `Bearer ${token}` } };
       const response = await axios.get(`${API_BASE_URL}/moderation/reported`, {
         ...config,
-        params: { page, limit: 10 }
+        params: { page, limit }
       });
       
       if (response.data.success) {
@@ -396,6 +396,16 @@ const blogSlice = createSlice({
     resetFilters: (state) => {
       state.filters = { category: 'all', search: '', sortBy: 'createdAt' };
       state.pagination.page = 1;
+    },
+
+    // Hydrate reported blogs from cache (used when returning from blog view)
+    hydrateReportedBlogs: (state, action) => {
+      if (action.payload?.blogs) {
+        state.reportedBlogs = action.payload.blogs;
+      }
+      if (action.payload?.pagination) {
+        state.reportedPagination = action.payload.pagination;
+      }
     }
   },
   extraReducers: (builder) => {
@@ -570,6 +580,13 @@ const blogSlice = createSlice({
         state.reportedBlogs = action.payload.blogs;
         state.reportedPagination = action.payload.pagination;
         state.isLoading = false;
+
+        // Cache to sessionStorage so navigating away/returning keeps data visible
+        try {
+          sessionStorage.setItem('reportedBlogsCache', JSON.stringify(action.payload));
+        } catch (_) {
+          // ignore storage errors
+        }
       })
       .addCase(fetchReportedBlogs.rejected, (state, action) => {
         state.isLoading = false;
@@ -595,7 +612,8 @@ export const {
   clearCurrentBlog,
   clearError,
   clearSuccessMessage,
-  resetFilters
+  resetFilters,
+  hydrateReportedBlogs
 } = blogSlice.actions;
 
 // Selectors

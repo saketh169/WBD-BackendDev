@@ -1,6 +1,14 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useAuthContext } from '../../hooks/useAuthContext';
 import axios from 'axios';
+
+// Helper function to decode HTML entities
+const decodeHtmlEntities = (text) => {
+    if (!text) return text;
+    const textarea = document.createElement('textarea');
+    textarea.innerHTML = text;
+    return textarea.value;
+};
 const PRIMARY_GREEN = '#10B981'; // Emerald-500 - More vibrant green
 const DARK_GREEN = '#059669';    // Emerald-600 - Darker green
 const ACCENT_GREEN = '#34D399';  // Emerald-400 - Light green
@@ -81,8 +89,6 @@ const UserSchedule = () => {
 
             try {
                 setLoading(true);
-                console.log('Fetching bookings for userId:', userId);
-                
                 const config = token ? {
                     headers: {
                         'Authorization': `Bearer ${token}`
@@ -90,11 +96,7 @@ const UserSchedule = () => {
                 } : {};
 
                 const response = await axios.get(`/api/bookings/user/${userId}`, config);
-                
-                console.log('Bookings API response:', response.data);
-                
                 if (response.data.success) {
-                    console.log('Fetched bookings:', response.data.data);
                     setBookings(response.data.data);
                 } else {
                     console.error('Failed to fetch bookings:', response.data.message);
@@ -260,54 +262,40 @@ const UserSchedule = () => {
                                             {appointment.status || appointment.consultationType}
                                         </span>
                                     </div>
-                                    <h3 className="appointment-title text-lg font-bold text-gray-800 mb-2">
-                                        {appointment.specialization}
+                                    <h3 className="appointment-title text-lg font-bold text-gray-800 mb-2 truncate">
+                                        {appointment.dietitianName || 'Assigned Dietitian'}
                                     </h3>
+                                    <p className="appointment-details text-sm text-gray-600 mb-2 flex items-center gap-2 min-w-0">
+                                        <i className="fas fa-stethoscope text-emerald-600 opacity-70 text-sm shrink-0"></i>
+                                        <span className="flex-1 min-w-0">{decodeHtmlEntities(appointment.specialization) || 'General Consultation'}</span>
+                                    </p>
                                     <p className="appointment-details text-sm text-gray-600 mb-3 flex items-center gap-2">
-                                        <i className="fas fa-stethoscope text-emerald-600 opacity-70 text-sm"></i>
+                                        <i className="fas fa-video text-emerald-600 opacity-70 text-sm"></i>
                                         {appointment.consultationType}
                                     </p>
 
-                                    <div className="nutritionist-info flex items-center gap-3 mt-0 pt-3 border-t-2 border-gray-100">
-                                        {appointment.profileImage ? (
-                                            <img
-                                                src={appointment.profileImage}
-                                                alt={appointment.dietitianName}
-                                                className="w-10 h-10 rounded-xl object-cover shadow-md border-2 border-emerald-200"
-                                            />
-                                        ) : (
-                                            <div
-                                                className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold text-white shadow-md border-2 border-emerald-200"
-                                                style={{ backgroundColor: PRIMARY_GREEN }}
+                                    <div className="mt-0 pt-3 border-t-2 border-gray-100 flex items-center justify-between gap-3">
+                                        {appointment.dietitianEmail ? (
+                                            <a 
+                                                href={`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(appointment.dietitianEmail)}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-sm text-emerald-600 hover:text-emerald-700 underline truncate transition-colors"
+                                                title={`Email ${appointment.dietitianEmail} via Gmail`}
                                             >
-                                                {appointment.dietitianName.charAt(0)}
-                                            </div>
+                                                <i className="fas fa-envelope mr-1"></i>
+                                                Contact
+                                            </a>
+                                        ) : (
+                                            <span className="text-sm text-gray-400">No email</span>
                                         )}
-                                        <div className="flex-1 min-w-0">
-                                            <span className="nutritionist-name text-sm font-bold text-gray-800 truncate block">
-                                                {appointment.dietitianName}
-                                            </span>
-                                            {appointment.dietitianEmail && (
-                                                <a 
-                                                    href={`mailto:${appointment.dietitianEmail}`}
-                                                    className="text-xs text-emerald-600 hover:text-emerald-700 underline truncate block transition-colors"
-                                                    title={appointment.dietitianEmail}
-                                                >
-                                                    <i className="fas fa-envelope mr-1"></i>
-                                                    Contact
-                                                </a>
-                                            )}
-                                        </div>
-                                    </div>
-                                    
-                                    {appointment.amount && (
-                                        <div className="mt-0 pt-3 border-t-2 border-gray-100">
-                                            <span className="text-sm text-gray-600 flex items-center gap-2">
+                                        {appointment.amount && (
+                                            <span className="text-sm text-gray-600 flex items-center gap-2 shrink-0">
                                                 <i className="fas fa-rupee-sign text-emerald-600"></i>
                                                 <span className="font-bold text-gray-800">₹{appointment.amount}</span>
                                             </span>
-                                        </div>
-                                    )}
+                                        )}
+                                    </div>
                                 </div>
                             ))
                         )}

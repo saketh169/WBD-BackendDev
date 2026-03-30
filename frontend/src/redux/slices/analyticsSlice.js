@@ -109,15 +109,18 @@ export const fetchUserStats = createAsyncThunk(
         })
       ]);
 
-      const totalRegistered = (usersRes.data.data || usersRes.data || []).length +
-        (dietitiansRes.data.data || dietitiansRes.data || []).length +
-        (organizationsRes.data.data || organizationsRes.data || []).length;
+      // Extract counts from different response formats
+      const totalUsers = usersRes.data.total || 0;
+      const totalDietitians = dietitiansRes.data.pagination?.total || (dietitiansRes.data.data || []).length || 0;
+      const totalOrganizations = organizationsRes.data.pagination?.total || (organizationsRes.data.data || []).length || 0;
+      const activeDietPlans = (dietPlansRes.data.data || []).length || 0;
+      const totalRegistered = totalUsers + totalDietitians + totalOrganizations;
 
       return {
-        totalUsers: (usersRes.data.data || usersRes.data || []).length,
-        totalDietitians: (dietitiansRes.data.data || dietitiansRes.data || []).length,
-        totalOrganizations: (organizationsRes.data.data || organizationsRes.data || []).length,
-        activeDietPlans: (dietPlansRes.data.data || dietPlansRes.data || []).length,
+        totalUsers,
+        totalDietitians,
+        totalOrganizations,
+        activeDietPlans,
         totalRegistered
       };
     }, fallbackData);

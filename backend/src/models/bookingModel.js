@@ -99,15 +99,6 @@ const BookingSchema = new Schema({
     default: 'confirmed'
   },
   
-  // Timestamps
-  createdAt: { 
-    type: Date, 
-    default: Date.now 
-  },
-  updatedAt: { 
-    type: Date, 
-    default: Date.now 
-  }
 }, { timestamps: true });
 
 // Indexes for faster queries
@@ -115,12 +106,7 @@ BookingSchema.index({ userId: 1, createdAt: -1 });
 BookingSchema.index({ dietitianId: 1, createdAt: -1 });
 BookingSchema.index({ email: 1 });
 BookingSchema.index({ date: 1 });
-
-// Middleware to update updatedAt
-BookingSchema.pre('save', function(next) {
-  this.updatedAt = Date.now();
-  next();
-});
+BookingSchema.index({ status: 1 });
 
 // Blocked Slot Schema
 const BlockedSlotSchema = new Schema({

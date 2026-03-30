@@ -84,23 +84,29 @@ const createHealthReport = async (req, res) => {
             followUpInstructions: followUpInstructions || '',
             additionalNotes: additionalNotes || '',
             uploadedFiles,
-            status: 'sent'
+            status: 'draft'
         });
 
         await healthReport.save();
 
+        const responseData = healthReport.toObject();
+        if (responseData.uploadedFiles) {
+            responseData.uploadedFiles.forEach(file => {
+                delete file.data;
+            });
+        }
+
         res.status(201).json({
             success: true,
             message: 'Health report sent successfully',
-            data: healthReport
+            data: responseData
         });
 
     } catch (error) {
         console.error('Error creating health report:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to create health report',
-            error: error.message
+            message: 'Failed to create health report'
         });
     }
 };
@@ -115,6 +121,7 @@ const getHealthReports = async (req, res) => {
         if (dietitianId) query.dietitianId = dietitianId;
 
         const reports = await HealthReport.find(query)
+            .select('-uploadedFiles.data')
             .sort({ createdAt: -1 });
 
         res.json({
@@ -126,8 +133,7 @@ const getHealthReports = async (req, res) => {
         console.error('Error fetching health reports:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to fetch health reports',
-            error: error.message
+            message: 'Failed to fetch health reports'
         });
     }
 };
@@ -141,6 +147,7 @@ const getDietitianHealthReports = async (req, res) => {
         if (clientId) query.clientId = clientId;
 
         const reports = await HealthReport.find(query)
+            .select('-uploadedFiles.data')
             .sort({ createdAt: -1 });
 
         res.json({
@@ -152,8 +159,7 @@ const getDietitianHealthReports = async (req, res) => {
         console.error('Error fetching dietitian health reports:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to fetch health reports',
-            error: error.message
+            message: 'Failed to fetch health reports'
         });
     }
 };
@@ -168,6 +174,7 @@ const getClientHealthReports = async (req, res) => {
         if (dietitianId) query.dietitianId = dietitianId;
 
         const reports = await HealthReport.find(query)
+            .select('-uploadedFiles.data')
             .sort({ createdAt: -1 });
 
         res.json({
@@ -179,8 +186,7 @@ const getClientHealthReports = async (req, res) => {
         console.error('Error fetching client health reports:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to fetch health reports',
-            error: error.message
+            message: 'Failed to fetch health reports'
         });
     }
 };
@@ -194,7 +200,7 @@ const markHealthReportViewed = async (req, res) => {
             reportId,
             { status: 'viewed' },
             { new: true }
-        );
+        ).select('-uploadedFiles.data');
 
         if (!report) {
             return res.status(404).json({
@@ -212,8 +218,7 @@ const markHealthReportViewed = async (req, res) => {
         console.error('Error updating health report:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to update health report',
-            error: error.message
+            message: 'Failed to update health report'
         });
     }
 };

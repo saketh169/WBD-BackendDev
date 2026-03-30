@@ -138,7 +138,7 @@ function MessageBubble({ message }) {
               })}
             </p>
           )}
-          
+
           {/* Feature 2: Copy button - only for bot messages */}
           {!isUser && (
             <button

@@ -1,4 +1,5 @@
 import React, { createContext, useEffect, useState } from 'react';
+import { isTokenExpired } from '../utils/jwtUtils';
 
 // Create Protected Context
 const ProtectedContext = createContext();
@@ -38,10 +39,15 @@ export const ProtectedProvider = ({ children, requiredRole }) => {
         }
       }
 
-      if (storedToken) {
+      if (storedToken && !isTokenExpired(storedToken)) {
         setToken(storedToken);
         setIsAuthenticated(true);
       } else {
+        // Token missing or expired — clear stale data
+        if (storedToken) {
+          localStorage.removeItem(`authToken_${requiredRole}`);
+          localStorage.removeItem(`authUser_${requiredRole}`);
+        }
         setToken(null);
         setIsAuthenticated(false);
       }
@@ -73,8 +79,9 @@ export const ProtectedProvider = ({ children, requiredRole }) => {
     // Helper to manually recheck auth (e.g., after login)
     recheckAuth: () => {
       const storedToken = localStorage.getItem(`authToken_${requiredRole}`);
-      setToken(storedToken);
-      setIsAuthenticated(!!storedToken);
+      const valid = storedToken && !isTokenExpired(storedToken);
+      setToken(valid ? storedToken : null);
+      setIsAuthenticated(!!valid);
     }
   };
 

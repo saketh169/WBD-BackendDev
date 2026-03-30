@@ -141,6 +141,46 @@ const OrganizationDashboard = () => {
     }
   };
 
+  const handleRemoveProfilePhoto = async () => {
+    if (!window.confirm('Are you sure you want to remove your profile photo?')) {
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      let authToken = token;
+      if (!authToken) {
+        authToken = localStorage.getItem('authToken_organization');
+      }
+
+      if (!authToken) {
+        alert('Session expired. Please login again.');
+        navigate('/signin?role=organization');
+        return;
+      }
+
+      const response = await axios.delete('/api/deleteorganization', {
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        }
+      });
+
+      if (response.data.success) {
+        setProfileImage(mockOrganization.profileImage);
+        setShowImageModal(false);
+        alert('Profile photo removed successfully!');
+        window.location.reload();
+      } else {
+        alert(`Removal failed: ${response.data.message || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Remove error:', error);
+      alert(`Remove error: ${error.response?.data?.message || error.message}`);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleLogout = () => {
     logout();
     navigate("/");
@@ -167,7 +207,7 @@ const OrganizationDashboard = () => {
                 alt={`${user?.org_name || user?.name || mockOrganization.org_name} Logo`}
                 className="w-32 h-32 rounded-full object-cover border-4 border-green-600 cursor-pointer hover:opacity-80 transition"
                 onClick={() => setShowImageModal(true)}
-                onError={(e) => e.currentTarget.src = '/images/dummy_user.png'}
+                onError={() => setProfileImage(mockOrganization.profileImage)}
               />
               <label
                 htmlFor="profileUpload"
@@ -274,7 +314,7 @@ const OrganizationDashboard = () => {
                   src={profileImage}
                   alt="Organization Logo Full Size"
                   className="w-full h-full rounded-lg object-contain"
-                  onError={(e) => e.currentTarget.src = '/images/dummy_user.png'}
+                  onError={() => setProfileImage(mockOrganization.profileImage)}
                 />
               </div>
 
@@ -291,8 +331,12 @@ const OrganizationDashboard = () => {
                   >
                     <i className="fas fa-camera"></i> Change Logo
                   </button>
-                  <button
-                    onClick={() => setShowImageModal(false)}
+                  <button                    onClick={handleRemoveProfilePhoto}
+                    className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-full font-medium hover:bg-red-700 transition"
+                  >
+                    <i className="fas fa-trash"></i> Remove Photo
+                  </button>
+                  <button                    onClick={() => setShowImageModal(false)}
                     className="flex items-center gap-2 px-4 py-2 border border-gray-400 text-gray-700 rounded-full font-medium hover:bg-gray-100 transition"
                   >
                     <i className="fas fa-times"></i> Close

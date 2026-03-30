@@ -15,27 +15,10 @@ const ClientLabReportViewer = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
-  // Display user and dietitian information in console
-  useEffect(() => {
-    console.log('=== Client Lab Report Viewer ===');
-    console.log('Client Name:', user?.name || 'Not available');
-    console.log('Client ID:', user?.id || user?._id || 'Not available');
-    console.log('Dietitian ID:', dietitianId || 'Not available');
-    console.log('Client Details:', {
-      name: user?.name,
-      id: user?.id || user?._id,
-      email: user?.email,
-      role: user?.role
-    });
-    console.log('Dietitian Details:', {
-      dietitianId: dietitianId
-    });
-  }, [user, dietitianId]);
-
   // Fetch lab reports when component mounts
   useEffect(() => {
     const fetchLabReports = async () => {
-      if (!user?.id && !user?._id) {
+      if (!user?.id) {
         setError('User not authenticated');
         setLoading(false);
         return;
@@ -51,19 +34,10 @@ const ClientLabReportViewer = () => {
         setLoading(true);
         setError(null);
 
-        const clientId = user.id || user._id;
-        
-        // Get auth token
-        const role = user?.role || 'user';
-        const token = localStorage.getItem(`authToken_${role}`);
+        const clientId = user.id;
         
         const response = await axios.get(
-          `/api/lab-reports/client/${clientId}/dietitian/${dietitianId}`,
-          {
-            headers: {
-              'Authorization': token ? `Bearer ${token}` : undefined
-            }
-          }
+          `/api/lab-reports/client/${clientId}/dietitian/${dietitianId}`
         );
 
         if (response.data.success) {

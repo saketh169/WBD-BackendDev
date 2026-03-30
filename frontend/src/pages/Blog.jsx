@@ -27,7 +27,7 @@ const BlogPage = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const dispatch = useDispatch();
-    
+
     // Redux state selectors
     const blogs = useSelector(selectBlogs);
     const pagination = useSelector(selectPagination);
@@ -37,13 +37,13 @@ const BlogPage = () => {
     const myBlogsStats = useSelector(selectMyBlogsStats);
     const isLoading = useSelector(selectIsLoading);
     const isLoadingMyBlogs = useSelector(selectIsLoadingMyBlogs);
-    
+
     // Local state
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [userRole, setUserRole] = useState(null);
     const [showMyBlogsSection, setShowMyBlogsSection] = useState(false);
     const [localSearchQuery, setLocalSearchQuery] = useState('');
-    
+
     // Refs for smooth scrolling
     const blogsGridRef = useRef(null);
     const myBlogsRef = useRef(null);
@@ -54,6 +54,7 @@ const BlogPage = () => {
         if (path.startsWith('/user')) return 'user';
         if (path.startsWith('/dietitian')) return 'dietitian';
         if (path.startsWith('/organization')) return 'organization';
+        if (path.startsWith('/employee')) return 'employee';
         if (path.startsWith('/admin')) return 'admin';
         return null;
     }, [location.pathname]);
@@ -61,16 +62,16 @@ const BlogPage = () => {
     // Initial load effect
     useEffect(() => {
         window.scrollTo(0, 0);
-        
+
         const roleFromUrl = getRoleFromPath();
         const token = roleFromUrl ? localStorage.getItem(`authToken_${roleFromUrl}`) : null;
-        
+
         setUserRole(roleFromUrl);
         setIsAuthenticated(!!token);
-        
+
         // Fetch categories
         dispatch(fetchCategories());
-        
+
         // Fetch user's blogs if authenticated
         if (token) {
             dispatch(fetchMyBlogs({ role: roleFromUrl }));
@@ -131,8 +132,8 @@ const BlogPage = () => {
     };
 
     const getRoleBadgeColor = (role) => {
-        return role === 'dietitian' 
-            ? 'bg-[#28B463] text-white' 
+        return role === 'dietitian'
+            ? 'bg-[#28B463] text-white'
             : 'bg-[#E8B86D] text-gray-800';
     };
 
@@ -141,7 +142,8 @@ const BlogPage = () => {
             'user': 'Client',
             'dietitian': 'Dietitian',
             'admin': 'Admin',
-            'organization': 'Organization'
+            'organization': 'Organization',
+            'employee': 'Employee'
         };
         return roleLabels[role] || 'Unknown';
     };
@@ -161,7 +163,7 @@ const BlogPage = () => {
                     <p className="text-xl text-center mb-8 text-gray-600">
                         Discover insights, tips, and stories from our community
                     </p>
-                    
+
                     {/* Create Blog and My Blogs Buttons */}
                     {isAuthenticated && (userRole === 'user' || userRole === 'dietitian') && (
                         <div className="flex justify-center gap-4">
@@ -190,11 +192,10 @@ const BlogPage = () => {
                                         }, 100);
                                     }
                                 }}
-                                className={`px-6 py-3 rounded-lg font-semibold transition-colors duration-300 inline-flex items-center gap-2 shadow-md ${
-                                    showMyBlogsSection 
-                                        ? 'bg-[#1E6F5C] text-white hover:bg-[#28B463]' 
+                                className={`px-6 py-3 rounded-lg font-semibold transition-colors duration-300 inline-flex items-center gap-2 shadow-md ${showMyBlogsSection
+                                        ? 'bg-[#1E6F5C] text-white hover:bg-[#28B463]'
                                         : 'bg-white text-[#1E6F5C] border-2 border-[#28B463] hover:bg-gray-50'
-                                }`}
+                                    }`}
                             >
                                 My Blogs {myBlogsStats.totalBlogs > 0 && `(${myBlogsStats.totalBlogs})`}
                             </button>
@@ -243,11 +244,10 @@ const BlogPage = () => {
                     <div className="mt-4 flex flex-wrap gap-2">
                         <button
                             onClick={() => handleCategoryClick('all')}
-                            className={`px-4 py-2 rounded-full font-medium transition-colors ${
-                                filters.category === 'all'
+                            className={`px-4 py-2 rounded-full font-medium transition-colors ${filters.category === 'all'
                                     ? 'bg-[#28B463] text-white shadow-md'
                                     : 'bg-white text-gray-700 border border-gray-300 hover:border-[#28B463] hover:text-[#28B463]'
-                            }`}
+                                }`}
                         >
                             All Categories
                         </button>
@@ -255,11 +255,10 @@ const BlogPage = () => {
                             <button
                                 key={category}
                                 onClick={() => handleCategoryClick(category)}
-                                className={`px-4 py-2 rounded-full font-medium transition-colors ${
-                                    filters.category === category
+                                className={`px-4 py-2 rounded-full font-medium transition-colors ${filters.category === category
                                         ? 'bg-[#28B463] text-white shadow-md'
                                         : 'bg-white text-gray-700 border border-gray-300 hover:border-[#28B463] hover:text-[#28B463]'
-                                }`}
+                                    }`}
                             >
                                 {category}
                             </button>

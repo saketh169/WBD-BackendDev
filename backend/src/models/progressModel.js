@@ -66,14 +66,10 @@ const progressSchema = new mongoose.Schema({
     maxlength: 250,
     default: ''
   },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now
-  }
-});
+}, { timestamps: true });
+
+// Indexes for faster queries
+progressSchema.index({ userId: 1, createdAt: -1 });
+progressSchema.index({ userId: 1, plan: 1 });
 
 module.exports = mongoose.model('Progress', progressSchema);

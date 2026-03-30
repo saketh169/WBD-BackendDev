@@ -49,16 +49,10 @@ const DietitianHealthReportPage = () => {
 
       try {
         setLoading(true);
-        const dietitianId = user.id || user._id;
-        const token = localStorage.getItem('authToken_dietitian');
+        const dietitianId = user.id;
 
         const response = await axios.get(
-          `/api/health-reports/dietitian/${dietitianId}/client/${clientId}`,
-          {
-            headers: {
-              'Authorization': token ? `Bearer ${token}` : undefined
-            }
-          }
+          `/api/health-reports/dietitian/${dietitianId}/client/${clientId}`
         );
 
         if (response.data.success) {
@@ -95,8 +89,7 @@ const DietitianHealthReportPage = () => {
 
     setSubmitting(true);
     try {
-      const dietitianId = user.id || user._id;
-      const token = localStorage.getItem('authToken_dietitian');
+      const dietitianId = user.id;
 
       const submitData = new FormData();
       submitData.append('dietitianId', dietitianId);
@@ -119,7 +112,6 @@ const DietitianHealthReportPage = () => {
 
       const response = await axios.post('/api/health-reports/create', submitData, {
         headers: {
-          'Authorization': token ? `Bearer ${token}` : undefined,
           'Content-Type': 'multipart/form-data'
         }
       });

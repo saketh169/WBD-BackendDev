@@ -136,7 +136,7 @@ const Pricing = () => {
                 <div className="h-1 w-20 mx-auto mb-6 rounded-full" style={{ backgroundColor: '#27AE60' }}></div>
                 <div className="bg-green-50 rounded-xl p-4 mb-4">
                   <p className="text-sm font-semibold mb-2" style={{ color: '#27AE60' }}>
-                    🎉 {plan.desc1}
+                    <i className="fas fa-star  mr-2"></i>{plan.desc1}
                   </p>
                 </div>
                 <p className="text-sm mb-6" style={{ color: '#2F4F4F' }}>{plan.desc2}</p>

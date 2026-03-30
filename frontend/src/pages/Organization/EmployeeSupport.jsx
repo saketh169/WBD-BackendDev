@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useContext } from 'react';
 import axios from 'axios';
+import AuthContext from '../../contexts/AuthContext';
 
 const CATEGORIES = [
   { value: 'verification', label: 'Verification Issue', icon: 'fas fa-user-check', color: 'text-blue-600', bg: 'bg-blue-50 border-blue-300' },
@@ -9,16 +10,11 @@ const CATEGORIES = [
 ];
 
 const EmployeeSupport = () => {
-  const token = localStorage.getItem('authToken_employee');
+  const { user, token } = useContext(AuthContext);
 
-  // Read from localStorage as initial values, then refresh from API
-  const _stored = JSON.parse(localStorage.getItem('authUser_employee') || '{}');
-  const [empName, setEmpName] = useState(_stored.name || 'Employee');
-  const [empEmail, setEmpEmail] = useState(_stored.email || '');
-  const [orgName, setOrgName] = useState(_stored.org_name || 'Organization');
-
-  // Reactive key so it always reflects the latest email (even if empty on first render)
-  const QUERIES_KEY = empEmail ? `emp_queries_${empEmail}` : null;
+  const [empName, setEmpName] = useState(user?.name || 'Employee');
+  const [empEmail, setEmpEmail] = useState(user?.email || '');
+  const [orgName, setOrgName] = useState(user?.org_name || 'Organization');
 
   const [activeTab, setActiveTab] = useState('submit');
 
@@ -31,7 +27,6 @@ const EmployeeSupport = () => {
 
   // ── My Queries ──
   const [myQueries, setMyQueries] = useState([]);
-  const [replies, setReplies] = useState({});
 
   // ── Team Board ──
   const [boardMsg, setBoardMsg] = useState('');
@@ -89,16 +84,13 @@ const EmployeeSupport = () => {
           if (name)     setEmpName(name);
           if (email)    setEmpEmail(email);
           if (org_name) setOrgName(org_name);
-          // Update localStorage so other components stay in sync
-          const updated = { ..._stored, name, email, org_name };
-          localStorage.setItem('authUser_employee', JSON.stringify(updated));
         }
-      } catch (err) {
-        console.error('Failed to refresh user details:', err);
+      } catch {
+        // silently ignore refresh failure
       }
     };
     refreshUser();
-  }, [token, _stored]);
+  }, [token]);
 
   const fetchBoardPosts = useCallback(async (silent = false) => {
     if (!silent) setBoardLoading(true);
@@ -107,61 +99,41 @@ const EmployeeSupport = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       setBoardPosts(res.data.data || []);
-    } catch (err) {
-      console.error('Failed to fetch board posts:', err);
+    } catch {
+      // silently ignore fetch failure
     } finally {
       if (!silent) setBoardLoading(false);
     }
   }, [orgName, token]);
 
-  // Fetch admin replies to employee queries
-  const fetchReplies = useCallback(async () => {
-    if (!empEmail) return;
+  // Fetch all employee queries from backend (both pending and replied)
+  const fetchMyQueries = useCallback(async () => {
+    if (!token) return;
     try {
-      const res = await axios.get(`/api/contact/queries-list?email=${encodeURIComponent(empEmail.toLowerCase())}`, {
+      const res = await axios.get(`/api/contact/my-queries`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.data.success && res.data.data) {
-        const repliesMap = {};
-        res.data.data.forEach(query => {
-          // Extract subject from query format [Category] subject
-          const queryContent = query.query || '';
-          const catMatch = queryContent.match(/^\[([^\]]+)\]\s*(.+?)(?:\n|$)/);
-          const subject = catMatch ? catMatch[2].trim() : queryContent.split('\n')[0].trim();
-          // Match by email + subject (normalize email to lowercase)
-          const queryKey = `${query.email.toLowerCase()}_${subject}`;
-          if (query.admin_reply) {
-            repliesMap[queryKey] = {
-              _id: query._id,
-              reply: query.admin_reply,
-              replied_at: query.replied_at,
-              emp_reply: query.emp_reply || null,
-              emp_replied_at: query.emp_replied_at || null
-            };
-          }
-        });
-        setReplies(repliesMap);
+        // Set myQueries with all queries from backend
+        setMyQueries(res.data.data || []);
       }
-    } catch (err) {
-      console.error('Failed to fetch replies:', err);
+    } catch {
+      // silently ignore fetch failure
     }
-  }, [empEmail, token]);
+  }, [token]);
 
   useEffect(() => {
-    if (!QUERIES_KEY) return;
-    const stored = JSON.parse(localStorage.getItem(QUERIES_KEY) || '[]');
-    setMyQueries(stored);
-    fetchReplies();
+    fetchMyQueries();
     fetchBoardPosts();
     // Auto-refresh board every 15 seconds
     const boardInterval = setInterval(() => fetchBoardPosts(true), 15000);
-    // Auto-refresh replies every 5 seconds to show new admin responses
-    const repliesInterval = setInterval(() => fetchReplies(), 5000);
+    // Auto-refresh queries every 5 seconds to show new admin responses
+    const queriesInterval = setInterval(() => fetchMyQueries(), 5000);
     return () => {
       clearInterval(boardInterval);
-      clearInterval(repliesInterval);
+      clearInterval(queriesInterval);
     };
-  }, [orgName, empEmail, QUERIES_KEY, fetchBoardPosts, fetchReplies]);
+  }, [token, fetchBoardPosts, fetchMyQueries]);
 
   // Auto-scroll to bottom when new messages arrive or when switching to board tab
   useEffect(() => {
@@ -188,33 +160,22 @@ const EmployeeSupport = () => {
     if (Object.keys(errs).length) { setFormErrors(errs); return; }
     setFormErrors({});
     setSubmitting(true);
-    const catLabel = CATEGORIES.find(c => c.value === form.category)?.label || 'General';
     const payload = {
-      name: empName,
-      email: empEmail,
-      role: 'Others',
-      query: `[${catLabel}] ${form.subject.trim()}\n\n${form.message.trim()}`,
+      subject: form.subject.trim(),
+      message: form.message.trim(),
+      category: CATEGORIES.find(c => c.value === form.category)?.label || 'General',
     };
     try {
-      await axios.post('/api/contact/submit', payload);
-      const entry = {
-        id: Date.now(),
-        category: form.category,
-        subject: form.subject.trim(),
-        message: form.message.trim(),
-        status: 'pending',
-        submittedAt: new Date().toISOString(),
-      };
-      if (QUERIES_KEY) {
-        const updated = [entry, ...myQueries];
-        setMyQueries(updated);
-        localStorage.setItem(QUERIES_KEY, JSON.stringify(updated));
-      }
+      await axios.post('/api/contact/employee/submit', payload, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      // Fetch queries from backend to reflect the newly submitted query
+      fetchMyQueries();
       setForm({ category: 'verification', subject: '', message: '' });
       setSubmitSuccess('Query submitted successfully! You will receive a confirmation email shortly.');
       setTimeout(() => setSubmitSuccess(''), 6000);
-    } catch (err) {
-      setSubmitError(err.response?.data?.message || 'Failed to submit query. Please try again.');
+    } catch {
+      setSubmitError('Failed to submit query. Please try again.');
       setTimeout(() => setSubmitError(''), 5000);
     } finally {
       setSubmitting(false);
@@ -228,16 +189,13 @@ const EmployeeSupport = () => {
     setBoardPosting(true);
     try {
       const res = await axios.post('/api/teamboard', {
-        orgName,
-        author: empName,
-        email: empEmail,
         message: boardMsg.trim(),
         isOrg: false,
       }, { headers: { Authorization: `Bearer ${token}` } });
       setBoardPosts(prev => [res.data.data, ...prev]);
       setBoardMsg('');
-    } catch (err) {
-      setBoardError(err.response?.data?.message || 'Failed to post message.');
+    } catch {
+      setBoardError('Failed to post message.');
     } finally {
       setBoardPosting(false);
     }
@@ -245,23 +203,29 @@ const EmployeeSupport = () => {
 
   const handleDeleteBoardPost = async (id) => {
     try {
-      await axios.delete(`/api/teamboard/${id}?email=${encodeURIComponent(empEmail)}&isOrg=false`, {
+      await axios.delete(`/api/teamboard/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setBoardPosts(prev => prev.filter(p => p._id !== id));
-    } catch (err) {
-      console.error('Failed to delete post:', err);
+    } catch {
+      // silently ignore delete failure
     }
   };
 
-  const catInfo = (val) => CATEGORIES.find(c => c.value === val);
+  const catInfo = (val) => CATEGORIES.find(c => c.value === val || c.label === val);
+
+  // Safe date formatter
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    try {
+      return new Date(dateStr).toLocaleString();
+    } catch {
+      return 'Invalid date';
+    }
+  };
 
   // Count only pending queries (not resolved)
-  const pendingCount = myQueries.filter(q => {
-    const queryKey = `${empEmail.toLowerCase()}_${q.subject.trim()}`;
-    const reply = replies[queryKey];
-    return !reply?.reply; // Only count if no admin reply
-  }).length;
+  const pendingCount = myQueries.filter(q => q.status === 'pending').length;
 
   // Count only new team board messages (created after login)
   const newMessageCount = boardPosts.filter(post => {
@@ -309,7 +273,7 @@ const EmployeeSupport = () => {
         {activeTab === 'submit' && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
             <h2 className="text-xl font-bold text-[#1A4A40] mb-6">
-              <i className="fas fa-paper-plane mr-2 text-[#27AE60]"></i>Raise a New Que5060ry
+              <i className="fas fa-paper-plane mr-2 text-[#27AE60]"></i>Raise a New Query
             </h2>
 
             {submitSuccess && (
@@ -418,12 +382,9 @@ const EmployeeSupport = () => {
               <div className="divide-y divide-gray-100">
                 {myQueries.map(q => {
                   const cat = catInfo(q.category);
-                  // Create matching key for replies lookup (lowercase email, trim subject)
-                  const queryKey = `${empEmail.toLowerCase()}_${q.subject.trim()}`;
-                  const reply = replies[queryKey];
-                  const isResolved = !!reply?.reply;
+                  const isResolved = !!q.admin_reply;
                   return (
-                    <div key={q.id} className="p-6 hover:bg-gray-50 transition-colors">
+                    <div key={q._id} className="p-6 hover:bg-gray-50 transition-colors">
                       {/* Query Header */}
                       <div className="flex items-start justify-between gap-4 mb-4">
                         <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -432,13 +393,13 @@ const EmployeeSupport = () => {
                           </div>
                           <div className="min-w-0">
                             <p className="font-semibold text-gray-900">{q.subject}</p>
-                            <p className="text-sm text-gray-600 mt-1">{q.message}</p>
+                            <p className="text-sm text-gray-600 mt-1">{q.query}</p>
                             <div className="flex items-center gap-3 mt-3">
                               <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${cat?.bg} ${cat?.color}`}>
                                 {cat?.label}
                               </span>
                               <span className="text-xs text-gray-400">
-                                {new Date(q.submittedAt).toLocaleString()}
+                                {formatDate(q.created_at)}
                               </span>
                             </div>
                           </div>
@@ -451,29 +412,15 @@ const EmployeeSupport = () => {
                       </div>
 
                       {/* Admin Reply Section */}
-                      {reply?.reply && (
+                      {q.admin_reply && (
                         <div className="bg-[#27AE60]/10 border-l-4 border-[#27AE60] p-4 rounded mb-4">
                           <p className="text-sm font-semibold text-gray-900 mb-2">
                             <i className="fas fa-check-circle text-[#27AE60] mr-2"></i>Reply from Admin:
                           </p>
-                          <p className="text-gray-700 text-sm leading-relaxed mb-2">{reply.reply}</p>
+                          <p className="text-gray-700 text-sm leading-relaxed mb-2">{q.admin_reply}</p>
                           <p className="text-xs text-gray-500">
                             <i className="fas fa-clock mr-1"></i>
-                            {new Date(reply.replied_at).toLocaleString()}
-                          </p>
-                        </div>
-                      )}
-
-                      {/* Employee Reply History */}
-                      {reply?.emp_reply && (
-                        <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded mb-4">
-                          <p className="text-sm font-semibold text-gray-900 mb-2">
-                            <i className="fas fa-reply text-blue-600 mr-2"></i>Your Response:
-                          </p>
-                          <p className="text-gray-700 text-sm leading-relaxed mb-2">{reply.emp_reply}</p>
-                          <p className="text-xs text-gray-500">
-                            <i className="fas fa-clock mr-1"></i>
-                            {new Date(reply.emp_replied_at).toLocaleString()}
+                            {formatDate(q.replied_at)}
                           </p>
                         </div>
                       )}
@@ -569,7 +516,7 @@ const EmployeeSupport = () => {
                         {/* Time + delete */}
                         <div className={`flex items-center gap-2 px-1 ${isAdmin ? '' : 'flex-row-reverse'}`}>
                           <span className="text-[10px] text-gray-400">
-                            {new Date(post.postedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {formatDate(post.created_at)}
                           </span>
                           {isMine && (
                             <button

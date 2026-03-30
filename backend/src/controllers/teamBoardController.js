@@ -1,4 +1,5 @@
 const TeamBoard = require('../models/teamBoardModel');
+const { Employee, Organization, UserAuth } = require('../models/userModel');
 
 /**
  * GET /api/teamboard?orgName=XYZ&limit=100
@@ -26,15 +27,16 @@ exports.getPosts = async (req, res) => {
 /**
  * POST /api/teamboard
  * Create a new board post.
- * Body: { orgName, author, email, message, isOrg? }
+ * Body: { message, isOrg? }
+ * orgName, author, and email come from JWT token (authenticated user)
  */
 exports.createPost = async (req, res) => {
-  const { orgName, author, email, message, isOrg } = req.body;
+  const { message, isOrg } = req.body;
 
-  if (!orgName || !author || !email || !message) {
+  if (!message) {
     return res.status(400).json({
       success: false,
-      message: 'orgName, author, email and message are required.',
+      message: 'Message is required.',
     });
   }
 
@@ -43,6 +45,59 @@ exports.createPost = async (req, res) => {
   }
 
   try {
+    // Validate that isOrg flag matches user type
+    const isOrgFlag = Boolean(isOrg);
+    const isEmployee = !!req.user.employeeId;
+    const isOrgAdmin = req.user.roleId && req.user.role === 'organization';
+
+    if (isOrgFlag && !isOrgAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: 'You are not an organization admin. Set isOrg to false.',
+      });
+    }
+
+    if (!isOrgFlag && !isEmployee) {
+      return res.status(403).json({
+        success: false,
+        message: 'You are not an employee. Set isOrg to true.',
+      });
+    }
+
+    // Fetch orgName, author name, and email from database
+    let orgName, author, email;
+
+    if (isEmployee) {
+      // Employee token - fetch org from organizationId and employee details
+      const orgId = req.user.organizationId;
+      const organization = await Organization.findById(orgId).select('name');
+      if (!organization) {
+        return res.status(404).json({ success: false, message: 'Organization not found.' });
+      }
+      orgName = organization.name;
+
+      const employee = await Employee.findById(req.user.employeeId).select('name email');
+      if (!employee) {
+        return res.status(404).json({ success: false, message: 'Employee not found.' });
+      }
+      author = employee.name;
+      email = employee.email;
+    } else if (isOrgAdmin) {
+      // Organization admin token - fetch from Organization model
+      const organization = await Organization.findById(req.user.roleId).select('name email');
+      if (!organization) {
+        return res.status(404).json({ success: false, message: 'Organization not found.' });
+      }
+      orgName = organization.name;
+      author = organization.name;
+      email = organization.email;
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: 'Only employees and organization admins can post to team board.',
+      });
+    }
+
     const post = new TeamBoard({
       orgName: orgName.trim(),
       author: author.trim(),
@@ -67,11 +122,11 @@ exports.createPost = async (req, res) => {
 /**
  * DELETE /api/teamboard/:id
  * Delete a board post.
- * Only the post owner (matching email) or an org-admin (isOrg: true) can delete.
+ * Only the post owner or an organization admin can delete.
+ * Identity comes from JWT token.
  */
 exports.deletePost = async (req, res) => {
   const { id } = req.params;
-  const { email, isOrg } = req.query; // identify requester
 
   try {
     const post = await TeamBoard.findById(id);
@@ -79,16 +134,37 @@ exports.deletePost = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Post not found.' });
     }
 
-    // Allow deletion if: it's the post owner OR the requester is an org admin
-    const isOwner = post.email === (email || '').trim().toLowerCase();
-    const requesterIsOrg = isOrg === 'true';
+    // Determine user type and get their email from JWT + database
+    const isEmployee = !!req.user.employeeId;
+    const isOrgAdmin = req.user.roleId && req.user.role === 'organization';
+    let requesterEmail;
 
-    if (!isOwner && !requesterIsOrg) {
+    if (isEmployee) {
+      const employee = await Employee.findById(req.user.employeeId).select('email');
+      if (!employee) {
+        return res.status(404).json({ success: false, message: 'Employee not found.' });
+      }
+      requesterEmail = employee.email.toLowerCase();
+    } else if (isOrgAdmin) {
+      const organization = await Organization.findById(req.user.roleId).select('email');
+      if (!organization) {
+        return res.status(404).json({ success: false, message: 'Organization not found.' });
+      }
+      requesterEmail = organization.email.toLowerCase();
+    } else {
+      return res.status(403).json({ success: false, message: 'Not authorised to delete posts.' });
+    }
+
+    // Allow deletion if: it's the post owner (same email) OR the requester is an org admin
+    const isOwner = post.email.toLowerCase() === requesterEmail;
+    const canDelete = isOwner || isOrgAdmin;
+
+    if (!canDelete) {
       return res.status(403).json({ success: false, message: 'Not authorised to delete this post.' });
     }
 
     await TeamBoard.findByIdAndDelete(id);
-    res.status(200).json({ success: true, message: 'Post deleted.' });
+    res.status(200).json({ success: true, message: 'Post deleted successfully.' });
   } catch (err) {
     console.error('TeamBoard deletePost error:', err);
     res.status(500).json({ success: false, message: 'Failed to delete post.' });

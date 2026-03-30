@@ -21,8 +21,8 @@ const querySchema = new mongoose.Schema({
   role: {
     type: String,
     required: [true, 'Role is required'],
-    enum: ['User', 'Dietitian', 'Certifying Organization', 'Others'],
-    default: 'Others'
+    enum: ['User', 'Dietitian', 'Certifying Organization'],
+    default: 'User'
   },
   query: {
     type: String,
@@ -60,6 +60,10 @@ const querySchema = new mongoose.Schema({
   }
 });
 
+
+// Indexes for faster queries
+querySchema.index({ status: 1, created_at: -1 });
+querySchema.index({ email: 1 });
 
 const Query = mongoose.model('Query', querySchema);
 

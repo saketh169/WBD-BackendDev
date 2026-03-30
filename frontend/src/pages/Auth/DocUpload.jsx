@@ -484,11 +484,10 @@ const DocUpload = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
     try {
-      // Get user data from token stored during signup (use role-specific key)
+      // Get auth token (backend extracts userId from JWT via middleware)
       const token = localStorage.getItem(`authToken_${role}`);
-      const userIdFromStorage = localStorage.getItem('userId');
 
-      if (!token || !userIdFromStorage) {
+      if (!token) {
         setMessage('Session expired. Please sign up again.');
         setTimeout(() => {
           navigate('/signup?role=' + role);
@@ -498,7 +497,6 @@ const DocUpload = () => {
 
       // Create FormData to send files
       const formDataToSend = new FormData();
-      formDataToSend.append('userId', userIdFromStorage);
       formDataToSend.append('role', role);
 
       // Append only files (filter out empty optional fields)

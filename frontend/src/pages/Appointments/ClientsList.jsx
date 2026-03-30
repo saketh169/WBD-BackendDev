@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import AuthContext from '../../contexts/AuthContext';
 import axios from 'axios';
+import { io } from 'socket.io-client';
 import {
   fetchDietitianClients,
   selectDietitianClients,
@@ -37,8 +38,6 @@ const ClientsList = () => {
   // Log dietitian name and ID for debugging
   useEffect(() => {
     if (user) {
-      console.log('Dietitian Name:', user.name);
-      console.log('Dietitian ID:', user.id);
     }
   }, [user]);
 
@@ -59,13 +58,13 @@ const ClientsList = () => {
       if (!authToken) {
         authToken = localStorage.getItem('authToken_dietitian');
       }
-      
+
       if (!user?.id || !authToken) {
         alert('Session expired. Please login again.');
         navigate('/signin?role=dietitian');
         return;
       }
-      
+
       // Create or get conversation
       const response = await axios.post('/api/chat/conversation', {
         clientId: client.id,
@@ -110,12 +109,43 @@ const ClientsList = () => {
     dispatch(fetchDietitianClients({ dietitianId: user.id }));
   }, [dispatch, user?.id]);
 
+  // Real-time WebSocket listener for booking changes
+  useEffect(() => {
+    if (!user?.id || !token) return;
+
+    // Connect to backend Socket.IO server
+    const socket = io(import.meta.env.VITE_API_URL || 'http://localhost:5000', {
+      withCredentials: true,
+    });
+
+    socket.on('connect', () => {
+      console.log('Connected to real-time server (ClientsList)');
+      socket.emit('register_dietitian', user.id);
+    });
+
+    socket.on('new_booking', (bookingData) => {
+      console.log('New booking received in ClientsList!', bookingData);
+      // Refresh clients list instantly
+      dispatch(fetchDietitianClients({ dietitianId: user.id }));
+    });
+
+    socket.on('booking_updated', (bookingData) => {
+      console.log('Booking updated received in ClientsList!', bookingData);
+      // Refresh clients list instantly
+      dispatch(fetchDietitianClients({ dietitianId: user.id }));
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [user?.id, token, dispatch]);
+
   // Use clients data directly from Redux and update status based on appointment time
   const clientsFromBookings = useMemo(() => {
     const now = new Date();
     return clients.map(client => {
       let status = client.status || 'Active';
-      
+
       // Check if appointment is past
       if (client.nextAppointment) {
         const appointmentDate = new Date(client.nextAppointment);
@@ -128,7 +158,7 @@ const ClientsList = () => {
           status = 'Completed';
         }
       }
-      
+
       return {
         id: client.id,
         name: client.name,
@@ -156,8 +186,8 @@ const ClientsList = () => {
   // Filter clients based on search and status
   const filteredClients = allClients.filter(client => {
     const matchesSearch = client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         client.consultationType.toLowerCase().includes(searchTerm.toLowerCase());
+      client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      client.consultationType.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus = statusFilter === 'All' || client.status === statusFilter;
 
@@ -246,8 +276,8 @@ const ClientsList = () => {
         ) : (
           <div className="space-y-5">
             {filteredClients.map((client) => (
-              <div 
-                key={client.id} 
+              <div
+                key={client.id}
                 className="bg-white rounded-2xl shadow-lg border border-emerald-100/50 p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
               >
                 <div className="flex flex-col lg:flex-row lg:items-center gap-6">
@@ -335,14 +365,14 @@ const ClientsList = () => {
 
                     {/* Action Buttons */}
                     <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                      <button 
+                      <button
                         onClick={() => handleViewDetails(client)}
                         className="flex-1 px-6 py-3 bg-linear-to-r from-emerald-600 to-teal-600 text-white rounded-xl hover:from-emerald-700 hover:to-teal-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
                       >
                         <i className="fas fa-calendar-check"></i>
                         <span>View Details</span>
                       </button>
-                      <button 
+                      <button
                         onClick={() => handleMessageClient(client)}
                         className="px-6 py-3 bg-white border-2 border-emerald-300 text-emerald-700 rounded-xl hover:bg-emerald-50 hover:border-emerald-400 transition-all duration-300 font-semibold shadow-md hover:shadow-lg transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
                       >
@@ -367,8 +397,8 @@ const ClientsList = () => {
                 No clients found
               </h3>
               <p className="text-gray-600">
-                {searchTerm || statusFilter !== 'All' 
-                  ? "Try adjusting your search terms or filters." 
+                {searchTerm || statusFilter !== 'All'
+                  ? "Try adjusting your search terms or filters."
                   : "You haven't received any client bookings yet."}
               </p>
             </div>

@@ -51,8 +51,41 @@ const COLORS = {
 
 const handleAlert = (message) => {
     // Replaces the native alert() function
-    console.log(`ALERT: ${message}`);
     alert(message);
+};
+
+const exportToCSV = (data, filename) => {
+    if (!data || data.length === 0) {
+        handleAlert('No data to export.');
+        return;
+    }
+
+    // Extract simple fields
+    const keys = Object.keys(data[0]).filter(k => typeof data[0][k] !== 'object' && !k.startsWith('_'));
+
+    const csvContent = [
+        keys.join(','),
+        ...data.map(item => keys.map(k => {
+            let val = item[k] || '';
+            if (typeof val === 'string') {
+                val = val.replace(/"/g, '""'); // escape quotes
+                val = val.replace(/\n/g, ' '); // remove newlines
+            }
+            return `"${val}"`;
+        }).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    if (link.download !== undefined) {
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
 };
 
 // --- UI Components ---
@@ -78,6 +111,7 @@ const UserActions = ({ id, type, onView, onShowRemove, onSoftDelete }) => (
                 className="group relative p-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 hover:border-emerald-300 transition-all duration-200 shadow-sm hover:shadow-md"
                 onClick={() => onSoftDelete(id, type)}
                 title="Soft Delete"
+                aria-label="Soft Delete"
             >
                 <i className="fas fa-archive text-emerald-600 group-hover:text-emerald-700 text-sm"></i>
                 <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
@@ -90,6 +124,7 @@ const UserActions = ({ id, type, onView, onShowRemove, onSoftDelete }) => (
                 className="group relative p-2 mr-2 rounded-lg bg-red-50 hover:bg-red-100 border border-red-200 hover:border-red-300 transition-all duration-200 shadow-sm hover:shadow-md"
                 onClick={() => onShowRemove(id, type)}
                 title="Remove Account"
+                aria-label="Remove Account"
             >
                 <i className="fas fa-trash-alt text-red-600 group-hover:text-red-700 text-sm"></i>
                 <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
@@ -109,6 +144,7 @@ const RemovedActions = ({ id, type, onView, onShowRestore }) => (
                 className="group relative p-2 rounded-lg bg-green-50 hover:bg-green-100 border border-green-200 hover:border-green-300 transition-all duration-200 shadow-sm hover:shadow-md"
                 onClick={() => onView(id, type)}
                 title="View Details"
+                aria-label="View Details"
             >
                 <i className="fas fa-eye text-green-600 group-hover:text-green-700 text-sm"></i>
                 <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
@@ -121,6 +157,7 @@ const RemovedActions = ({ id, type, onView, onShowRestore }) => (
                 className="group relative p-2 rounded-lg bg-teal-50 hover:bg-teal-100 border border-teal-200 hover:border-teal-300 transition-all duration-200 shadow-sm hover:shadow-md"
                 onClick={() => onShowRestore(id, type)}
                 title="Restore Account"
+                aria-label="Restore Account"
             >
                 <i className="fas fa-undo text-teal-600 group-hover:text-teal-700 text-sm"></i>
                 <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
@@ -131,6 +168,47 @@ const RemovedActions = ({ id, type, onView, onShowRestore }) => (
     </td>
 );
 
+// Pagination Component extracted for reuse
+const Pagination = ({ currentPage, totalPages, onPageChange, theme }) => {
+    if (totalPages <= 1) return null;
+
+    const pageNumbers = [];
+    for (let i = 1; i <= totalPages; i++) {
+        pageNumbers.push(i);
+    }
+
+    return (
+        <div className="flex justify-center items-center space-x-2 mt-4 pb-4">
+            <button
+                onClick={() => onPageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${currentPage === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'}`}
+            >
+                Prev
+            </button>
+
+            {pageNumbers.map(number => (
+                <button
+                    key={number}
+                    onClick={() => onPageChange(number)}
+                    className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${currentPage === number ? 'text-white' : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'}`}
+                    style={currentPage === number ? { backgroundColor: theme } : {}}
+                >
+                    {number}
+                </button>
+            ))}
+
+            <button
+                onClick={() => onPageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${currentPage === totalPages ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'}`}
+            >
+                Next
+            </button>
+        </div>
+    );
+};
+
 // --- Main Component ---
 const AdminManagement = () => {
     const navigate = useNavigate();
@@ -139,7 +217,9 @@ const AdminManagement = () => {
     // Redux state
     const {
         users,
+        usersPagination,
         removedAccounts,
+        removedAccountsPagination,
         activeRole,
         removedRole,
         searchTerm,
@@ -159,15 +239,15 @@ const AdminManagement = () => {
     // Fetch all active users (real API calls)
     const fetchAllActiveUsers = useCallback(async () => {
         await Promise.all([
-            dispatch(fetchUsersByRole('user')),
-            dispatch(fetchUsersByRole('dietitian')),
-            dispatch(fetchUsersByRole('organization')),
+            dispatch(fetchUsersByRole({ role: 'user', page: 1, limit: 10 })),
+            dispatch(fetchUsersByRole({ role: 'dietitian', page: 1, limit: 10 })),
+            dispatch(fetchUsersByRole({ role: 'organization', page: 1, limit: 10 })),
         ]);
     }, [dispatch]);
 
     // Fetch removed accounts (real API call)
-    const fetchRemovedAccountsData = useCallback(async () => {
-        await dispatch(fetchRemovedAccounts());
+    const fetchRemovedAccountsData = useCallback(async (page = 1) => {
+        await dispatch(fetchRemovedAccounts({ page, limit: 10 }));
     }, [dispatch]);
 
     useEffect(() => {
@@ -232,15 +312,29 @@ const AdminManagement = () => {
         }
 
         await Promise.all([
-            dispatch(searchUsersByRole({ role: 'user', query: searchTerm })),
-            dispatch(searchUsersByRole({ role: 'dietitian', query: searchTerm })),
-            dispatch(searchUsersByRole({ role: 'organization', query: searchTerm })),
-        ]);;
+            dispatch(searchUsersByRole({ role: 'user', query: searchTerm, page: 1, limit: 10 })),
+            dispatch(searchUsersByRole({ role: 'dietitian', query: searchTerm, page: 1, limit: 10 })),
+            dispatch(searchUsersByRole({ role: 'organization', query: searchTerm, page: 1, limit: 10 })),
+        ]);
     };
 
     // Handle search for removed accounts
     const handleRemovedSearch = async () => {
-        await dispatch(fetchRemovedAccounts(removedSearchTerm));
+        await dispatch(fetchRemovedAccounts({ query: removedSearchTerm, page: 1, limit: 10 }));
+    };
+
+    // Handle page change for active users
+    const handleActivePageChange = (newPage) => {
+        if (users._isSearchResult && searchTerm.trim()) {
+            dispatch(searchUsersByRole({ role: activeRole, query: searchTerm, page: newPage, limit: 10 }));
+        } else {
+            dispatch(fetchUsersByRole({ role: activeRole, page: newPage, limit: 10 }));
+        }
+    };
+
+    // Handle page change for removed accounts
+    const handleRemovedPageChange = (newPage) => {
+        dispatch(fetchRemovedAccounts({ query: removedSearchTerm, page: newPage, limit: 10 }));
     };
 
     const filteredActiveUsers = users;
@@ -437,14 +531,14 @@ const AdminManagement = () => {
     return (
         <div className={`min-h-screen p-4 sm:p-8 bg-gray-100`}>
             {/* Back Button */}
-            <div onClick={() => navigate(-1)} style={{ color: THEME.primary, cursor: 'pointer' }} className="fixed top-4 left-4 text-4xl hover:opacity-80 transition-opacity" onMouseEnter={(e) => e.currentTarget.style.color = THEME.dark} onMouseLeave={(e) => e.currentTarget.style.color = THEME.primary}>
+            <button onClick={() => navigate(-1)} style={{ color: THEME.primary, cursor: 'pointer' }} className="fixed top-4 left-4 text-4xl hover:opacity-80 transition-opacity" aria-label="Close" onMouseEnter={(e) => e.currentTarget.style.color = THEME.dark} onMouseLeave={(e) => e.currentTarget.style.color = THEME.primary}>
                 <i className="fa-solid fa-xmark"></i>
-            </div>
+            </button>
 
             <div style={{ maxWidth: '100%', margin: '0 auto' }}>
                 {/* Error Message */}
                 {error && (
-                    <div className="bg-red-100 text-red-700 p-3 rounded-lg text-center mb-6">{error}</div>
+                    <div className="bg-red-100 text-red-700 p-3 rounded-lg text-center mb-6">Something went wrong. Please try again.</div>
                 )}
 
                 {/* --- 1. Active Users Container --- */}
@@ -481,27 +575,35 @@ const AdminManagement = () => {
                     </div>
 
                     {/* Active Role Button Group */}
-                    <div className="flex flex-wrap justify-center gap-2 mb-6">
-                        {activeRolesList.map(role => (
-                            <button
-                                key={role}
-                                onClick={() => {
-                                    dispatch(setActiveRole(role));
-                                }}
-                                style={activeRole === role ? {
-                                    backgroundColor: THEME.primary,
-                                    color: 'white',
-                                    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
-                                } : {
-                                    backgroundColor: 'white',
-                                    color: '#374151',
-                                    borderColor: '#D1D5DB'
-                                }}
-                                className="px-4 py-2 rounded-full text-sm font-semibold transition-all duration-200 border hover:bg-gray-100"
-                            >
-                                {role.charAt(0).toUpperCase() + role.slice(1)}s
-                            </button>
-                        ))}
+                    <div className="flex flex-wrap items-center justify-between mb-6">
+                        <div className="flex gap-2">
+                            {activeRolesList.map(role => (
+                                <button
+                                    key={role}
+                                    onClick={() => {
+                                        dispatch(setActiveRole(role));
+                                    }}
+                                    style={activeRole === role ? {
+                                        backgroundColor: THEME.primary,
+                                        color: 'white',
+                                        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+                                    } : {
+                                        backgroundColor: 'white',
+                                        color: '#374151',
+                                        borderColor: '#D1D5DB'
+                                    }}
+                                    className="px-4 py-2 rounded-full text-sm font-semibold transition-all duration-200 border hover:bg-gray-100"
+                                >
+                                    {role.charAt(0).toUpperCase() + role.slice(1)}s
+                                </button>
+                            ))}
+                        </div>
+                        <button
+                            onClick={() => exportToCSV(filteredActiveUsers[activeRole] || [], `active_${activeRole}s.csv`)}
+                            className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2 font-medium text-sm shadow-sm"
+                        >
+                            <i className="fas fa-file-csv"></i> Export CSV
+                        </button>
                     </div>
 
                     {/* Total Count */}
@@ -510,7 +612,7 @@ const AdminManagement = () => {
                             <span key={role} className="mx-2">
                                 Total {role.charAt(0).toUpperCase() + role.slice(1)}s:
                                 <span className="font-bold text-gray-900 ml-1">
-                                    {filteredActiveUsers[role]?.length || users[role]?.length || 0}
+                                    {usersPagination[role]?.total || 0}
                                 </span>
                                 {users._isSearchResult && searchTerm && (
                                     <span className="text-sm text-blue-600 ml-1">(filtered)</span>
@@ -525,6 +627,12 @@ const AdminManagement = () => {
                     ) : (
                         <div className="overflow-x-auto">
                             {renderUserTable(filteredActiveUsers[activeRole] || [], activeRole)}
+                            <Pagination
+                                currentPage={usersPagination[activeRole]?.page || 1}
+                                totalPages={usersPagination[activeRole]?.pages || 1}
+                                onPageChange={handleActivePageChange}
+                                theme={THEME.primary}
+                            />
                         </div>
                     )}
                 </div>
@@ -563,39 +671,45 @@ const AdminManagement = () => {
                     </div>
 
                     {/* Removed Role Button Group */}
-                    <div className="flex flex-wrap justify-center gap-2 mb-6">
-                        {removedRolesList.map(role => (
-                            <button
-                                key={`removed-${role}`}
-                                onClick={() => {
-                                    dispatch(setRemovedRole(role));
-                                }}
-                                style={removedRole === role ? {
-                                    backgroundColor: THEME.danger,
-                                    color: 'white',
-                                    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
-                                } : {
-                                    backgroundColor: 'white',
-                                    color: '#374151',
-                                    borderColor: '#D1D5DB'
-                                }}
-                                className="px-4 py-2 rounded-full text-sm font-semibold transition-all duration-200 border hover:bg-gray-100"
-                            >
-                                Removed {role.charAt(0).toUpperCase() + role.slice(1)}s
-                            </button>
-                        ))}
+                    <div className="flex flex-wrap items-center justify-between mb-6">
+                        <div className="flex gap-2">
+                            {removedRolesList.map(role => (
+                                <button
+                                    key={`removed-${role}`}
+                                    onClick={() => {
+                                        dispatch(setRemovedRole(role));
+                                    }}
+                                    style={removedRole === role ? {
+                                        backgroundColor: THEME.danger,
+                                        color: 'white',
+                                        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+                                    } : {
+                                        backgroundColor: 'white',
+                                        color: '#374151',
+                                        borderColor: '#D1D5DB'
+                                    }}
+                                    className="px-4 py-2 rounded-full text-sm font-semibold transition-all duration-200 border hover:bg-gray-100"
+                                >
+                                    Removed {role.charAt(0).toUpperCase() + role.slice(1)}s
+                                </button>
+                            ))}
+                        </div>
+                        <button
+                            onClick={() => exportToCSV(filteredRemovedAccounts.filter(a => a.accountType.toLowerCase() === removedRole), `removed_${removedRole}s.csv`)}
+                            className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2 font-medium text-sm shadow-sm"
+                        >
+                            <i className="fas fa-file-csv"></i> Export CSV
+                        </button>
                     </div>
 
                     {/* Total Removed Count */}
                     <div className="text-center text-base font-medium text-gray-600 mb-4">
-                        {removedRolesList.map(role => (
-                            <span key={`removed-count-${role}`} className="mx-2">
-                                Total Removed {role.charAt(0).toUpperCase() + role.slice(1)}s:
-                                <span className="font-bold text-red-600 ml-1">
-                                    {filteredRemovedAccounts.filter(a => a.accountType.toLowerCase() === role).length}
-                                </span>
+                        <span className="mx-2">
+                            Total Removed Accounts:
+                            <span className="font-bold text-red-600 ml-1">
+                                {removedAccountsPagination?.total || 0}
                             </span>
-                        ))}
+                        </span>
                     </div>
 
                     {/* Dynamic Removed User Table */}
@@ -604,6 +718,12 @@ const AdminManagement = () => {
                     ) : (
                         <div className="overflow-x-auto">
                             {renderRemovedTable(filteredRemovedAccounts, removedRole)}
+                            <Pagination
+                                currentPage={removedAccountsPagination?.page || 1}
+                                totalPages={removedAccountsPagination?.pages || 1}
+                                onPageChange={handleRemovedPageChange}
+                                theme={THEME.danger}
+                            />
                         </div>
                     )}
                 </div>

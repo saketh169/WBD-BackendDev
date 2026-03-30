@@ -4,244 +4,249 @@ import axios from 'axios';
 
 // NOTE: Assumes Bootstrap and Font Awesome CSS/JS are included in the main application.
 const FIELD_MAP = {
-    orgLogo: { name: 'Organization Logo', ext: 'png', icon: 'fas fa-image', isImage: true },
-    orgBrochure: { name: 'Organization Brochure', ext: 'pdf', icon: 'fas fa-file-pdf', isImage: false },
-    legalDocument: { name: 'Legal Document', ext: 'pdf', icon: 'fas fa-file-contract', isImage: false },
-    taxDocument: { name: 'Tax Document', ext: 'pdf', icon: 'fas fa-file-invoice-dollar', isImage: false },
-    addressProof: { name: 'Proof of Address', ext: 'pdf', icon: 'fas fa-map-marker-alt', isImage: false },
-    businessLicense: { name: 'Business License', ext: 'pdf', icon: 'fas fa-id-card', isImage: false },
-    authorizedRepId: { name: 'Identity Proof', ext: 'pdf', icon: 'fas fa-user-check', isImage: false },
-    bankDocument: { name: 'Bank Document', ext: 'pdf', icon: 'fas fa-university', isImage: false },
-    finalReport: { name: 'Final Report', ext: 'pdf', icon: 'fas fa-file-alt', isImage: false }
+  orgLogo: { name: 'Organization Logo', ext: 'png', icon: 'fas fa-image', isImage: true },
+  orgBrochure: { name: 'Organization Brochure', ext: 'pdf', icon: 'fas fa-file-pdf', isImage: false },
+  legalDocument: { name: 'Legal Document', ext: 'pdf', icon: 'fas fa-file-contract', isImage: false },
+  taxDocument: { name: 'Tax Document', ext: 'pdf', icon: 'fas fa-file-invoice-dollar', isImage: false },
+  addressProof: { name: 'Proof of Address', ext: 'pdf', icon: 'fas fa-map-marker-alt', isImage: false },
+  businessLicense: { name: 'Business License', ext: 'pdf', icon: 'fas fa-id-card', isImage: false },
+  authorizedRepId: { name: 'Identity Proof', ext: 'pdf', icon: 'fas fa-user-check', isImage: false },
+  bankDocument: { name: 'Bank Document', ext: 'pdf', icon: 'fas fa-university', isImage: false },
+  finalReport: { name: 'Final Report', ext: 'pdf', icon: 'fas fa-file-alt', isImage: false }
 };
 
 const STATUS_ICONS = {
-    'Not Received': 'hourglass-half',
-    'Received': 'hourglass-half',
-    'Verified': 'check-circle',
-    'Rejected': 'times-circle',
-    'Pending': 'hourglass-half',
-    'Not Uploaded': 'minus-circle'
+  'Not Received': 'hourglass-half',
+  'Received': 'hourglass-half',
+  'Verified': 'check-circle',
+  'Rejected': 'times-circle',
+  'Pending': 'hourglass-half',
+  'Not Uploaded': 'minus-circle'
 };
 const mockOrganizationData = [
-    {
-        _id: 'o001',
-        org_name: 'TechSolutions Corp.',
-        verificationStatus: {
-            orgLogo: 'Received',
-            orgBrochure: 'Pending',
-            legalDocument: 'Verified',
-            taxDocument: 'Rejected',
-            addressProof: 'Received',
-            businessLicense: 'Received',
-            authorizedRepId: 'Received',
-            bankDocument: 'Pending',
-            finalReport: 'Not Received' // Awaiting admin report upload
-        },
-        fileData: { // Mock file data (Base64 is a large string placeholder)
-            orgLogo: { base64: 'base64_data_logo', mime: 'image/png' },
-            legalDocument: { base64: 'base64_data_legal', mime: 'application/pdf' },
-            addressProof: { base64: 'base64_data_address', mime: 'application/pdf' }
-        }
+  {
+    _id: 'o001',
+    org_name: 'TechSolutions Corp.',
+    verificationStatus: {
+      orgLogo: 'Received',
+      orgBrochure: 'Pending',
+      legalDocument: 'Verified',
+      taxDocument: 'Rejected',
+      addressProof: 'Received',
+      businessLicense: 'Received',
+      authorizedRepId: 'Received',
+      bankDocument: 'Pending',
+      finalReport: 'Not Received' // Awaiting admin report upload
     },
-    {
-        _id: 'o002',
-        org_name: 'Global Ventures LLC',
-        verificationStatus: {
-            orgLogo: 'Verified',
-            orgBrochure: 'Verified',
-            legalDocument: 'Verified',
-            taxDocument: 'Verified',
-            addressProof: 'Verified',
-            businessLicense: 'Verified',
-            authorizedRepId: 'Verified',
-            bankDocument: 'Verified',
-            finalReport: 'Verified'
-        }
-    },
-    {
-        _id: 'o003',
-        org_name: 'New Startups Inc.',
-        verificationStatus: {
-            orgLogo: 'Not Uploaded',
-            orgBrochure: 'Not Uploaded',
-            legalDocument: 'Not Uploaded',
-            taxDocument: 'Not Uploaded',
-            addressProof: 'Not Uploaded',
-            businessLicense: 'Not Uploaded',
-            authorizedRepId: 'Not Uploaded',
-            bankDocument: 'Not Uploaded',
-            finalReport: 'Not Received'
-        }
+    fileData: { // Mock file data
+      orgLogo: { url: 'mock_url_logo', mime: 'image/png' },
+      legalDocument: { url: 'mock_url_legal', mime: 'application/pdf' },
+      addressProof: { url: 'mock_url_address', mime: 'application/pdf' }
     }
+  },
+  {
+    _id: 'o002',
+    org_name: 'Global Ventures LLC',
+    verificationStatus: {
+      orgLogo: 'Verified',
+      orgBrochure: 'Verified',
+      legalDocument: 'Verified',
+      taxDocument: 'Verified',
+      addressProof: 'Verified',
+      businessLicense: 'Verified',
+      authorizedRepId: 'Verified',
+      bankDocument: 'Verified',
+      finalReport: 'Verified'
+    }
+  },
+  {
+    _id: 'o003',
+    org_name: 'New Startups Inc.',
+    verificationStatus: {
+      orgLogo: 'Not Uploaded',
+      orgBrochure: 'Not Uploaded',
+      legalDocument: 'Not Uploaded',
+      taxDocument: 'Not Uploaded',
+      addressProof: 'Not Uploaded',
+      businessLicense: 'Not Uploaded',
+      authorizedRepId: 'Not Uploaded',
+      bankDocument: 'Not Uploaded',
+      finalReport: 'Not Received'
+    }
+  }
 ];
 const OrgVerify = () => {
-    const navigate = useNavigate();
-    const [organizations, setOrganizations] = useState([]);
-    const [expandedRow, setExpandedRow] = useState(null);
-    const [notification, setNotification] = useState(null);
-    const [modal, setModal] = useState({ active: false, message: '', onConfirm: () => {} });
-    const [fileViewer, setFileViewer] = useState({ active: false, file: null });
-    const handleNotify = (message, type = 'info', duration = 5000, isFinalReject = false) => {
-        setNotification({ message, type, isFinalReject });
-        setTimeout(() => setNotification(null), duration);
-    };
+  const navigate = useNavigate();
+  const [organizations, setOrganizations] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [limit] = useState(10);
+  const [expandedRow, setExpandedRow] = useState(null);
+  const [notification, setNotification] = useState(null);
+  const [modal, setModal] = useState({ active: false, message: '', onConfirm: () => { } });
+  const [fileViewer, setFileViewer] = useState({ active: false, file: null });
+  const handleNotify = (message, type = 'info', duration = 5000, isFinalReject = false) => {
+    setNotification({ message, type, isFinalReject });
+    setTimeout(() => setNotification(null), duration);
+  };
 
-    const closeFileViewer = () => setFileViewer({ active: false, file: null });
-    const toggleDocumentDetails = (rowId) => setExpandedRow(expandedRow === rowId ? null : rowId);
-    const fetchOrganizations = useCallback(async () => {
-        try {
-            const response = await axios.get('/api/verify/organizations', {
-                withCredentials: true
-            });
-            
-            const data = response.data;
-            setOrganizations(data.map((o, index) => ({ ...o, rowId: index + 1 })));
-        } catch (error) {
-            console.error('Error fetching organizations:', error);
-            handleNotify('Failed to load organizations. Please try again.', 'error');
-            // Fallback to mock data for development
-            setOrganizations(
-                mockOrganizationData.map((o, index) => ({ ...o, rowId: index + 1 }))
-            );
-        }
-    }, []);
+  const closeFileViewer = () => setFileViewer({ active: false, file: null });
+  const toggleDocumentDetails = (rowId) => setExpandedRow(expandedRow === rowId ? null : rowId);
+  const fetchOrganizations = useCallback(async () => {
+    try {
+      const response = await axios.get(`/api/verify/organizations?page=${currentPage}&limit=${limit}`, {
+        withCredentials: true
+      });
 
-    useEffect(() => {
-        fetchOrganizations();
-    }, [fetchOrganizations]);
+      const { data, pages } = response.data;
+      const orgData = Array.isArray(data) ? data : response.data; // support new and old API structures
+      setOrganizations(orgData.map((o, index) => ({ ...o, rowId: index + 1 })));
+      if (pages) setTotalPages(pages);
+    } catch (error) {
+      console.error('Error fetching organizations:', error);
+      handleNotify('Failed to load organizations. Please try again.', 'error');
+      // Fallback to mock data for development
+      setOrganizations(
+        mockOrganizationData.map((o, index) => ({ ...o, rowId: index + 1 }))
+      );
+    }
+  }, []);
 
-    const verifyDocument = async (orgId, field) => {
-        try {
-            await axios.post(`/api/verify/org/${orgId}/approve`, { field }, {
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                withCredentials: true,
-            });
-            handleNotify(`Document ${FIELD_MAP[field].name} verified.`, 'success');
-            fetchOrganizations(); // Refresh data
-        } catch (error) {
-            console.error('Error approving document:', error);
-            handleNotify('Failed to approve document', 'error');
-        }
-    };
+  useEffect(() => {
+    fetchOrganizations();
+  }, [fetchOrganizations, currentPage]);
 
-    const rejectDocument = async (orgId, field) => {
-        try {
-            await axios.post(`/api/verify/org/${orgId}/disapprove`, { field }, {
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                withCredentials: true,
-            });
-            handleNotify(`Document ${FIELD_MAP[field].name} rejected.`, 'error');
-            fetchOrganizations(); // Refresh data
-        } catch (error) {
-            console.error('Error rejecting document:', error);
-            handleNotify('Failed to reject document', 'error');
-        }
-    };
+  const verifyDocument = async (orgId, field) => {
+    try {
+      await axios.post(`/api/verify/org/${orgId}/approve`, { field }, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        withCredentials: true,
+      });
+      handleNotify(`Document ${FIELD_MAP[field].name} verified.`, 'success');
+      fetchOrganizations(); // Refresh data
+    } catch (error) {
+      console.error('Error approving document:', error);
+      handleNotify('Failed to approve document', 'error');
+    }
+  };
 
-    const finalVerify = async (orgId) => {
-        try {
-            await axios.post(`/api/verify/org/${orgId}/final-approve`, {}, {
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                withCredentials: true,
-            });
-            handleNotify('Organization has been finally approved!', 'success');
-            fetchOrganizations(); // Refresh data
-            setExpandedRow(null); // Close the expanded row
-            setTimeout(() => {
-                const element = document.getElementById(`org-row-${orgId}`);
-                if (element) element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }, 100);
-        } catch (error) {
-            console.error('Error finalizing approval:', error);
-            handleNotify('Failed to finalize approval', 'error');
-        }
-    };
+  const rejectDocument = async (orgId, field) => {
+    try {
+      await axios.post(`/api/verify/org/${orgId}/disapprove`, { field }, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        withCredentials: true,
+      });
+      handleNotify(`Document ${FIELD_MAP[field].name} rejected.`, 'error');
+      fetchOrganizations(); // Refresh data
+    } catch (error) {
+      console.error('Error rejecting document:', error);
+      handleNotify('Failed to reject document', 'error');
+    }
+  };
 
-    const finalReject = async (orgId) => {
-        try {
-            await axios.post(`/api/verify/org/${orgId}/final-disapprove`, {}, {
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                withCredentials: true,
-            });
-            handleNotify('Organization has been finally rejected.', 'error', 5000, true);
-            fetchOrganizations(); // Refresh data
-            setExpandedRow(null); // Close the expanded row
-            setTimeout(() => {
-                const element = document.getElementById(`org-row-${orgId}`);
-                if (element) element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }, 100);
-        } catch (error) {
-            console.error('Error finalizing rejection:', error);
-            handleNotify('Failed to finalize rejection', 'error');
-        }
-    };
+  const finalVerify = async (orgId) => {
+    try {
+      await axios.post(`/api/verify/org/${orgId}/final-approve`, {}, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        withCredentials: true,
+      });
+      handleNotify('Organization has been finally approved!', 'success');
+      fetchOrganizations(); // Refresh data
+      setExpandedRow(null); // Close the expanded row
+      setTimeout(() => {
+        const element = document.getElementById(`org-row-${orgId}`);
+        if (element) element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+    } catch (error) {
+      console.error('Error finalizing approval:', error);
+      handleNotify('Failed to finalize approval', 'error');
+    }
+  };
 
-    const handleFileUpload = async (orgId, file) => {
-        if (!file) return handleNotify('Please select a file to upload.', 'warning');
+  const finalReject = async (orgId) => {
+    try {
+      await axios.post(`/api/verify/org/${orgId}/final-disapprove`, {}, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        withCredentials: true,
+      });
+      handleNotify('Organization has been finally rejected.', 'error', 5000, true);
+      fetchOrganizations(); // Refresh data
+      setExpandedRow(null); // Close the expanded row
+      setTimeout(() => {
+        const element = document.getElementById(`org-row-${orgId}`);
+        if (element) element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+    } catch (error) {
+      console.error('Error finalizing rejection:', error);
+      handleNotify('Failed to finalize rejection', 'error');
+    }
+  };
 
-        const formData = new FormData();
-        formData.append('finalReport', file);
+  const handleFileUpload = async (orgId, file) => {
+    if (!file) return handleNotify('Please select a file to upload.', 'warning');
 
-        try {
-            await axios.post(`/api/verify/org/${orgId}/upload-report`, formData, {
-                withCredentials: true,
-            });
-            handleNotify('Verification report uploaded successfully.', 'success');
-            fetchOrganizations(); // Refresh data
-        } catch (error) {
-            console.error('Error uploading report:', error);
-            handleNotify('Failed to upload verification report', 'error');
-        }
-    };
+    const formData = new FormData();
+    formData.append('finalReport', file);
 
-    const viewFile = async (orgId, field) => {
-        try {
-            const response = await axios.get(`/api/verify/org/files/${orgId}/${field}`, {
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                withCredentials: true,
-            });
-            const data = response.data;
-            const dataUrl = `data:${data.file.mime};base64,${data.file.base64}`;
-            setFileViewer({ active: true, file: { dataUrl, mime: data.file.mime } });
-        } catch (error) {
-            console.error('Error fetching file:', error);
-            handleNotify('File is not uploaded or data is missing.', 'warning');
-        }
-    };
-    
-    const downloadFile = async (orgId, field, fileName, fileExt) => {
-        try {
-            const response = await axios.get(`/api/verify/org/files/${orgId}/${field}`, {
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                withCredentials: true,
-            });
-            const data = response.data;
-            const dataUrl = `data:${data.file.mime};base64,${data.file.base64}`;
-            const link = document.createElement('a');
-            link.href = dataUrl;
-            link.download = `${fileName}.${fileExt}`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            handleNotify(`Starting download for ${fileName}.`, 'info');
-        } catch (error) {
-            console.error('Error fetching file:', error);
-            handleNotify('File is not uploaded or data is missing.', 'warning');
-        }
-    };
+    try {
+      await axios.post(`/api/verify/org/${orgId}/upload-report`, formData, {
+        withCredentials: true,
+      });
+      handleNotify('Verification report uploaded successfully.', 'success');
+      fetchOrganizations(); // Refresh data
+    } catch (error) {
+      console.error('Error uploading report:', error);
+      handleNotify('Failed to upload verification report', 'error');
+    }
+  };
+
+  const viewFile = async (orgId, field) => {
+    try {
+      const response = await axios.get(`/api/verify/org/files/${orgId}/${field}`, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        withCredentials: true,
+      });
+      const data = response.data;
+      const dataUrl = data.file.url;
+      setFileViewer({ active: true, file: { dataUrl, mime: data.file.mime } });
+    } catch (error) {
+      console.error('Error fetching file:', error);
+      handleNotify('File is not uploaded or data is missing.', 'warning');
+    }
+  };
+
+  const downloadFile = async (orgId, field, fileName, fileExt) => {
+    try {
+      const response = await axios.get(`/api/verify/org/files/${orgId}/${field}`, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        withCredentials: true,
+      });
+      const data = response.data;
+      const dataUrl = data.file.url;
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = `${fileName}.${fileExt}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      handleNotify(`Starting download for ${fileName}.`, 'info');
+    } catch (error) {
+      console.error('Error fetching file:', error);
+      handleNotify('File is not uploaded or data is missing.', 'warning');
+    }
+  };
 
 
 
@@ -277,31 +282,28 @@ const OrgVerify = () => {
         {/* Modern Notification */}
         {notification && (
           <div
-            className={`fixed top-6 right-6 z-50 p-4 rounded-2xl shadow-xl border-l-4 backdrop-blur-sm animate-in slide-in-from-right-4 duration-500 w-full max-w-md ${
-              notification.type === 'success'
-                ? 'bg-emerald-50/95 border-emerald-400 text-emerald-800 shadow-emerald-100'
-                : notification.type === 'error'
+            className={`fixed top-6 right-6 z-50 p-4 rounded-2xl shadow-xl border-l-4 backdrop-blur-sm animate-in slide-in-from-right-4 duration-500 w-full max-w-md ${notification.type === 'success'
+              ? 'bg-emerald-50/95 border-emerald-400 text-emerald-800 shadow-emerald-100'
+              : notification.type === 'error'
                 ? 'bg-red-50/95 border-red-400 text-red-800 shadow-red-100'
                 : 'bg-blue-50/95 border-blue-400 text-blue-800 shadow-blue-100'
-            }`}
+              }`}
           >
             <div className='flex items-start justify-between'>
               <div className='flex items-start'>
-                <div className={`p-2 rounded-xl mr-3 ${
-                  notification.type === 'success'
-                    ? 'bg-emerald-100'
-                    : notification.type === 'error'
+                <div className={`p-2 rounded-xl mr-3 ${notification.type === 'success'
+                  ? 'bg-emerald-100'
+                  : notification.type === 'error'
                     ? 'bg-red-100'
                     : 'bg-blue-100'
-                }`}>
+                  }`}>
                   <i
-                    className={`text-lg ${
-                      notification.type === 'success'
-                        ? 'fa-check-circle text-emerald-600'
-                        : notification.type === 'error'
+                    className={`text-lg ${notification.type === 'success'
+                      ? 'fa-check-circle text-emerald-600'
+                      : notification.type === 'error'
                         ? 'fa-exclamation-triangle text-red-600'
                         : 'fa-info-circle text-blue-600'
-                    }`}
+                      }`}
                   ></i>
                 </div>
                 <div>
@@ -338,7 +340,7 @@ const OrgVerify = () => {
                 <button
                   className='flex-1 bg-slate-100 text-slate-700 py-3 px-6 rounded-2xl font-semibold hover:bg-slate-200 transition-all duration-200 shadow-sm hover:shadow-md'
                   onClick={() => {
-                    setModal({ active: false, message: '', onConfirm: () => {} })
+                    setModal({ active: false, message: '', onConfirm: () => { } })
                   }}
                 >
                   <i className='fas fa-times mr-2'></i> Cancel
@@ -433,279 +435,305 @@ const OrgVerify = () => {
                 </tr>
               ) : (
                 organizations.map(o => {
-                const documentUploadStatus = o.documentUploadStatus || 'pending'
-                // Determine display status based on documentUploadStatus
-                const displayStatus =
-                  documentUploadStatus === 'verified' ? 'Verified' : 
-                  documentUploadStatus === 'rejected' ? 'Rejected' :
-                  'Pending'
-                const statusColor =
-                  documentUploadStatus === 'verified'
-                    ? 'text-emerald-600'
-                    : documentUploadStatus === 'rejected'
-                    ? 'text-red-600'
-                    : 'text-amber-600'
+                  const documentUploadStatus = o.documentUploadStatus || 'pending'
+                  // Determine display status based on documentUploadStatus
+                  const displayStatus =
+                    documentUploadStatus === 'verified' ? 'Verified' :
+                      documentUploadStatus === 'rejected' ? 'Rejected' :
+                        'Pending'
+                  const statusColor =
+                    documentUploadStatus === 'verified'
+                      ? 'text-emerald-600'
+                      : documentUploadStatus === 'rejected'
+                        ? 'text-red-600'
+                        : 'text-amber-600'
 
-                return (
-                  <React.Fragment key={o._id}>
-                    <tr
-                      id={`org-row-${o._id}`}
-                      className='hover:bg-emerald-100/70 cursor-pointer transition-all duration-300 group border-b border-emerald-100'
-                      onClick={() => toggleDocumentDetails(o.rowId)}
-                    >
-                      <td className='py-3 px-8'>
-                        <div className='flex items-center'>
-                          <div className='p-3 bg-emerald-100 rounded-xl mr-4 group-hover:bg-emerald-200 transition-colors duration-200'>
-                            <i className='fas fa-building text-emerald-600 text-lg'></i>
+                  return (
+                    <React.Fragment key={o._id}>
+                      <tr
+                        id={`org-row-${o._id}`}
+                        className='hover:bg-emerald-100/70 cursor-pointer transition-all duration-300 group border-b border-emerald-100'
+                        onClick={() => toggleDocumentDetails(o.rowId)}
+                      >
+                        <td className='py-3 px-8'>
+                          <div className='flex items-center'>
+                            <div className='p-3 bg-emerald-100 rounded-xl mr-4 group-hover:bg-emerald-200 transition-colors duration-200'>
+                              <i className='fas fa-building text-emerald-600 text-lg'></i>
+                            </div>
+                            <div>
+                              <div className='font-bold text-slate-800 text-lg'>{o.name || o.org_name}</div>
+                              <div className='text-sm text-slate-500'>Organization</div>
+                            </div>
                           </div>
-                          <div>
-                            <div className='font-bold text-slate-800 text-lg'>{o.name || o.org_name}</div>
-                            <div className='text-sm text-slate-500'>Organization</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className='py-3 px-8'>
-                        <div className='flex items-center'>
-                          <div className={`p-2 rounded-xl mr-3 ${
-                            documentUploadStatus === 'verified'
+                        </td>
+                        <td className='py-3 px-8'>
+                          <div className='flex items-center'>
+                            <div className={`p-2 rounded-xl mr-3 ${documentUploadStatus === 'verified'
                               ? 'bg-emerald-100'
                               : documentUploadStatus === 'rejected'
-                              ? 'bg-red-100'
-                              : 'bg-amber-100'
-                          }`}>
-                            <i
-                              className={`fas fa-${STATUS_ICONS[displayStatus]} ${
-                                documentUploadStatus === 'verified'
+                                ? 'bg-red-100'
+                                : 'bg-amber-100'
+                              }`}>
+                              <i
+                                className={`fas fa-${STATUS_ICONS[displayStatus]} ${documentUploadStatus === 'verified'
                                   ? 'text-emerald-600'
                                   : documentUploadStatus === 'rejected'
-                                  ? 'text-red-600'
-                                  : 'text-amber-600'
-                              }`}
-                            ></i>
+                                    ? 'text-red-600'
+                                    : 'text-amber-600'
+                                  }`}
+                              ></i>
+                            </div>
+                            <span className={`font-bold text-lg ${statusColor}`}>
+                              {displayStatus}
+                            </span>
+                            <i className='fas fa-chevron-down text-slate-400 ml-auto group-hover:text-emerald-500 transition-colors duration-200'></i>
                           </div>
-                          <span className={`font-bold text-lg ${statusColor}`}>
-                            {displayStatus}
-                          </span>
-                          <i className='fas fa-chevron-down text-slate-400 ml-auto group-hover:text-emerald-500 transition-colors duration-200'></i>
-                        </div>
-                      </td>
-                    </tr>
-                    {expandedRow === o.rowId && (
-                      <tr>
-                        <td colSpan='2' className='p-0'>
-                          <div className='bg-linear-to-r from-slate-50 to-emerald-50/30 p-8 border-t border-slate-200'>
-                            <div className='max-w-6xl mx-auto'>
-                              <div className='flex items-center mb-8'>
-                                <div className='p-3 bg-emerald-100 rounded-2xl mr-4'>
-                                  <i className='fas fa-folder-open text-emerald-600 text-xl'></i>
+                        </td>
+                      </tr>
+                      {expandedRow === o.rowId && (
+                        <tr>
+                          <td colSpan='2' className='p-0'>
+                            <div className='bg-linear-to-r from-slate-50 to-emerald-50/30 p-8 border-t border-slate-200'>
+                              <div className='max-w-6xl mx-auto'>
+                                <div className='flex items-center mb-8'>
+                                  <div className='p-3 bg-emerald-100 rounded-2xl mr-4'>
+                                    <i className='fas fa-folder-open text-emerald-600 text-xl'></i>
+                                  </div>
+                                  <div>
+                                    <h3 className='text-xl font-bold text-slate-800'>
+                                      Document Verification
+                                    </h3>
+                                    <p className='text-slate-600'>Review and verify documents for {o.name || o.org_name}</p>
+                                  </div>
                                 </div>
-                                <div>
-                                  <h3 className='text-xl font-bold text-slate-800'>
-                                    Document Verification
-                                  </h3>
-                                  <p className='text-slate-600'>Review and verify documents for {o.name || o.org_name}</p>
-                                </div>
-                              </div>
 
-                              <div className='grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8'>
-                                {Object.keys(FIELD_MAP).map(field => {
-                                  const status =
-                                    o.verificationStatus[field] ||
-                                    (field === 'finalReport'
-                                      ? 'Not Received'
-                                      : 'Not Uploaded')
-                                  const fileExists = [
-                                    'Received',
-                                    'Pending',
-                                    'Verified',
-                                    'Rejected'
-                                  ].includes(status)
-                                  const fieldInfo = FIELD_MAP[field]
+                                <div className='grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8'>
+                                  {Object.keys(FIELD_MAP).map(field => {
+                                    const status =
+                                      o.verificationStatus[field] ||
+                                      (field === 'finalReport'
+                                        ? 'Not Received'
+                                        : 'Not Uploaded')
+                                    const fileExists = [
+                                      'Received',
+                                      'Pending',
+                                      'Verified',
+                                      'Rejected'
+                                    ].includes(status)
+                                    const fieldInfo = FIELD_MAP[field]
 
-                                  return (
-                                    <div
-                                      key={field}
-                                      className='bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:shadow-lg transition-all duration-200'
-                                    >
-                                      <div className='flex items-start justify-between mb-4'>
-                                        <div className='flex items-center'>
-                                          <div className={`p-3 rounded-xl mr-4 ${
-                                            status === 'Verified'
+                                    return (
+                                      <div
+                                        key={field}
+                                        className='bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:shadow-lg transition-all duration-200'
+                                      >
+                                        <div className='flex items-start justify-between mb-4'>
+                                          <div className='flex items-center'>
+                                            <div className={`p-3 rounded-xl mr-4 ${status === 'Verified'
                                               ? 'bg-emerald-100'
                                               : status === 'Rejected'
-                                              ? 'bg-red-100'
-                                              : status === 'Received' || status === 'Pending'
-                                              ? 'bg-amber-100'
-                                              : 'bg-slate-100'
-                                          }`}>
-                                            <i
-                                              className={`${fieldInfo.icon} text-lg ${
-                                                status === 'Verified'
+                                                ? 'bg-red-100'
+                                                : status === 'Received' || status === 'Pending'
+                                                  ? 'bg-amber-100'
+                                                  : 'bg-slate-100'
+                                              }`}>
+                                              <i
+                                                className={`${fieldInfo.icon} text-lg ${status === 'Verified'
                                                   ? 'text-emerald-600'
                                                   : status === 'Rejected'
-                                                  ? 'text-red-600'
-                                                  : status === 'Received' || status === 'Pending'
-                                                  ? 'text-amber-600'
-                                                  : 'text-slate-500'
-                                              }`}
-                                            ></i>
-                                          </div>
-                                          <div>
-                                            <h4 className='font-bold text-slate-800 text-lg'>
-                                              {fieldInfo.name}
-                                            </h4>
+                                                    ? 'text-red-600'
+                                                    : status === 'Received' || status === 'Pending'
+                                                      ? 'text-amber-600'
+                                                      : 'text-slate-500'
+                                                  }`}
+                                              ></i>
+                                            </div>
+                                            <div>
+                                              <h4 className='font-bold text-slate-800 text-lg'>
+                                                {fieldInfo.name}
+                                              </h4>
+                                            </div>
                                           </div>
                                         </div>
-                                      </div>
 
-                                      <div className='flex items-center justify-between'>
-                                        <span
-                                          className={`px-4 py-2 rounded-xl text-sm font-bold ${
-                                            status === 'Verified'
+                                        <div className='flex items-center justify-between'>
+                                          <span
+                                            className={`px-4 py-2 rounded-xl text-sm font-bold ${status === 'Verified'
                                               ? 'bg-emerald-100 text-emerald-800'
                                               : status === 'Rejected'
-                                              ? 'bg-red-100 text-red-800'
-                                              : status === 'Received' || status === 'Pending'
-                                              ? 'bg-amber-100 text-amber-800'
-                                              : 'bg-slate-100 text-slate-800'
-                                          }`}
-                                        >
-                                          {status}
-                                        </span>
+                                                ? 'bg-red-100 text-red-800'
+                                                : status === 'Received' || status === 'Pending'
+                                                  ? 'bg-amber-100 text-amber-800'
+                                                  : 'bg-slate-100 text-slate-800'
+                                              }`}
+                                          >
+                                            {status}
+                                          </span>
 
-                                        {fileExists && (
-                                          <div className='flex gap-2'>
+                                          {fileExists && (
+                                            <div className='flex gap-2'>
+                                              <button
+                                                className='p-2 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-xl transition-all duration-200'
+                                                onClick={e => {
+                                                  e.preventDefault()
+                                                  viewFile(o._id, field)
+                                                }}
+                                                title='View Document'
+                                              >
+                                                <i className='fas fa-eye'></i>
+                                              </button>
+                                              <button
+                                                className='p-2 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-xl transition-all duration-200'
+                                                onClick={e => {
+                                                  e.preventDefault()
+                                                  downloadFile(
+                                                    o._id,
+                                                    field,
+                                                    fieldInfo.name,
+                                                    fieldInfo.ext
+                                                  )
+                                                }}
+                                                title='Download Document'
+                                              >
+                                                <i className='fas fa-download'></i>
+                                              </button>
+                                            </div>
+                                          )}
+                                        </div>
+
+                                        {status === 'Pending' && field !== 'finalReport' && (
+                                          <div className='flex gap-3 mt-4'>
                                             <button
-                                              className='p-2 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-xl transition-all duration-200'
-                                              onClick={e => {
-                                                e.preventDefault()
-                                                viewFile(o._id, field)
-                                              }}
-                                              title='View Document'
+                                              className='flex-1 bg-linear-to-r from-emerald-500 to-teal-600 text-white py-2 px-4 rounded-xl hover:from-emerald-600 hover:to-teal-700 transition-all duration-200 shadow-sm hover:shadow-md font-semibold'
+                                              onClick={() =>
+                                                verifyDocument(o._id, field)
+                                              }
                                             >
-                                              <i className='fas fa-eye'></i>
+                                              <i className='fas fa-check mr-2'></i> Verify
                                             </button>
                                             <button
-                                              className='p-2 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-xl transition-all duration-200'
-                                              onClick={e => {
-                                                e.preventDefault()
-                                                downloadFile(
-                                                  o._id,
-                                                  field,
-                                                  fieldInfo.name,
-                                                  fieldInfo.ext
-                                                )
-                                              }}
-                                              title='Download Document'
+                                              className='flex-1 bg-linear-to-r from-red-500 to-rose-600 text-white py-2 px-4 rounded-xl hover:from-red-600 hover:to-rose-700 transition-all duration-200 shadow-sm hover:shadow-md font-semibold'
+                                              onClick={() =>
+                                                rejectDocument(o._id, field)
+                                              }
                                             >
-                                              <i className='fas fa-download'></i>
+                                              <i className='fas fa-times mr-2'></i> Reject
                                             </button>
                                           </div>
                                         )}
                                       </div>
+                                    )
+                                  })}
+                                </div>
 
-                                      {status === 'Pending' && field !== 'finalReport' && (
-                                        <div className='flex gap-3 mt-4'>
-                                          <button
-                                            className='flex-1 bg-linear-to-r from-emerald-500 to-teal-600 text-white py-2 px-4 rounded-xl hover:from-emerald-600 hover:to-teal-700 transition-all duration-200 shadow-sm hover:shadow-md font-semibold'
-                                            onClick={() =>
-                                              verifyDocument(o._id, field)
-                                            }
-                                          >
-                                            <i className='fas fa-check mr-2'></i> Verify
-                                          </button>
-                                          <button
-                                            className='flex-1 bg-linear-to-r from-red-500 to-rose-600 text-white py-2 px-4 rounded-xl hover:from-red-600 hover:to-rose-700 transition-all duration-200 shadow-sm hover:shadow-md font-semibold'
-                                            onClick={() =>
-                                              rejectDocument(o._id, field)
-                                            }
-                                          >
-                                            <i className='fas fa-times mr-2'></i> Reject
-                                          </button>
-                                        </div>
-                                      )}
+                                {/* Modern Upload Report */}
+                                <div className='bg-white p-6 rounded-2xl shadow-lg border border-slate-200'>
+                                  <div className='flex items-center mb-4'>
+                                    <div className='p-3 bg-emerald-100 rounded-xl mr-4'>
+                                      <i className='fas fa-upload text-emerald-600 text-lg'></i>
                                     </div>
-                                  )
-                                })}
-                              </div>
-
-                            {/* Modern Upload Report */}
-                            <div className='bg-white p-6 rounded-2xl shadow-lg border border-slate-200'>
-                              <div className='flex items-center mb-4'>
-                                <div className='p-3 bg-emerald-100 rounded-xl mr-4'>
-                                  <i className='fas fa-upload text-emerald-600 text-lg'></i>
-                                </div>
-                                <div>
-                                  <h4 className='text-xl font-bold text-slate-800'>
-                                    Upload Final Verification Report
-                                  </h4>
-                                  <p className='text-slate-600 text-sm'>PDF files only</p>
-                                </div>
-                              </div>
-                              <p className='text-slate-600 mb-6 leading-relaxed'>
-                                Upload a detailed report before final approval or rejection of this organization.
-                              </p>
-                              <div className='relative'>
-                                <input
-                                  type='file'
-                                  accept='.pdf'
-                                  onChange={e =>
-                                    handleFileUpload(o._id, e.target.files[0])
-                                  }
-                                  className='w-full p-4 border-2 border-dashed border-slate-300 rounded-xl text-slate-600 bg-slate-50 hover:bg-slate-100 hover:border-emerald-400 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100'
-                                />
-                                <div className='absolute inset-0 flex items-center justify-center pointer-events-none'>
-                                  <div className='text-center'>
-                                    <i className='fas fa-cloud-upload-alt text-3xl text-slate-400 mb-2'></i>
-                                    <p className='text-slate-500 text-sm'>Drop PDF here or click to browse</p>
+                                    <div>
+                                      <h4 className='text-xl font-bold text-slate-800'>
+                                        Upload Final Verification Report
+                                      </h4>
+                                      <p className='text-slate-600 text-sm'>PDF files only</p>
+                                    </div>
+                                  </div>
+                                  <p className='text-slate-600 mb-6 leading-relaxed'>
+                                    Upload a detailed report before final approval or rejection of this organization.
+                                  </p>
+                                  <div className='relative'>
+                                    <input
+                                      type='file'
+                                      accept='.pdf'
+                                      onChange={e =>
+                                        handleFileUpload(o._id, e.target.files[0])
+                                      }
+                                      className='w-full p-4 border-2 border-dashed border-slate-300 rounded-xl text-slate-600 bg-slate-50 hover:bg-slate-100 hover:border-emerald-400 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100'
+                                    />
+                                    <div className='absolute inset-0 flex items-center justify-center pointer-events-none'>
+                                      <div className='text-center'>
+                                        <i className='fas fa-cloud-upload-alt text-3xl text-slate-400 mb-2'></i>
+                                        <p className='text-slate-500 text-sm'>Drop PDF here or click to browse</p>
+                                      </div>
+                                    </div>
                                   </div>
                                 </div>
+
+                                <div className='flex flex-col sm:flex-row gap-4 mb-6'>
+                                  <button
+                                    className={`flex-1 bg-linear-to-r from-emerald-500 to-teal-600 text-white py-4 px-6 rounded-2xl font-bold hover:from-emerald-600 hover:to-teal-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 hover:bg-emerald-600`}
+                                    onClick={() => finalVerify(o._id)}
+                                    disabled={
+                                      ![
+                                        'Received',
+                                        'Verified',
+                                        'Rejected'
+                                      ].includes(o.verificationStatus.finalReport)
+                                    }
+                                  >
+                                    <i className='fas fa-check-circle mr-2'></i>{' '}
+                                    Final Approve
+                                  </button>
+                                  <button
+                                    className='flex-1 bg-linear-to-r from-red-500 to-rose-600 text-white py-4 px-6 rounded-2xl font-bold hover:from-red-600 hover:to-rose-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:-translate-y-0.5'
+                                    onClick={() => finalReject(o._id)}
+                                    disabled={
+                                      ![
+                                        'Received',
+                                        'Verified',
+                                        'Rejected'
+                                      ].includes(o.verificationStatus.finalReport)
+                                    }
+                                  >
+                                    <i className='fas fa-times-circle mr-2'></i>{' '}
+                                    Final Reject
+                                  </button>
+                                </div>
+
+                                {/* Full border separator */}
+                                <div className='border-t-2 border-emerald-200 pt-6 hover:border-emerald-300 transition-colors duration-300'></div>
                               </div>
                             </div>
-
-                              <div className='flex flex-col sm:flex-row gap-4 mb-6'>
-                                <button
-                                  className={`flex-1 bg-linear-to-r from-emerald-500 to-teal-600 text-white py-4 px-6 rounded-2xl font-bold hover:from-emerald-600 hover:to-teal-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 hover:bg-emerald-600`}
-                                  onClick={() => finalVerify(o._id)}
-                                  disabled={
-                                    ![
-                                      'Received',
-                                      'Verified',
-                                      'Rejected'
-                                    ].includes(o.verificationStatus.finalReport)
-                                  }
-                                >
-                                  <i className='fas fa-check-circle mr-2'></i>{' '}
-                                  Final Approve
-                                </button>
-                                <button
-                                  className='flex-1 bg-linear-to-r from-red-500 to-rose-600 text-white py-4 px-6 rounded-2xl font-bold hover:from-red-600 hover:to-rose-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:-translate-y-0.5'
-                                  onClick={() => finalReject(o._id)}
-                                  disabled={
-                                    ![
-                                      'Received',
-                                      'Verified',
-                                      'Rejected'
-                                    ].includes(o.verificationStatus.finalReport)
-                                  }
-                                >
-                                  <i className='fas fa-times-circle mr-2'></i>{' '}
-                                  Final Reject
-                                </button>
-                              </div>
-
-                              {/* Full border separator */}
-                              <div className='border-t-2 border-emerald-200 pt-6 hover:border-emerald-300 transition-colors duration-300'></div>
-                            </div>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </React.Fragment>
-                )
-              }))}
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  )
+                }))}
             </tbody>
           </table>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center space-x-2 py-6 bg-white border-t border-slate-200">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${currentPage === 1 ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-300 shadow-sm'}`}
+              >
+                Previous
+              </button>
+
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(number => (
+                <button
+                  key={number}
+                  onClick={() => setCurrentPage(number)}
+                  className={`px-4 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${currentPage === number ? 'bg-emerald-600 text-white shadow-md transform -translate-y-0.5' : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-300 shadow-sm'}`}
+                >
+                  {number}
+                </button>
+              ))}
+
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${currentPage === totalPages ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-300 shadow-sm'}`}
+              >
+                Next
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Modern Footer */}
@@ -717,7 +745,9 @@ const OrgVerify = () => {
           <p className='text-sm text-slate-500'>
             Contact our support team at{' '}
             <a
-              href='mailto:support@orgverify.com'
+              href='https://mail.google.com/mail/?view=cm&fs=1&to=support%40orgverify.com'
+              target='_blank'
+              rel='noopener noreferrer'
               className='text-emerald-600 hover:text-emerald-700 font-semibold transition-colors duration-200 inline-flex items-center'
             >
               <i className='fas fa-envelope mr-2'></i>

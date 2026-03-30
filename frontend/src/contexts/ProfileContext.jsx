@@ -2,11 +2,13 @@ import React, { useState, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { roleConfig, ProfileContext as Context, useProfile } from './roleConfig';
+import { useAuthContext } from '../hooks/useAuthContext';
 
 // Profile Provider Component
 export const ProfileProvider = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { role: authRole } = useAuthContext();
 
   const [profileData, setProfileData] = useState({});
   const [originalData, setOriginalData] = useState({});
@@ -16,15 +18,16 @@ export const ProfileProvider = ({ children }) => {
   const [currentRole, setCurrentRole] = useState(null);
   const [config, setConfig] = useState(null);
 
-  // Detect role from current path
+  // Detect role: prefer AuthContext role, fall back to URL path
   const detectRole = useCallback(() => {
+    if (authRole) return authRole;
     const path = location.pathname;
     if (path.includes('/user/')) return 'user';
     if (path.includes('/dietitian/')) return 'dietitian';
     if (path.includes('/organization/')) return 'organization';
     if (path.includes('/admin/')) return 'admin';
     return 'user'; // Default fallback
-  }, [location.pathname]);
+  }, [authRole, location.pathname]);
 
   // Initialize role and config
   const initializeRole = useCallback(() => {

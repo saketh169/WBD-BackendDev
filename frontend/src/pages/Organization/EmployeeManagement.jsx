@@ -1,7 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
 import axios from 'axios';
+import AuthContext from '../../contexts/AuthContext';
 
 const EmployeeManagement = () => {
+    const { user } = useContext(AuthContext);
     const [employees, setEmployees] = useState([]);
     const [loading, setLoading] = useState(false);
     const [showAddForm, setShowAddForm] = useState(false);
@@ -19,9 +21,8 @@ const EmployeeManagement = () => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    // Derive license prefix from stored org name (first 3 uppercase letters)
-    const authUser = JSON.parse(localStorage.getItem('authUser_organization') || '{}');
-    const orgName = authUser.org_name || '';
+    // Derive license prefix from org name (first 3 uppercase letters)
+    const orgName = user?.org_name || '';
     const orgLicensePrefix = orgName.replace(/[^a-zA-Z]/g, '').substring(0, 3).toUpperCase() || 'EMP';
 
     // Form state
@@ -51,15 +52,11 @@ const EmployeeManagement = () => {
         setLoading(true);
         setCurrentPage(1);
         try {
-            const token = localStorage.getItem('authToken_organization');
-            const response = await axios.get(`/api/employees`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const response = await axios.get(`/api/employees`);
             setEmployees(response.data.data);
         } catch (error) {
-            console.error('Error fetching employees:', error);
-            setErrorMessage(error.response?.data?.message || 'Failed to fetch employees');
-            setEmployees([]); // Ensure employees is always an array
+            setErrorMessage('Failed to fetch employees');
+            setEmployees([]);
         } finally {
             setLoading(false);
         }
@@ -112,11 +109,9 @@ const EmployeeManagement = () => {
 
         setLoading(true);
         try {
-            const token = localStorage.getItem('authToken_organization');
             const response = await axios.post(
                 `/api/employees/add`,
-                formData,
-                { headers: { Authorization: `Bearer ${token}` } }
+                formData
             );
             
             setSuccessMessage(`Employee added successfully! License Number: ${response.data.data.licenseNumber}`);
@@ -125,7 +120,7 @@ const EmployeeManagement = () => {
             fetchEmployees();
             setTimeout(() => setSuccessMessage(''), 5000);
         } catch (error) {
-            setErrorMessage(error.response?.data?.message || 'Failed to add employee');
+            setErrorMessage('Failed to add employee');
             setTimeout(() => setErrorMessage(''), 5000);
         } finally {
             setLoading(false);
@@ -143,14 +138,12 @@ const EmployeeManagement = () => {
 
         setLoading(true);
         try {
-            const token = localStorage.getItem('authToken_organization');
             const updateData = { ...formData };
             delete updateData.password; // Don't send password in update
 
             await axios.put(
                 `/api/employees/${selectedEmployee._id}`,
-                updateData,
-                { headers: { Authorization: `Bearer ${token}` } }
+                updateData
             );
             
             setSuccessMessage('Employee updated successfully!');
@@ -159,7 +152,7 @@ const EmployeeManagement = () => {
             fetchEmployees();
             setTimeout(() => setSuccessMessage(''), 5000);
         } catch (error) {
-            setErrorMessage(error.response?.data?.message || 'Failed to update employee');
+            setErrorMessage('Failed to update employee');
             setTimeout(() => setErrorMessage(''), 5000);
         } finally {
             setLoading(false);
@@ -172,17 +165,15 @@ const EmployeeManagement = () => {
 
         setLoading(true);
         try {
-            const token = localStorage.getItem('authToken_organization');
             await axios.patch(
                 `/api/employees/${employeeId}/inactive`,
-                {},
-                { headers: { Authorization: `Bearer ${token}` } }
+                {}
             );
             setSuccessMessage('Employee marked as inactive.');
             fetchEmployees();
             setTimeout(() => setSuccessMessage(''), 5000);
         } catch (error) {
-            setErrorMessage(error.response?.data?.message || 'Failed to inactivate employee');
+            setErrorMessage('Failed to inactivate employee');
             setTimeout(() => setErrorMessage(''), 5000);
         } finally {
             setLoading(false);
@@ -193,17 +184,15 @@ const EmployeeManagement = () => {
     const handleActivateEmployee = async (employeeId) => {
         setLoading(true);
         try {
-            const token = localStorage.getItem('authToken_organization');
             await axios.patch(
                 `/api/employees/${employeeId}/active`,
-                {},
-                { headers: { Authorization: `Bearer ${token}` } }
+                {}
             );
             setSuccessMessage('Employee marked as active.');
             fetchEmployees();
             setTimeout(() => setSuccessMessage(''), 5000);
         } catch (error) {
-            setErrorMessage(error.response?.data?.message || 'Failed to activate employee');
+            setErrorMessage('Failed to activate employee');
             setTimeout(() => setErrorMessage(''), 5000);
         } finally {
             setLoading(false);
@@ -216,17 +205,15 @@ const EmployeeManagement = () => {
 
         setLoading(true);
         try {
-            const token = localStorage.getItem('authToken_organization');
             await axios.delete(
-                `/api/employees/${employeeId}`,
-                { headers: { Authorization: `Bearer ${token}` } }
+                `/api/employees/${employeeId}`
             );
             
             setSuccessMessage('Employee permanently deleted.');
             fetchEmployees();
             setTimeout(() => setSuccessMessage(''), 5000);
         } catch (error) {
-            setErrorMessage(error.response?.data?.message || 'Failed to delete employee');
+            setErrorMessage('Failed to delete employee');
             setTimeout(() => setErrorMessage(''), 5000);
         } finally {
             setLoading(false);
@@ -252,13 +239,11 @@ const EmployeeManagement = () => {
 
         setLoading(true);
         try {
-            const token = localStorage.getItem('authToken_organization');
             const response = await axios.post(
                 `/api/employees/bulk-upload`,
                 formDataUpload,
                 {
                     headers: {
-                        Authorization: `Bearer ${token}`,
                         'Content-Type': 'multipart/form-data'
                     }
                 }
@@ -274,7 +259,7 @@ const EmployeeManagement = () => {
                 setUploadResult(null);
             }, 8000);
         } catch (error) {
-            setErrorMessage(error.response?.data?.message || 'Failed to upload employees');
+            setErrorMessage('Failed to upload employees');
             setTimeout(() => setErrorMessage(''), 5000);
         } finally {
             setLoading(false);
@@ -632,7 +617,7 @@ const EmployeeManagement = () => {
                                                 </p>
                                                 <div className="ml-6 mt-2 text-sm text-red-700 max-h-40 overflow-y-auto">
                                                     {uploadResult.errorDetails.map((error, index) => (
-                                                        <p key={index}>• {error}</p>
+                                                        <p key={`upload-err-${index}`}>• {error}</p>
                                                     ))}
                                                 </div>
                                             </div>
@@ -836,7 +821,7 @@ const EmployeeManagement = () => {
 
                 {/* Edit Employee Modal */}
                 {showEditModal && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                         <div className="bg-white rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
                             <div className="bg-[#2980B9] text-white p-6 rounded-t-lg">
                                 <h2 className="text-2xl font-bold">

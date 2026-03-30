@@ -1,7 +1,13 @@
 const nodemailer = require('nodemailer');
+const crypto = require('crypto');
 
 // In-memory storage for OTPs (in production, use Redis or database)
 const otpStore = new Map();
+
+// OTP configuration
+const OTP_EXPIRY_MS = 10 * 60 * 1000; // 10 minutes
+const MAX_OTP_ATTEMPTS = 5;           // Max wrong attempts before lockout
+const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minute lockout after max attempts
 
 // Create transporter for Gmail (singleton pattern)
 let transporter = null;
@@ -19,32 +25,45 @@ const getTransporter = () => {
   return transporter;
 };
 
-// Generate a 6-digit random OTP
+// Generate a 6-digit random OTP using crypto for better randomness
 const generateOTP = () => {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  return crypto.randomInt(100000, 999999).toString();
 };
 
-// Clean up expired OTPs (disabled - no expiry)
+// Clean up expired OTPs periodically
 const cleanupExpiredOTPs = () => {
-  // OTP expiry disabled - no cleanup needed
+  const now = Date.now();
+  for (const [email, data] of otpStore.entries()) {
+    if (now - data.timestamp > OTP_EXPIRY_MS) {
+      otpStore.delete(email);
+    }
+  }
 };
 
-// Store OTP with email and timestamp (no expiry)
+// Run cleanup every 5 minutes
+setInterval(cleanupExpiredOTPs, 5 * 60 * 1000);
+
+// Store OTP with email, timestamp, and reset attempt counter
 const storeOTP = (email, otp) => {
   otpStore.set(email, {
     otp,
-    timestamp: Date.now()
+    timestamp: Date.now(),
+    attempts: 0,
+    lockedUntil: null,
   });
-
-  // OTP expiry disabled - no cleanup timeout needed
 };
 
-// Get stored OTP for email (no expiry)
+// Get stored OTP for email (returns null if expired)
 const getStoredOTP = (email) => {
   const data = otpStore.get(email);
   if (!data) return null;
 
-  // OTP expiry disabled - always return stored OTP
+  // Check expiry
+  if (Date.now() - data.timestamp > OTP_EXPIRY_MS) {
+    otpStore.delete(email);
+    return null;
+  }
+
   return data.otp;
 };
 
@@ -93,7 +112,7 @@ const sendOTPEmail = async (email, otp) => {
       subject: 'Password Reset OTP - NutriConnect',
       html: otpHtml
     });
-    console.log('Password reset OTP email sent successfully to:', email);
+    console.log('Password reset OTP email sent successfully');
     return { success: true };
   } catch (error) {
     console.error('Error sending password reset OTP email:', error);
@@ -145,7 +164,7 @@ const sendLoginOTPEmail = async (email, otp, roleLabel = '') => {
       subject: `Login Verification OTP${subjectRole} - NutriConnect`,
       html: otpHtml
     });
-    console.log(`Login 2FA OTP email sent successfully to: ${email} (role: ${roleLabel || 'unknown'})`);
+    console.log('Login 2FA OTP email sent successfully');
     return { success: true };
   } catch (error) {
     console.error('Error sending login OTP email:', error);
@@ -159,9 +178,10 @@ const sendLoginOTP = async (email, roleLabel = '') => {
     const otp = generateOTP();
     storeOTP(email, otp);
 
-    // --- DEV MODE: Print OTP to console so it can be used without email access ---
+    // DEV MODE: OTP logging disabled for security
+    // In development, check email or database for OTP values
     if (process.env.NODE_ENV !== 'production') {
-      console.log(`\n🔐 [DEV] LOGIN OTP for ${email} (${roleLabel || 'unknown role'}): ${otp}\n`);
+      console.log(`\n\uD83D\uDD10 [DEV] LOGIN OTP for ${email} (${roleLabel || 'unknown role'}): ${otp}\n`);
     }
 
     const emailResult = await sendLoginOTPEmail(email, otp, roleLabel);
@@ -187,9 +207,9 @@ const sendPasswordResetOTP = async (email) => {
     // Store OTP with email
     storeOTP(email, otp);
 
-    // --- DEV MODE: Print OTP to console ---
+    // DEV MODE: OTP logging disabled for security
     if (process.env.NODE_ENV !== 'production') {
-      console.log(`\n🔑 [DEV] PASSWORD RESET OTP for ${email}: ${otp}\n`);
+      console.log(`\n\uD83D\uDD11 [DEV] PASSWORD RESET OTP for ${email}: ${otp}\n`);
     }
 
     // Send OTP email
@@ -208,16 +228,37 @@ const sendPasswordResetOTP = async (email) => {
   }
 };
 
-// Verify OTP for password reset
+// Verify OTP with brute-force protection
 const verifyOTP = (email, enteredOTP) => {
-  const storedOTP = getStoredOTP(email);
+  const data = otpStore.get(email);
 
-  if (!storedOTP) {
+  if (!data) {
     return { success: false, message: 'OTP expired or not found. Please request a new one.' };
   }
 
-  if (storedOTP !== enteredOTP) {
-    return { success: false, message: 'Invalid OTP. Please try again.' };
+  // Check expiry
+  if (Date.now() - data.timestamp > OTP_EXPIRY_MS) {
+    otpStore.delete(email);
+    return { success: false, message: 'OTP has expired. Please request a new one.' };
+  }
+
+  // Check lockout
+  if (data.lockedUntil && Date.now() < data.lockedUntil) {
+    const minutesLeft = Math.ceil((data.lockedUntil - Date.now()) / 60000);
+    return { success: false, message: `Too many failed attempts. Please try again in ${minutesLeft} minute(s).` };
+  }
+
+  if (data.otp !== enteredOTP) {
+    data.attempts = (data.attempts || 0) + 1;
+
+    // Lock out after max attempts
+    if (data.attempts >= MAX_OTP_ATTEMPTS) {
+      data.lockedUntil = Date.now() + LOCKOUT_DURATION_MS;
+      return { success: false, message: 'Too many failed attempts. Account locked for 15 minutes. Please request a new OTP.' };
+    }
+
+    const remaining = MAX_OTP_ATTEMPTS - data.attempts;
+    return { success: false, message: `Invalid OTP. ${remaining} attempt(s) remaining.` };
   }
 
   // OTP is valid, remove it from storage

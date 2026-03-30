@@ -28,8 +28,6 @@ const DietitiansList = () => {
 
     // Console log the current user name and ID once on mount
     useEffect(() => {
-        console.log('Current user name:', user?.name);
-        console.log('Current user ID:', user?.id);
     }, [user?.name, user?.id]);
 
     const handleViewProfile = (dietitian) => {
@@ -141,7 +139,8 @@ const DietitiansList = () => {
     
     bookings.forEach(booking => {
       const dietitianId = booking.dietitianId;
-      const bookingDateTime = new Date(`${booking.date}T${booking.time}`);
+      const dateStr = new Date(booking.date).toISOString().split('T')[0];
+      const bookingDateTime = new Date(`${dateStr}T${booking.time}`);
       
       // Skip only if appointment was more than 12 hours ago
       const hoursSinceAppointment = (now - bookingDateTime) / (1000 * 60 * 60);
@@ -163,7 +162,7 @@ const DietitiansList = () => {
         if (bookingDateTime > now) {
           // Keep the nearest (earliest) upcoming appointment
           if (!existingDateTime || bookingDateTime < existingDateTime) {
-            existing.nextAppointment = `${booking.date} ${booking.time}`;
+            existing.nextAppointment = `${dateStr} ${booking.time}`;
             existing.nextAppointmentDate = booking.date;
             existing.nextAppointmentTime = booking.time;
             existing.nextAppointmentDateTime = bookingDateTime;
@@ -191,7 +190,7 @@ const DietitiansList = () => {
           phone: dietitianProfile.phone || booking.dietitianPhone,
           consultationFee: dietitianProfile.fees || booking.amount || 500,
           fees: dietitianProfile.fees || booking.amount || 500,
-          nextAppointment: isUpcoming ? `${booking.date} ${booking.time}` : null,
+          nextAppointment: isUpcoming ? `${dateStr} ${booking.time}` : null,
           nextAppointmentDate: isUpcoming ? booking.date : null,
           nextAppointmentTime: isUpcoming ? booking.time : null,
           nextAppointmentDateTime: isUpcoming ? bookingDateTime : null,

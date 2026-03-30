@@ -1,23 +1,12 @@
-﻿const { User, Admin, Dietitian, Organization, Employee } = require('../models/userModel');
-const jwt = require('jsonwebtoken');
+const { User, Admin, Dietitian, Organization, Employee } = require('../models/userModel');
+const { uploadStreamToCloudinary } = require('../utils/cloudinary');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-for-development';
-
-// Helper function to extract user ID from JWT token
-const getUserIdFromToken = (req) => {
-    try {
-        const authHeader = req.headers['authorization'];
-        if (!authHeader) return null;
-
-        const token = authHeader.split(' ')[1]; // Bearer TOKEN
-        if (!token) return null;
-
-        const decoded = jwt.verify(token, JWT_SECRET);
-        return decoded.roleId; // roleId is the actual document ID in the specific collection
-    } catch (error) {
-        console.error('Error decoding token:', error);
-        return null;
+// Extract user ID from authenticated request (set by authenticateJWT middleware)
+const getUserIdFromRequest = (req) => {
+    if (req.user) {
+        return req.user.roleId || req.user.employeeId || req.user.userId;
     }
+    return null;
 };
 
 // Upload profile image for User
@@ -27,20 +16,18 @@ async function uploadUserProfileImage(req, res) {
             return res.status(400).json({ success: false, message: 'No file uploaded' });
         }
 
-        // Get userId from JWT token or request body
-        let userId = getUserIdFromToken(req);
-        if (!userId) {
-            userId = req.body.userId || req.query.userId || req.params.userId;
-        }
+        // Get userId from authenticated JWT � no body/query fallback for security
+        let userId = getUserIdFromRequest(req);
 
         if (!userId) {
-            return res.status(400).json({ success: false, message: 'User ID is required. Please provide a valid token or user ID.' });
+            return res.status(400).json({ success: false, message: 'User ID is required. Please provide a valid token.' });
         }
 
+        const result = await uploadStreamToCloudinary(req.file.buffer, `profile_images/user_${userId}`);
         const user = await User.findByIdAndUpdate(
             userId,
             {
-                profileImage: req.file.buffer
+                profileImage: result.secure_url
             },
             { new: true }
         );
@@ -57,7 +44,7 @@ async function uploadUserProfileImage(req, res) {
         console.error('Error uploading user profile photo:', error);
         res.status(500).json({
             success: false,
-            message: error.message || 'Failed to upload profile photo'
+            message: 'Failed to upload profile photo'
         });
     }
 }
@@ -69,19 +56,17 @@ async function uploadAdminProfileImage(req, res) {
             return res.status(400).json({ success: false, message: 'No file uploaded' });
         }
 
-        let adminId = getUserIdFromToken(req);
-        if (!adminId) {
-            adminId = req.body.adminId || req.query.adminId || req.params.adminId;
-        }
+        let adminId = getUserIdFromRequest(req);
 
         if (!adminId) {
-            return res.status(400).json({ success: false, message: 'Admin ID is required. Please provide a valid token or admin ID.' });
+            return res.status(400).json({ success: false, message: 'Admin ID is required. Please provide a valid token.' });
         }
 
+        const result = await uploadStreamToCloudinary(req.file.buffer, `profile_images/admin_${adminId}`);
         const admin = await Admin.findByIdAndUpdate(
             adminId,
             {
-                profileImage: req.file.buffer
+                profileImage: result.secure_url
             },
             { new: true }
         );
@@ -98,7 +83,7 @@ async function uploadAdminProfileImage(req, res) {
         console.error('Error uploading admin profile photo:', error);
         res.status(500).json({
             success: false,
-            message: error.message || 'Failed to upload profile photo'
+            message: 'Failed to upload profile photo'
         });
     }
 }
@@ -110,19 +95,17 @@ async function uploadDietitianProfileImage(req, res) {
             return res.status(400).json({ success: false, message: 'No file uploaded' });
         }
 
-        let dietitianId = getUserIdFromToken(req);
-        if (!dietitianId) {
-            dietitianId = req.body.dietitianId || req.query.dietitianId || req.params.dietitianId;
-        }
+        let dietitianId = getUserIdFromRequest(req);
 
         if (!dietitianId) {
-            return res.status(400).json({ success: false, message: 'Dietitian ID is required. Please provide a valid token or dietitian ID.' });
+            return res.status(400).json({ success: false, message: 'Dietitian ID is required. Please provide a valid token.' });
         }
 
+        const result = await uploadStreamToCloudinary(req.file.buffer, `profile_images/dietitian_${dietitianId}`);
         const dietitian = await Dietitian.findByIdAndUpdate(
             dietitianId,
             {
-                profileImage: req.file.buffer
+                profileImage: result.secure_url
             },
             { new: true }
         );
@@ -139,7 +122,7 @@ async function uploadDietitianProfileImage(req, res) {
         console.error('Error uploading dietitian profile photo:', error);
         res.status(500).json({
             success: false,
-            message: error.message || 'Failed to upload profile photo'
+            message: 'Failed to upload profile photo'
         });
     }
 }
@@ -151,19 +134,17 @@ async function uploadOrganizationProfileImage(req, res) {
             return res.status(400).json({ success: false, message: 'No file uploaded' });
         }
 
-        let orgId = getUserIdFromToken(req);
-        if (!orgId) {
-            orgId = req.body.orgId || req.query.orgId || req.params.orgId;
-        }
+        let orgId = getUserIdFromRequest(req);
 
         if (!orgId) {
-            return res.status(400).json({ success: false, message: 'Organization ID is required. Please provide a valid token or organization ID.' });
+            return res.status(400).json({ success: false, message: 'Organization ID is required. Please provide a valid token.' });
         }
 
+        const result = await uploadStreamToCloudinary(req.file.buffer, `profile_images/org_${orgId}`);
         const organization = await Organization.findByIdAndUpdate(
             orgId,
             {
-                profileImage: req.file.buffer
+                profileImage: result.secure_url
             },
             { new: true }
         );
@@ -180,7 +161,7 @@ async function uploadOrganizationProfileImage(req, res) {
         console.error('Error uploading organization profile photo:', error);
         res.status(500).json({
             success: false,
-            message: error.message || 'Failed to upload profile photo'
+            message: 'Failed to upload profile photo'
         });
     }
 }
@@ -189,10 +170,7 @@ async function uploadOrganizationProfileImage(req, res) {
 // Get profile image for User
 async function getUserProfileImage(req, res) {
     try {
-        let userId = getUserIdFromToken(req);
-        if (!userId) {
-            userId = req.body.userId || req.query.userId || req.params.userId;
-        }
+        let userId = getUserIdFromRequest(req);
 
         if (!userId) {
             return res.status(400).json({ success: false, message: 'User ID is required' });
@@ -204,19 +182,15 @@ async function getUserProfileImage(req, res) {
             return res.status(404).json({ success: false, message: 'Profile image not found' });
         }
 
-        // Convert buffer to base64 data URL
-        const base64Image = Buffer.from(user.profileImage).toString('base64');
-        const dataUrl = `data:image/jpeg;base64,${base64Image}`;
-
         res.status(200).json({
             success: true,
-            profileImage: dataUrl
+            profileImage: user.profileImage
         });
     } catch (error) {
         console.error('Error retrieving user profile image:', error);
         res.status(500).json({
             success: false,
-            message: error.message || 'Failed to retrieve profile image'
+            message: 'Failed to retrieve profile image'
         });
     }
 }
@@ -224,10 +198,7 @@ async function getUserProfileImage(req, res) {
 // Get profile image for Admin
 async function getAdminProfileImage(req, res) {
     try {
-        let adminId = getUserIdFromToken(req);
-        if (!adminId) {
-            adminId = req.body.adminId || req.query.adminId || req.params.adminId;
-        }
+        let adminId = getUserIdFromRequest(req);
 
         if (!adminId) {
             return res.status(400).json({ success: false, message: 'Admin ID is required' });
@@ -239,18 +210,15 @@ async function getAdminProfileImage(req, res) {
             return res.status(404).json({ success: false, message: 'Profile image not found' });
         }
 
-        const base64Image = Buffer.from(admin.profileImage).toString('base64');
-        const dataUrl = `data:image/jpeg;base64,${base64Image}`;
-
         res.status(200).json({
             success: true,
-            profileImage: dataUrl
+            profileImage: admin.profileImage
         });
     } catch (error) {
         console.error('Error retrieving admin profile image:', error);
         res.status(500).json({
             success: false,
-            message: error.message || 'Failed to retrieve profile image'
+            message: 'Failed to retrieve profile image'
         });
     }
 }
@@ -258,10 +226,7 @@ async function getAdminProfileImage(req, res) {
 // Get profile image for Dietitian
 async function getDietitianProfileImage(req, res) {
     try {
-        let dietitianId = getUserIdFromToken(req);
-        if (!dietitianId) {
-            dietitianId = req.body.dietitianId || req.query.dietitianId || req.params.dietitianId;
-        }
+        let dietitianId = getUserIdFromRequest(req);
 
         if (!dietitianId) {
             return res.status(400).json({ success: false, message: 'Dietitian ID is required' });
@@ -273,18 +238,15 @@ async function getDietitianProfileImage(req, res) {
             return res.status(404).json({ success: false, message: 'Profile image not found' });
         }
 
-        const base64Image = Buffer.from(dietitian.profileImage).toString('base64');
-        const dataUrl = `data:image/jpeg;base64,${base64Image}`;
-
         res.status(200).json({
             success: true,
-            profileImage: dataUrl
+            profileImage: dietitian.profileImage
         });
     } catch (error) {
         console.error('Error retrieving dietitian profile image:', error);
         res.status(500).json({
             success: false,
-            message: error.message || 'Failed to retrieve profile image'
+            message: 'Failed to retrieve profile image'
         });
     }
 }
@@ -292,10 +254,7 @@ async function getDietitianProfileImage(req, res) {
 // Get profile image for Organization
 async function getOrganizationProfileImage(req, res) {
     try {
-        let orgId = getUserIdFromToken(req);
-        if (!orgId) {
-            orgId = req.body.orgId || req.query.orgId || req.params.orgId;
-        }
+        let orgId = getUserIdFromRequest(req);
 
         if (!orgId) {
             return res.status(400).json({ success: false, message: 'Organization ID is required' });
@@ -307,38 +266,24 @@ async function getOrganizationProfileImage(req, res) {
             return res.status(404).json({ success: false, message: 'Profile image not found' });
         }
 
-        const base64Image = Buffer.from(organization.profileImage).toString('base64');
-        const dataUrl = `data:image/jpeg;base64,${base64Image}`;
-
         res.status(200).json({
             success: true,
-            profileImage: dataUrl
+            profileImage: organization.profileImage
         });
     } catch (error) {
         console.error('Error retrieving organization profile image:', error);
         res.status(500).json({
             success: false,
-            message: error.message || 'Failed to retrieve profile image'
+            message: 'Failed to retrieve profile image'
         });
     }
 }
 
 
-// Helper function to detect role from token
-const getRoleFromToken = (req) => {
-    try {
-        const authHeader = req.headers['authorization'];
-        if (!authHeader) return null;
-
-        const token = authHeader.split(' ')[1]; // Bearer TOKEN
-        if (!token) return null;
-
-        const decoded = jwt.verify(token, JWT_SECRET);
-        return decoded.role; // role should be stored in the token
-    } catch (error) {
-        console.error('Error decoding token:', error);
-        return null;
-    }
+// Helper function to detect role from authenticated request
+const getRoleFromRequest = (req) => {
+    if (!req.user) return null;
+    return req.user.role;
 };
 
 /**
@@ -347,20 +292,15 @@ const getRoleFromToken = (req) => {
  */
 async function getUserDetailsGeneric(req, res) {
     try {
-        // Decode token once to check orgType (employee vs org admin)
-        const authHeader = req.headers['authorization'];
-        const rawToken = authHeader && authHeader.split(' ')[1];
-        let decoded = null;
-        try { decoded = rawToken && jwt.verify(rawToken, JWT_SECRET); } catch (_) {}
-
+        // req.user is already set by authenticateJWT middleware
         // --- Employee path ---
-        if (decoded && decoded.orgType === 'employee') {
-            const employee = await Employee.findById(decoded.employeeId);
+        if (req.user && req.user.orgType === 'employee') {
+            const employee = await Employee.findById(req.user.employeeId);
             if (!employee) {
                 return res.status(404).json({ success: false, message: 'Employee not found' });
             }
-            const org = decoded.organizationId
-                ? await Organization.findById(decoded.organizationId).select('name')
+            const org = req.user.organizationId
+                ? await Organization.findById(req.user.organizationId).select('name')
                 : null;
             return res.status(200).json({
                 success: true,
@@ -377,8 +317,8 @@ async function getUserDetailsGeneric(req, res) {
         }
 
         // --- Org admin / other roles path ---
-        const userId = getUserIdFromToken(req);
-        const userRole = getRoleFromToken(req);
+        const userId = getUserIdFromRequest(req);
+        const userRole = getRoleFromRequest(req);
 
         if (!userId) {
             return res.status(400).json({
@@ -447,10 +387,17 @@ async function getUserDetailsGeneric(req, res) {
             phone: user.phone || 'N/A',
         };
 
-        // Add profile image if available, convert buffer to base64
+        // Add profile image if available
         if (user.profileImage) {
-            const base64Image = Buffer.from(user.profileImage).toString('base64');
-            response.profileImage = `data:image/jpeg;base64,${base64Image}`;
+            if (typeof user.profileImage === 'string' && user.profileImage.startsWith('http')) {
+                response.profileImage = user.profileImage;
+            } else if (Buffer.isBuffer(user.profileImage)) {
+                response.profileImage = `data:image/jpeg;base64,${user.profileImage.toString('base64')}`;
+            } else {
+                // For safety, only return if it looks like a URL or is a Buffer
+                // Corrupted strings or local paths will fall back to default icon
+                response.profileImage = null;
+            }
         }
 
         // Add additional fields based on role
@@ -480,7 +427,7 @@ async function getUserDetailsGeneric(req, res) {
         console.error('Error fetching user details:', error);
         res.status(500).json({
             success: false,
-            message: error.message || 'Failed to fetch user details'
+            message: 'Failed to fetch user details'
         });
     }
 }
@@ -506,8 +453,8 @@ async function getOrganizationDetails(req, res) {
 
 async function updateUserProfile(req, res) {
     try {
-        const userId = getUserIdFromToken(req);
-        const userRole = getRoleFromToken(req);
+        const userId = getUserIdFromRequest(req);
+        const userRole = getRoleFromRequest(req);
 
         if (!userId) {
             return res.status(400).json({
@@ -663,7 +610,135 @@ async function updateUserProfile(req, res) {
 
         res.status(500).json({
             success: false,
-            message: error.message || 'Failed to update profile'
+            message: 'Failed to update profile'
+        });
+    }
+}
+
+// Delete/Remove profile image for User
+async function deleteUserProfileImage(req, res) {
+    try {
+        const userId = getUserIdFromRequest(req);
+
+        if (!userId) {
+            return res.status(400).json({ success: false, message: 'User ID is required' });
+        }
+
+        const user = await User.findByIdAndUpdate(
+            userId,
+            { profileImage: null },
+            { new: true }
+        );
+
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Profile photo removed successfully'
+        });
+    } catch (error) {
+        console.error('Error removing user profile photo:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to remove profile photo'
+        });
+    }
+}
+
+// Delete/Remove profile image for Admin
+async function deleteAdminProfileImage(req, res) {
+    try {
+        const adminId = getUserIdFromRequest(req);
+
+        if (!adminId) {
+            return res.status(400).json({ success: false, message: 'Admin ID is required' });
+        }
+
+        const admin = await Admin.findByIdAndUpdate(
+            adminId,
+            { profileImage: null },
+            { new: true }
+        );
+
+        if (!admin) {
+            return res.status(404).json({ success: false, message: 'Admin not found' });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Profile photo removed successfully'
+        });
+    } catch (error) {
+        console.error('Error removing admin profile photo:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to remove profile photo'
+        });
+    }
+}
+
+// Delete/Remove profile image for Dietitian
+async function deleteDietitianProfileImage(req, res) {
+    try {
+        const dietitianId = getUserIdFromRequest(req);
+
+        if (!dietitianId) {
+            return res.status(400).json({ success: false, message: 'Dietitian ID is required' });
+        }
+
+        const dietitian = await Dietitian.findByIdAndUpdate(
+            dietitianId,
+            { profileImage: null },
+            { new: true }
+        );
+
+        if (!dietitian) {
+            return res.status(404).json({ success: false, message: 'Dietitian not found' });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Profile photo removed successfully'
+        });
+    } catch (error) {
+        console.error('Error removing dietitian profile photo:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to remove profile photo'
+        });
+    }
+}
+
+// Delete/Remove profile image for Organization
+async function deleteOrganizationProfileImage(req, res) {
+    try {
+        const orgId = getUserIdFromRequest(req);
+
+        if (!orgId) {
+            return res.status(400).json({ success: false, message: 'Organization ID is required' });
+        }
+
+        const org = await Organization.findByIdAndUpdate(
+            orgId,
+            { profileImage: null },
+            { new: true }
+        );
+
+        if (!org) {
+            return res.status(404).json({ success: false, message: 'Organization not found' });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Profile photo removed successfully'
+        });
+    } catch (error) {
+        console.error('Error removing organization profile photo:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to remove profile photo'
         });
     }
 }
@@ -673,6 +748,10 @@ module.exports = {
     uploadAdminProfileImage,
     uploadDietitianProfileImage,
     uploadOrganizationProfileImage,
+    deleteUserProfileImage,
+    deleteAdminProfileImage,
+    deleteDietitianProfileImage,
+    deleteOrganizationProfileImage,
     getUserProfileImage,
     getAdminProfileImage,
     getDietitianProfileImage,

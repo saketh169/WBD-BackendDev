@@ -19,7 +19,7 @@ const ClientHealthReportViewer = () => {
   // Fetch health reports sent by the dietitian
   useEffect(() => {
     const fetchReports = async () => {
-      if (!user?.id && !user?._id) {
+      if (!user?.id) {
         setError('User not authenticated');
         setLoading(false);
         return;
@@ -34,17 +34,10 @@ const ClientHealthReportViewer = () => {
         setLoading(true);
         setError(null);
 
-        const clientId = user.id || user._id;
-        const role = user?.role || 'user';
-        const token = localStorage.getItem(`authToken_${role}`);
+        const clientId = user.id;
 
         const response = await axios.get(
-          `/api/health-reports/client/${clientId}/dietitian/${dietitianId}`,
-          {
-            headers: {
-              'Authorization': token ? `Bearer ${token}` : undefined
-            }
-          }
+          `/api/health-reports/client/${clientId}/dietitian/${dietitianId}`
         );
 
         if (response.data.success) {
@@ -75,12 +68,9 @@ const ClientHealthReportViewer = () => {
     const markViewed = async () => {
       if (!selectedReport || selectedReport.status === 'viewed') return;
       try {
-        const role = user?.role || 'user';
-        const token = localStorage.getItem(`authToken_${role}`);
         await axios.put(
           `/api/health-reports/${selectedReport._id}/viewed`,
-          {},
-          { headers: { 'Authorization': token ? `Bearer ${token}` : undefined } }
+          {}
         );
         // Update local state
         setReports(prev => prev.map(r =>

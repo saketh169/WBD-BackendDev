@@ -1,7 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
 import axios from 'axios';
+import AuthContext from '../../contexts/AuthContext';
 
 const EmployeeMonitoring = () => {
+    const { user } = useContext(AuthContext);
     const [stats, setStats] = useState(null);
     const [employees, setEmployees] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -12,9 +14,8 @@ const EmployeeMonitoring = () => {
     const resolvedContainerRef = useRef(null);
     const boardContainerRef = useRef(null);
 
-    // Org auth
-    const authOrg = JSON.parse(localStorage.getItem('authUser_organization') || '{}');
-    const orgName = authOrg.org_name || 'Organization';
+    // Org auth from AuthContext
+    const orgName = user?.org_name || 'Organization';
 
     // Team Board state
     const [boardPosts, setBoardPosts] = useState([]);
@@ -93,13 +94,9 @@ const EmployeeMonitoring = () => {
     const fetchStats = async () => {
         setLoading(true);
         try {
-            const token = localStorage.getItem('authToken_organization');
-            const response = await axios.get(`/api/employees/stats`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const response = await axios.get(`/api/employees/stats`);
             setStats(response.data.data);
-        } catch (error) {
-            console.error('Error fetching stats:', error);
+        } catch {
             setStats(null);
         } finally {
             setLoading(false);
@@ -110,13 +107,9 @@ const EmployeeMonitoring = () => {
     const fetchEmployees = async () => {
         setLoading(true);
         try {
-            const token = localStorage.getItem('authToken_organization');
-            const response = await axios.get(`/api/employees`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const response = await axios.get(`/api/employees`);
             setEmployees(response.data.data);
-        } catch (error) {
-            console.error('Error fetching employees:', error);
+        } catch {
             setEmployees([]);
         } finally {
             setLoading(false);
@@ -127,13 +120,10 @@ const EmployeeMonitoring = () => {
     const fetchBoardPosts = async () => {
         setBoardLoading(true);
         try {
-            const token = localStorage.getItem('authToken_organization');
-            const res = await axios.get(`/api/teamboard?orgName=${encodeURIComponent(orgName)}`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
+            const res = await axios.get(`/api/teamboard?orgName=${encodeURIComponent(orgName)}`);
             setBoardPosts(res.data.data || []);
-        } catch (err) {
-            console.error('Failed to fetch board posts:', err);
+        } catch {
+            // silently ignore
         } finally {
             setBoardLoading(false);
         }
@@ -142,13 +132,10 @@ const EmployeeMonitoring = () => {
     // Silent refresh (no loading spinner flicker)
     const fetchBoardPostsSilent = async () => {
         try {
-            const token = localStorage.getItem('authToken_organization');
-            const res = await axios.get(`/api/teamboard?orgName=${encodeURIComponent(orgName)}`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
+            const res = await axios.get(`/api/teamboard?orgName=${encodeURIComponent(orgName)}`);
             setBoardPosts(res.data.data || []);
-        } catch (error) {
-            console.error('Error fetching board posts:', error);
+        } catch {
+            // silently ignore
         }
     };
 
@@ -156,23 +143,18 @@ const EmployeeMonitoring = () => {
     const fetchEmployeeQueries = async () => {
         setQueriesLoading(true);
         try {
-            const token = localStorage.getItem('authToken_organization');
-            const res = await axios.get('/api/contact/employee-queries', {
-                headers: { Authorization: `Bearer ${token}` },
-            });
+            // Fetch PENDING employee queries (organization-specific)
+            const res = await axios.get('/api/contact/employee-queries');
             setPendingQueries(res.data.data || []);
             
-            // Also fetch all queries for resolved list
-            const allRes = await axios.get('/api/contact/queries-list', {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            const allQueryData = allRes.data.data || [];
-            // Sort by created_at descending (latest first)
-            allQueryData.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-            setAllQueries(allQueryData);
+            // Fetch RESOLVED employee queries (organization-specific)
+            const resolvedRes = await axios.get('/api/contact/employee-resolved-queries');
+            const resolvedQueryData = resolvedRes.data.data || [];
+            // Sort by replied_at descending (latest first)
+            resolvedQueryData.sort((a, b) => new Date(b.replied_at) - new Date(a.replied_at));
+            setAllQueries(resolvedQueryData);
             setResolvedPage(1); // Reset to first page
-        } catch (err) {
-            console.error('Failed to fetch employee queries:', err);
+        } catch {
             setPendingQueries([]);
             setAllQueries([]);
         } finally {
@@ -184,13 +166,9 @@ const EmployeeMonitoring = () => {
     const fetchWorkSummary = async () => {
         setWorkLoading(true);
         try {
-            const token = localStorage.getItem('authToken_organization');
-            const response = await axios.get('/api/organization/employee-work-summary', {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const response = await axios.get('/api/organization/employee-work-summary');
             setWorkSummary(response.data.data || []);
-        } catch (error) {
-            console.error('Error fetching work summary:', error);
+        } catch {
             setWorkSummary([]);
         } finally {
             setWorkLoading(false);
@@ -203,18 +181,17 @@ const EmployeeMonitoring = () => {
         setBoardError('');
         setBoardPosting(true);
         try {
-            const token = localStorage.getItem('authToken_organization');
             const res = await axios.post('/api/teamboard', {
                 orgName,
-                author: authOrg.name || orgName,
-                email: authOrg.email || '',
+                author: user?.name || orgName,
+                email: user?.email || '',
                 message: boardMsg.trim(),
                 isOrg: true,
-            }, { headers: { Authorization: `Bearer ${token}` } });
+            });
             setBoardPosts(prev => [res.data.data, ...prev]);
             setBoardMsg('');
-        } catch (err) {
-            setBoardError(err.response?.data?.message || 'Failed to post message.');
+        } catch {
+            setBoardError('Failed to post message.');
         } finally {
             setBoardPosting(false);
         }
@@ -222,13 +199,10 @@ const EmployeeMonitoring = () => {
 
     const handleDeletePost = async (id) => {
         try {
-            const token = localStorage.getItem('authToken_organization');
-            await axios.delete(`/api/teamboard/${id}?email=${encodeURIComponent(authOrg.email || '')}&isOrg=true`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
+            await axios.delete(`/api/teamboard/${id}?email=${encodeURIComponent(user?.email || '')}&isOrg=true`);
             setBoardPosts(prev => prev.filter(p => p._id !== id));
-        } catch (err) {
-            console.error('Failed to delete post:', err);
+        } catch {
+            // silently ignore
         }
     };
 
@@ -260,13 +234,11 @@ const EmployeeMonitoring = () => {
 
         setIsSendingReply(true);
         try {
-            const token = localStorage.getItem('authToken_organization');
             const response = await axios.post(
                 '/api/contact/reply',
                 { queryId, replyMessage: replyText },
                 {
                     headers: {
-                        'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
                     }
                 }
@@ -281,8 +253,7 @@ const EmployeeMonitoring = () => {
                 setReplyingTo(null);
                 setReplyText('');
             }
-        } catch (err) {
-            console.error('Error sending reply:', err);
+        } catch {
             alert('Failed to send reply. Please try again.');
         } finally {
             setIsSendingReply(false);
@@ -347,14 +318,14 @@ const EmployeeMonitoring = () => {
                                     <div className="divide-y divide-gray-100">
                                         {loggedInToday.map(emp => (
                                             <div key={emp._id} className="flex items-center gap-3 px-5 py-3">
-                                                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#27AE60] to-[#1E6F5C] flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                                                <div className="w-9 h-9 rounded-full bg-linear-to-br from-[#27AE60] to-[#1E6F5C] flex items-center justify-center text-white font-bold text-sm shrink-0">
                                                     {emp.name.charAt(0).toUpperCase()}
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <p className="font-medium text-gray-900 text-sm truncate">{emp.name}</p>
                                                     <p className="text-xs text-gray-400 truncate">{emp.email}</p>
                                                 </div>
-                                                <span className="text-xs text-gray-400 flex-shrink-0">
+                                                <span className="text-xs text-gray-400 shrink-0">
                                                     {new Date(emp.lastLogin).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                 </span>
                                             </div>
@@ -398,7 +369,7 @@ const EmployeeMonitoring = () => {
                                             return (
                                                 <div key={q._id} className="px-5 py-4">
                                                     <div className="flex items-start gap-3">
-                                                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0 mt-0.5">
                                                             <i className="fas fa-comment-dots text-blue-600 text-xs"></i>
                                                         </div>
                                                         <div className="flex-1 min-w-0">
@@ -411,7 +382,7 @@ const EmployeeMonitoring = () => {
                                                                 </span>
                                                             </div>
                                                         </div>
-                                                        <span className={`flex-shrink-0 text-xs px-2 py-0.5 rounded-full font-semibold ${
+                                                        <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full font-semibold ${
                                                             q.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'
                                                         }`}>
                                                             {q.status}
@@ -517,7 +488,7 @@ const EmployeeMonitoring = () => {
                                                 return (
                                                     <div key={q._id} className="px-5 py-4 hover:bg-gray-50 transition">
                                                         <div className="flex items-start gap-3 mb-3">
-                                                            <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                                            <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center shrink-0 mt-0.5">
                                                                 <i className="fas fa-check-circle text-green-600 text-xs"></i>
                                                             </div>
                                                             <div className="flex-1 min-w-0">
@@ -530,7 +501,7 @@ const EmployeeMonitoring = () => {
                                                                     </span>
                                                                 </div>
                                                             </div>
-                                                            <span className="flex-shrink-0 text-xs px-2 py-0.5 rounded-full font-semibold bg-green-100 text-green-700">
+                                                            <span className="shrink-0 text-xs px-2 py-0.5 rounded-full font-semibold bg-green-100 text-green-700">
                                                                 Resolved
                                                             </span>
                                                         </div>
@@ -607,7 +578,7 @@ const EmployeeMonitoring = () => {
                             {/* Compose as org */}
                             <div className="p-6 border-b border-gray-100 bg-gray-50">
                                 <div className="flex gap-3 items-start">
-                                    <div className="w-9 h-9 rounded-full bg-[#1A4A40] flex items-center justify-center text-white font-bold flex-shrink-0 mt-1 text-sm">
+                                    <div className="w-9 h-9 rounded-full bg-[#1A4A40] flex items-center justify-center text-white font-bold shrink-0 mt-1 text-sm">
                                         <i className="fas fa-building"></i>
                                     </div>
                                     <div className="flex-1">
@@ -653,7 +624,7 @@ const EmployeeMonitoring = () => {
                                             <div key={post._id} className={`flex items-end gap-2 group ${isMine ? 'flex-row-reverse' : 'flex-row'}`}>
                                                 {/* Avatar (only for others) */}
                                                 {!isMine && (
-                                                    <div className="w-8 h-8 rounded-full bg-[#27AE60] flex items-center justify-center text-white font-bold flex-shrink-0 text-xs">
+                                                    <div className="w-8 h-8 rounded-full bg-[#27AE60] flex items-center justify-center text-white font-bold shrink-0 text-xs">
                                                         {post.author.charAt(0).toUpperCase()}
                                                     </div>
                                                 )}
@@ -694,7 +665,7 @@ const EmployeeMonitoring = () => {
                         {/* Filters */}
                         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
                             <div className="flex flex-wrap items-center gap-4">
-                                <div className="flex-1 min-w-[200px]">
+                                <div className="flex-1 min-w-50">
                                     <label className="block text-sm font-semibold text-gray-700 mb-2">
                                         Filter by Status
                                     </label>
@@ -709,7 +680,7 @@ const EmployeeMonitoring = () => {
                                         <option value="pending-activation">Pending Only</option>
                                     </select>
                                 </div>
-                                <div className="flex-1 min-w-[200px] flex items-end">
+                                <div className="flex-1 min-w-50 flex items-end">
                                     <button
                                         onClick={() => { setFilter('all'); fetchEmployees(); fetchStats(); fetchEmployeeQueries(); fetchBoardPosts(); }}
                                         className="w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
@@ -779,7 +750,7 @@ const EmployeeMonitoring = () => {
                                                     onClick={() => setExpandedEmployee(isOpen ? null : work.employeeId)}
                                                 >
                                                     <div className="flex items-center gap-4">
-                                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#27AE60] to-[#1E6F5C] flex items-center justify-center text-white font-bold text-sm shrink-0">
+                                                        <div className="w-10 h-10 rounded-full bg-linear-to-br from-[#27AE60] to-[#1E6F5C] flex items-center justify-center text-white font-bold text-sm shrink-0">
                                                             {work.employeeName.charAt(0).toUpperCase()}
                                                         </div>
                                                         <div>
@@ -950,7 +921,7 @@ const EmployeeMonitoring = () => {
                                                 <tr key={employee._id} className="hover:bg-gray-50 transition-colors">
                                                     <td className="px-6 py-4 whitespace-nowrap">
                                                         <div className="flex items-center">
-                                                            <div className="flex-shrink-0 h-10 w-10 bg-gradient-to-br from-[#27AE60] to-[#1E6F5C] rounded-full flex items-center justify-center text-white font-bold">
+                                                            <div className="shrink-0 h-10 w-10 bg-linear-to-br from-[#27AE60] to-[#1E6F5C] rounded-full flex items-center justify-center text-white font-bold">
                                                                 {employee.name.charAt(0).toUpperCase()}
                                                             </div>
                                                             <div className="ml-4">

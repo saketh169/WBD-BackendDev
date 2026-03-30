@@ -77,7 +77,6 @@ const sendBookingConfirmationToUser = async (bookingData) => {
       subject: '✅ Booking Confirmed - NutriConnect',
       html: emailHtml
     });
-    console.log('Booking confirmation email sent to user:', email);
     return { success: true };
   } catch (error) {
     console.error('Error sending booking confirmation email to user:', error);
@@ -151,7 +150,6 @@ const sendBookingNotificationToDietitian = async (bookingData) => {
       subject: '📅 New Booking Received - NutriConnect',
       html: emailHtml
     });
-    console.log('Booking notification email sent to dietitian:', dietitianEmail);
     return { success: true };
   } catch (error) {
     console.error('Error sending booking notification email to dietitian:', error);

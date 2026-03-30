@@ -8,12 +8,6 @@ const RoleModal = ({ isModal = false, onClose }) => {
   const [showOrgSubOptions, setShowOrgSubOptions] = useState(false);
 
   useEffect(() => {
-    console.log('[RoleModal] Component mounted');
-    // Check for any existing role tokens
-    const roles = ['user', 'dietitian', 'admin', 'organization'];
-    const hasAnyToken = roles.some(role => localStorage.getItem(`authToken_${role}`));
-    console.log('[RoleModal] Existing token found:', hasAnyToken);
-
     // Check for developer mode
     const developerMode = localStorage.getItem('developerMode') === 'true';
     setIsDeveloperMode(developerMode);
@@ -145,7 +139,6 @@ const RoleModal = ({ isModal = false, onClose }) => {
           className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.25)] max-w-3xl w-full max-h-[75vh] overflow-y-auto relative border border-white/20 animate-in fade-in-0 zoom-in-95 duration-300"
           onClick={(e) => e.stopPropagation()}
         >
-          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
           <div className="p-3">
             <div className="flex justify-end mb-0">
               <button
@@ -220,7 +213,6 @@ const RoleModal = ({ isModal = false, onClose }) => {
 
   return (
     <>
-      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
       <main className="flex-1 max-w-6xl mx-auto p-8 bg-cover bg-center min-h-screen">
         <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.25)] p-5 max-w-2xl mx-auto border border-white/20">
           <div className="flex justify-end mb-0">

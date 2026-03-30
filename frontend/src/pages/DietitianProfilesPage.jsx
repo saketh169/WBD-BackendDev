@@ -305,7 +305,8 @@ const DietitianProfilesPage = ({ specializationType = "all" }) => {
     try {
       // Show success notification
       showNotification(
-        `✨ Consultation booked successfully!\nConfirmation email sent to ${paymentData.email}`,
+        `Consultation booked successfully! Confirmation email sent to ${paymentData.email}`,
+        // (Star notification is handled by alert styling)
         "success"
       );
       

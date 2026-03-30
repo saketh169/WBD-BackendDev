@@ -49,8 +49,8 @@ const getStatusIcon = (status) => {
 const OrgDocStatus = () => {
     // Only state needed for core functionality (data and loading)
     const navigate = useNavigate();
-    const [organization, setOrganization] = useState({ 
-        name: 'Loading...', 
+    const [organization, setOrganization] = useState({
+        name: 'Loading...',
         verificationStatus: {},
         finalReport: null
     });
@@ -59,9 +59,8 @@ const OrgDocStatus = () => {
     const [pdfDataUrl, setPdfDataUrl] = useState('');
 
     // Placeholder functions for file actions
-    const handleViewReport = (base64, mime) => {
-        const dataUrl = `data:${mime};base64,${base64}`;
-        setPdfDataUrl(dataUrl);
+    const handleViewReport = (url) => {
+        setPdfDataUrl(url);
         setShowPdfViewer(true);
     };
 
@@ -70,25 +69,20 @@ const OrgDocStatus = () => {
         setPdfDataUrl('');
     };
 
-    const handleDownloadReport = (base64, name) => {
-        const link = document.createElement('a');
-        link.href = `data:application/pdf;base64,${base64}`;
-        link.download = name || 'Organization_Verification_Report.pdf';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+    const handleDownloadReport = (url) => {
+        window.open(url, '_blank');
     };
 
     // API call to fetch organization data
     const fetchOrganizationDetails = useCallback(async () => {
         setIsLoading(true);
-        
+
         let organizationName = 'Loading...';
         let documentData = {
             verificationStatus: {},
             finalReport: null
         };
-        
+
         try {
             // Fetch organization name and full status from combined API
             const token = localStorage.getItem('authToken_organization');
@@ -177,7 +171,7 @@ const OrgDocStatus = () => {
     const renderFinalReportActions = () => {
         const finalStatus = organization.verificationStatus.finalReport || 'Not Received';
         const finalReportData = organization.finalReport;
-        
+
         const statusElement = (
             <div className="flex justify-center items-center text-lg font-medium">
                 <i className={`${getStatusIcon(finalStatus)} mr-3 text-2xl text-gray-600`}></i>
@@ -189,7 +183,7 @@ const OrgDocStatus = () => {
 
         let actionsElement = null;
 
-        if (finalReportData && finalReportData.base64 && finalStatus !== 'Not Received') {
+        if (finalReportData && finalReportData.url && finalStatus !== 'Not Received') {
             actionsElement = (
                 <div className="flex justify-center gap-3 mt-4">
                     <button
@@ -197,7 +191,7 @@ const OrgDocStatus = () => {
                         style={{ backgroundColor: colors['primary-green'] }}
                         onMouseEnter={(e) => e.target.style.backgroundColor = colors['dark-green']}
                         onMouseLeave={(e) => e.target.style.backgroundColor = colors['primary-green']}
-                        onClick={() => handleViewReport(finalReportData.base64, finalReportData.mime)}
+                        onClick={() => handleViewReport(finalReportData.url)}
                     >
                         <i className="fas fa-eye mr-2"></i> View Report
                     </button>
@@ -206,7 +200,7 @@ const OrgDocStatus = () => {
                         style={{ backgroundColor: '#8BC34A' }}
                         onMouseEnter={(e) => e.target.style.backgroundColor = '#689F38'}
                         onMouseLeave={(e) => e.target.style.backgroundColor = '#8BC34A'}
-                        onClick={() => handleDownloadReport(finalReportData.base64, finalReportData.name)}
+                        onClick={() => handleDownloadReport(finalReportData.url)}
                     >
                         <i className="fas fa-download mr-2"></i> Download Report
                     </button>
@@ -328,7 +322,7 @@ const OrgDocStatus = () => {
                                 <i className="fas fa-times text-xl"></i>
                             </button>
                         </div>
-                        
+
                         {/* PDF Viewer */}
                         <div className="flex-1 p-4">
                             <iframe
@@ -337,7 +331,7 @@ const OrgDocStatus = () => {
                                 title="Final Verification Report"
                             />
                         </div>
-                        
+
                         {/* Modal Footer */}
                         <div className="flex justify-end gap-3 p-4 border-t border-gray-200">
                             <button

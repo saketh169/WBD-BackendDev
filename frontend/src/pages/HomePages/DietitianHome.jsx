@@ -1,21 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
+import AuthContext from '../../contexts/AuthContext';
+import axios from 'axios';
+import { io } from 'socket.io-client';
 
-// Placeholder/Mock data function for appointments (replaces API fetch)
-const fetchMockSchedule = () => {
-  const today = new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
-  const mockAppointments = [
-    { id: 1, time: '09:00 AM', clientName: 'Anjali Patel' },
-    { id: 2, time: '11:00 AM', clientName: 'Vikram Singh' },
-    { id: 3, time: '01:00 PM', clientName: 'Priya Sharma' },
-    { id: 4, time: '03:00 PM', clientName: 'Rajesh Kumar' },
-    { id: 5, time: '05:00 PM', clientName: 'Neha Gupta' },
-  ];
-  return { date: today, appointments: mockAppointments };
-};
+// Helper to get formatted date for comparison
+const getTodayKey = () => new Date().toISOString().split('T')[0];
 
 const DietitianHome = () => {
   const navigate = useNavigate();
+  const { user, token } = useContext(AuthContext);
 
   // === 1. Ad Slider State and Logic (NEW) ===
   const [currentAd, setCurrentAd] = useState(0);
@@ -37,15 +31,63 @@ const DietitianHome = () => {
     setCurrentAd(index);
   };
 
-  // === 2. Schedule State (Replaces JS Fetch/Render) ===
+  // === 2. Schedule State (Real Data) ===
   const [todaySchedule, setTodaySchedule] = useState([]);
+  const [isLoadingSchedule, setIsLoadingSchedule] = useState(true);
+
+  const fetchRealSchedule = async () => {
+    if (!user?.id || !token) return;
+    try {
+      setIsLoadingSchedule(true);
+      const response = await axios.get(`/api/bookings/dietitian/${user.id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.data.success) {
+        const todayKey = getTodayKey();
+        const bookings = response.data.data || [];
+        // Filter for today's confirmed bookings
+        const todayBookings = bookings.filter(b => {
+          const bKey = new Date(b.date).toISOString().split('T')[0];
+          return bKey === todayKey && b.status !== 'cancelled';
+        }).map(b => ({
+          id: b._id,
+          time: b.time,
+          clientName: b.username || 'Client'
+        })).sort((a, b) => {
+          // Add basic time sorting if possible
+          return a.time.localeCompare(b.time);
+        });
+        setTodaySchedule(todayBookings);
+      }
+    } catch (error) {
+      console.error('Error fetching today schedule:', error);
+    } finally {
+      setIsLoadingSchedule(false);
+    }
+  };
 
   useEffect(() => {
-    // Simulate fetching schedule data on component mount
-    const { appointments } = fetchMockSchedule();
-    setTodaySchedule(appointments);
-  }, []);
-  
+    fetchRealSchedule();
+  }, [user?.id, token]);
+
+  // Real-time WebSocket listener
+  useEffect(() => {
+    if (!user?.id || !token) return;
+
+    const socket = io(import.meta.env.VITE_API_URL || 'http://localhost:5000', {
+      withCredentials: true,
+    });
+
+    socket.on('connect', () => {
+      socket.emit('register_dietitian', user.id);
+    });
+
+    socket.on('new_booking', () => fetchRealSchedule());
+    socket.on('booking_updated', () => fetchRealSchedule());
+
+    return () => socket.disconnect();
+  }, [user?.id, token]);
+
   // === 3. Blog Data (Placeholder - Matches User Blog Structure) ===
   const blogPosts = [
     { id: 1, title: 'Optimizing Client Meal Prep', excerpt: 'Time-saving tips for personalized plans.', author: 'Dr. Jane', image: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=200&fit=crop' },
@@ -59,9 +101,9 @@ const DietitianHome = () => {
     { q: 'How do I register as a dietitian on Nutri Connect?', a: 'You can sign up by selecting the ‘Dietitian Sign Up’ option on the homepage and completing the registration process, including certification upload.' },
     { q: 'How do I manage my client appointments?', a: 'The Schedule page allows you to view, modify, and manage all incoming consultation requests and booked sessions.' },
     { q: 'Can I create and share custom diet plans with clients?', a: 'Yes, the client dashboard provides tools to build and share personalized plans based on client goals and data.' },
-    { q: 'Can I track my clients\' progress over time?', a: 'Absolutely. Client profiles track nutrition logging, biometric data, and consultation history for comprehensive monitoring.' },    { q: 'How do I block days on my schedule?', a: 'In the Schedule page, use the "Blocking Options" button to block single or multiple days. You can block an entire day or specific time slots, and the admin will be notified with your reason for the leave.' },
+    { q: 'Can I track my clients\' progress over time?', a: 'Absolutely. Client profiles track nutrition logging, biometric data, and consultation history for comprehensive monitoring.' }, { q: 'How do I block days on my schedule?', a: 'In the Schedule page, use the "Blocking Options" button to block single or multiple days. You can block an entire day or specific time slots, and the admin will be notified with your reason for the leave.' },
     { q: 'How do I reschedule a client appointment?', a: 'On the Schedule page, open the slot management drawer, click on a booked appointment, and select the reschedule option. Choose a new date and time slot, and the client will be notified of the change.' },
-    { q: 'Can I select any date for scheduling slots?', a: 'Yes! You can now select any future date without being limited to just the current week, giving you complete flexibility in managing your long-term schedule.' },  ];
+    { q: 'Can I select any date for scheduling slots?', a: 'Yes! You can now select any future date without being limited to just the current week, giving you complete flexibility in managing your long-term schedule.' },];
 
   const toggleFaq = (index) => {
     setOpenFaq(openFaq === index ? null : index);
@@ -69,25 +111,25 @@ const DietitianHome = () => {
 
   return (
     <main className="flex-1 animate-fade-in ">
-      
+
       {/* ======================================================= */}
       {/* 1. WELCOME SECTION (ENHANCED) */}
       {/* ======================================================= */}
       <section id="welcome-intro" className="bg-green-50 py-25 -mt-5 px-4 sm:px-6 md:px-8  min-h-150 animate-fade-in-up animate-delay-[200ms]">
         <div className="max-w-6xl mx-auto flex flex-col-reverse md:flex-row gap-12 items-center">
-          
+
           {/* Content Block */}
           <div className="md:w-1/2 text-center md:text-left">
             <h1 className="text-4xl sm:text-5xl font-extrabold text-[#1A4A40] mb-4">
               Welcome, <span className="text-[#27AE60]">Dietitian!</span>
             </h1>
             <p className="text-xl font-medium text-gray-700 max-w-2xl mb-4">
-               "Expand Your Reach and Streamline Your Practice."
+              "Expand Your Reach and Streamline Your Practice."
             </p>
             <p className="text-lg text-gray-600 max-w-2xl mb-8">
               NutriConnect provides you with a comprehensive platform to manage your client portfolio, schedule appointments easily, and deliver personalized nutrition plans with advanced tools.
             </p>
-            
+
             {/* Action Buttons */}
             <div className="flex flex-wrap justify-center md:justify-start gap-4">
               <button
@@ -104,13 +146,13 @@ const DietitianHome = () => {
               </button>
             </div>
           </div>
-          
+
           {/* Image Block */}
           <div className="md:w-[65%] flex justify-center">
-            <img 
-              src="/images/dietitian_welcome.jpg" 
-              alt="Dietitian Consultation" 
-              className="img-fluid rounded-xl w-[137.5] transition-transform duration-300 hover:scale-[1.02]" 
+            <img
+              src="/images/dietitian_welcome.jpg"
+              alt="Dietitian Consultation"
+              className="img-fluid rounded-xl w-[137.5] transition-transform duration-300 hover:scale-[1.02]"
             />
           </div>
         </div>
@@ -130,7 +172,7 @@ const DietitianHome = () => {
                 <div className="w-full h-full bg-linear-to-br from-[#27AE60] to-[#1A4A40]  flex flex-col items-center justify-center text-white p-4">
                   <span className="text-xl md:text-2xl font-semibold mb-2">{ad.title}</span>
                   <span className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-center max-w-3xl">{ad.text}</span>
-                  <button 
+                  <button
                     onClick={() => navigate(ad.link)}
                     className="mt-4 bg-white text-[#1A4A40] font-bold py-2 px-6 rounded-full hover:bg-gray-200 transition shadow-md">
                     {ad.cta}
@@ -158,13 +200,13 @@ const DietitianHome = () => {
       {/* ======================================================= */}
       <section id="schedule" className="py-16 px-4 sm:px-6 md:px-8 bg-gray-100 min-h-[137.5] animate-fade-in-up animate-delay-[400ms]">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row gap-8 items-center justify-center min-h-full">
-          
+
           <div className="md:w-1/2 appointment-list-container">
             <h2 className="text-4xl font-bold text-[#1A4A40] mb-4">Today's Schedule</h2>
             <p className="text-gray-600 mb-6 intro-text">
               Stay organized and never miss a client meeting. View your appointments for today.
             </p>
-            
+
             <ul className="list-none p-0 space-y-3" id="appointments-list">
               {todaySchedule.length > 0 ? (
                 todaySchedule.map((appt) => (
@@ -181,9 +223,9 @@ const DietitianHome = () => {
                 </li>
               )}
             </ul>
-            
+
             <div className="button-container text-center md:text-left mt-6">
-              <button 
+              <button
                 onClick={() => navigate('/dietitian/schedule')}
                 className="py-3 px-8 bg-[#1A4A40] text-white font-bold rounded-full shadow-md hover:bg-[#27AE60] transition-colors"
               >
@@ -191,12 +233,12 @@ const DietitianHome = () => {
               </button>
             </div>
           </div>
-          
+
           <div className="md:w-1/2 flex justify-center items-center">
-            <img 
-              src="https://thumbs.dreamstime.com/b/businessman-booking-appointment-via-smartphone-app-concept-illustration-businessman-booking-appointment-via-smartphone-app-212503921.jpg" 
-              alt="Appointments Image" 
-              className="w-full max-w-md rounded-xl shadow-lg transition-transform duration-300 hover:scale-[1.02]" 
+            <img
+              src="https://thumbs.dreamstime.com/b/businessman-booking-appointment-via-smartphone-app-concept-illustration-businessman-booking-appointment-via-smartphone-app-212503921.jpg"
+              alt="Appointments Image"
+              className="w-full max-w-md rounded-xl shadow-lg transition-transform duration-300 hover:scale-[1.02]"
             />
           </div>
 
@@ -209,10 +251,10 @@ const DietitianHome = () => {
       <section id="clients" className="py-32 px-4 sm:px-6 md:px-8 bg-white min-h-[137.5] animate-fade-in-up animate-delay-[500ms]">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row gap-8 items-center justify-center min-h-full">
           <div className="md:w-1/2 flex justify-center">
-            <img 
-              src="https://media.istockphoto.com/id/1330258945/vector/medical-checkup-concept.jpg?s=612x612&w=0&k=20&c=pwPdMqc099YdAldTuUIdHGLpWtwrFiCID-V3MkqNLQI=" 
-              alt="Patients Image" 
-              className="w-full max-w-md rounded-xl shadow-lg transition-transform duration-300 hover:scale-[1.02]" 
+            <img
+              src="https://media.istockphoto.com/id/1330258945/vector/medical-checkup-concept.jpg?s=612x612&w=0&k=20&c=pwPdMqc099YdAldTuUIdHGLpWtwrFiCID-V3MkqNLQI="
+              alt="Patients Image"
+              className="w-full max-w-md rounded-xl shadow-lg transition-transform duration-300 hover:scale-[1.02]"
             />
           </div>
 
@@ -222,7 +264,7 @@ const DietitianHome = () => {
               Stay connected with your clients. View their profiles, chat directly, and schedule video consultations to provide **personalized nutrition guidance** and track their progress efficiently.
             </p>
             <div className="button-container text-center md:text-left">
-              <button 
+              <button
                 onClick={() => navigate('/dietitian/clients-profiles')}
                 className="py-3 px-8 bg-[#27AE60] text-white font-bold rounded-full shadow-md hover:bg-[#1E6F5C] transition-colors"
               >
@@ -239,7 +281,7 @@ const DietitianHome = () => {
       <section id="insights" className="py-16 px-4 sm:px-6 md:px-8 bg-gray-50 min-h-[137.5] animate-fade-in-up animate-delay-[600ms]">
         <div className="max-w-6xl mx-auto text-center flex flex-col justify-center min-h-full">
           <h2 className="text-4xl sm:text-5xl font-bold text-[#1A4A40] mb-12">
-            Share Your Insights with the Community 📝
+            <i className="fas fa-pen mr-2"></i>Share Your Insights with the Community
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {blogPosts.map((post, index) => (
@@ -249,18 +291,18 @@ const DietitianHome = () => {
                 className="bg-white p-4 rounded-2xl shadow-md border-2 border-[#27AE60] hover:shadow-xl transition-all duration-300"
               >
                 {/* Compact Image Height */}
-                <img 
-                  src={post.image} 
-                  alt={post.title} 
-                  className="w-full h-32 object-cover rounded-t-xl mb-2" 
+                <img
+                  src={post.image}
+                  alt={post.title}
+                  className="w-full h-32 object-cover rounded-t-xl mb-2"
                 />
-                
+
                 <h3 className="text-xl sm:text-2xl font-semibold text-[#2F4F4F] mb-2">{post.title}</h3>
                 <p className="text-gray-600 text-sm sm:text-base mb-3 line-clamp-2">{post.excerpt}</p>
-                
+
                 {/* View/Like Button Group (Matches User Home Style) */}
                 <div className="flex justify-center gap-4 mt-2">
-                  <button 
+                  <button
                     onClick={() => navigate(`/dietitian/blog/${post.id}`)}
                     className="flex items-center gap-2 text-[#27AE60] hover:text-[#1A4A40] transition-colors duration-300">
                     <i className="fas fa-eye"></i> View Post
@@ -289,12 +331,12 @@ const DietitianHome = () => {
       {/* ======================================================= */}
       <section id="guide" className="py-16 px-4 sm:px-6 md:px-8 bg-white min-h-[137.5] animate-fade-in-up animate-delay-[700ms]">
         <div className="max-w-6xl mx-auto flex flex-col-reverse md:flex-row gap-12 items-center justify-center min-h-full">
-          
+
           <div className="md:w-1/2 image-container">
-            <img 
-              src="https://media.istockphoto.com/id/1273058761/vector/tiny-people-testing-quality-assurance-in-software.jpg?s=612x612&w=0&k=20&c=DsNlOqfMpPkHlVEavkrz8atzgOxVSRgZPkGHYH-e1-8=" 
-              alt="Dietitian Guide Image" 
-              className="w-full max-w-md rounded-xl shadow-lg border-2 border-gray-200" 
+            <img
+              src="https://media.istockphoto.com/id/1273058761/vector/tiny-people-testing-quality-assurance-in-software.jpg?s=612x612&w=0&k=20&c=DsNlOqfMpPkHlVEavkrz8atzgOxVSRgZPkGHYH-e1-8="
+              alt="Dietitian Guide Image"
+              className="w-full max-w-md rounded-xl shadow-lg border-2 border-gray-200"
             />
           </div>
 
@@ -310,7 +352,7 @@ const DietitianHome = () => {
               <li className="flex items-start gap-2"><i className="fas fa-check-circle mt-1 text-[#4CAF50]"></i> Block and unblock days for personal time or leave management.</li>
               <li className="flex items-start gap-2"><i className="fas fa-check-circle mt-1 text-[#4CAF50]"></i> Reschedule client appointments with ease when needed.</li>
             </ul>
-            <button 
+            <button
               onClick={() => navigate('/guide?role=dietitian')}
               className="py-3 px-8 bg-[#4CAF50] text-white font-bold rounded-full shadow-md hover:bg-[#388e3c] transition-colors"
             >

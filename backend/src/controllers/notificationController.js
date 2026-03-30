@@ -10,15 +10,11 @@ const mongoose = require('mongoose');
  */
 exports.getUserDashboardData = async (req, res) => {
   try {
-    // Use the authenticated user's roleId from the token for security
-    const userIdParam = req.user?.roleId || req.params.userId;
+    // Use the authenticated user's roleId from the JWT token
+    const userId = req.user?.roleId;
     
-    // Convert to ObjectId if it's a valid ObjectId string
-    let userId;
-    try {
-      userId = new mongoose.Types.ObjectId(userIdParam);
-    } catch (e) {
-      userId = userIdParam;
+    if (!userId) {
+      return res.status(400).json({ success: false, message: 'User ID not found in token' });
     }
     
     const now = new Date();
@@ -252,8 +248,7 @@ exports.getUserDashboardData = async (req, res) => {
     console.error('Error fetching user dashboard data:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch dashboard data',
-      error: error.message
+      message: 'Failed to fetch dashboard data'
     });
   }
 };
@@ -264,17 +259,14 @@ exports.getUserDashboardData = async (req, res) => {
  */
 exports.getDietitianDashboardData = async (req, res) => {
   try {
-    // Use the authenticated user's roleId from the token for security
-    const dietitianIdParam = req.user?.roleId || req.params.dietitianId;
-    const now = new Date();
+    // Use the authenticated user's roleId from the JWT token
+    const dietitianId = req.user?.roleId;
     
-    // Convert to ObjectId if it's a valid ObjectId string
-    let dietitianId;
-    try {
-      dietitianId = new mongoose.Types.ObjectId(dietitianIdParam);
-    } catch (e) {
-      dietitianId = dietitianIdParam;
+    if (!dietitianId) {
+      return res.status(400).json({ success: false, message: 'Dietitian ID not found in token' });
     }
+    
+    const now = new Date();
     
     // Fetch upcoming bookings (for notifications)
     const upcomingBookings = await Booking.find({
@@ -441,8 +433,7 @@ exports.getDietitianDashboardData = async (req, res) => {
     console.error('Error fetching dietitian dashboard data:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch dashboard data',
-      error: error.message
+      message: 'Failed to fetch dashboard data'
     });
   }
 };
@@ -453,16 +444,12 @@ exports.getDietitianDashboardData = async (req, res) => {
  */
 exports.getUserAllActivities = async (req, res) => {
   try {
-    // Use the authenticated user's roleId from the token for security
-    const userIdParam = req.user?.roleId || req.params.userId;
+    // Use the authenticated user's roleId from the JWT token
+    const userId = req.user?.roleId;
     const { page = 1, limit = 20 } = req.query;
     
-    // Convert to ObjectId if it's a valid ObjectId string
-    let userId;
-    try {
-      userId = new mongoose.Types.ObjectId(userIdParam);
-    } catch (e) {
-      userId = userIdParam;
+    if (!userId) {
+      return res.status(400).json({ success: false, message: 'User ID not found in token' });
     }
     
     const activities = [];
@@ -548,8 +535,7 @@ exports.getUserAllActivities = async (req, res) => {
     console.error('Error fetching all user activities:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch activities',
-      error: error.message
+      message: 'Failed to fetch activities'
     });
   }
 };
@@ -560,16 +546,12 @@ exports.getUserAllActivities = async (req, res) => {
  */
 exports.getDietitianAllActivities = async (req, res) => {
   try {
-    // Use the authenticated user's roleId from the token for security
-    const dietitianIdParam = req.user?.roleId || req.params.dietitianId;
+    // Use the authenticated user's roleId from the JWT token
+    const dietitianId = req.user?.roleId;
     const { page = 1, limit = 20 } = req.query;
     
-    // Convert to ObjectId if it's a valid ObjectId string
-    let dietitianId;
-    try {
-      dietitianId = new mongoose.Types.ObjectId(dietitianIdParam);
-    } catch (e) {
-      dietitianId = dietitianIdParam;
+    if (!dietitianId) {
+      return res.status(400).json({ success: false, message: 'Dietitian ID not found in token' });
     }
     
     const activities = [];
@@ -634,8 +616,7 @@ exports.getDietitianAllActivities = async (req, res) => {
     console.error('Error fetching all dietitian activities:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch activities',
-      error: error.message
+      message: 'Failed to fetch activities'
     });
   }
 };

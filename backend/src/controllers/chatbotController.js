@@ -93,8 +93,7 @@ exports.sendMessage = async (req, res) => {
         console.error('Chatbot error:', error);
         return res.status(500).json({ 
             success: false, 
-            message: 'Sorry, I encountered an error. Please try again.',
-            error: error.message 
+            message: 'Sorry, I encountered an error. Please try again.' 
         });
     }
 };
@@ -120,6 +119,60 @@ exports.getTopFAQs = async (req, res) => {
         return res.status(500).json({ 
             success: false, 
             message: 'Error fetching FAQs' 
+        });
+    }
+};
+
+/**
+ * Handle quick question click - guarantees FAQ matching and clickCount increment
+ * This endpoint ensures quick questions from UI buttons always increment their count
+ */
+exports.quickQuestionClick = async (req, res) => {
+    try {
+        const { question, sessionId, userId } = req.body;
+
+        if (!question) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Question is required' 
+            });
+        }
+
+        // Find exact FAQ match for quick question
+        const faq = await FAQ.findOne({ 
+            question: new RegExp(`^${question.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i'),
+            isActive: true 
+        });
+
+        if (faq) {
+            // Guarantee increment of clickCount for quick question clicks
+            await FAQ.updateOne({ _id: faq._id }, { $inc: { clickCount: 1 } });
+            
+            // Save to chat history
+            if (sessionId) {
+                await saveChatHistory(sessionId, userId, question, faq.answer, 'faq');
+            }
+            
+            console.log('✅ Quick Question Matched:', question, '- Updated clickCount');
+            
+            return res.json({
+                success: true,
+                message: faq.answer,
+                source: 'faq',
+                isQuickQuestion: true
+            });
+        } else {
+            // Fallback to regular FAQ check if exact match fails
+            return res.status(404).json({ 
+                success: false, 
+                message: 'FAQ not found' 
+            });
+        }
+    } catch (error) {
+        console.error('Error handling quick question click:', error);
+        return res.status(500).json({ 
+            success: false, 
+            message: 'Error processing quick question' 
         });
     }
 };
@@ -173,25 +226,38 @@ async function checkHardcodedResponses(message) {
 }
 
 /**
- * Check FAQs using text search
+ * Check FAQs using text search with improved matching logic
  */
 async function checkFAQs(message) {
     try {
         // Split message into words
         const words = message.toLowerCase().split(/\s+/);
         
-        // First, try to find exact or very close match to FAQ question itself
+        // First, try to find exact match to FAQ question itself
         const exactMatch = await FAQ.findOne({
-            question: { $regex: new RegExp(`^${message.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'i') },
+            question: { $regex: new RegExp(`^${message.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
             isActive: true
         });
         
         if (exactMatch) {
+            console.log('✅ Exact FAQ Match Found:', exactMatch.question);
             await FAQ.updateOne({ _id: exactMatch._id }, { $inc: { clickCount: 1 } });
             return exactMatch;
         }
 
-        // Try text search for FAQ matching
+        // Try keyword-based matching first (more reliable for quick questions)
+        const keywordMatch = await FAQ.findOne({
+            keywords: { $in: words.map(w => new RegExp(w, 'i')) },
+            isActive: true
+        });
+        
+        if (keywordMatch) {
+            console.log('🔑 FAQ Keyword Match Found:', keywordMatch.question);
+            await FAQ.updateOne({ _id: keywordMatch._id }, { $inc: { clickCount: 1 } });
+            return keywordMatch;
+        }
+
+        // Try text search for FAQ matching (fallback)
         if (message.length > 5) {
             const faqs = await FAQ.find(
                 { $text: { $search: message }, isActive: true },
@@ -201,7 +267,7 @@ async function checkFAQs(message) {
             .limit(1);
 
             if (faqs.length > 0) {
-                console.log('📊 FAQ text search score:', faqs[0].score, '- Question:', faqs[0].question);
+                console.log('📊 FAQ Text Search Score:', faqs[0].score, '| Question:', faqs[0].question);
                 
                 // Use different thresholds based on message length
                 const wordCount = words.length;
@@ -209,26 +275,33 @@ async function checkFAQs(message) {
                 
                 // Short questions (< 8 words) - lower threshold for FAQ matching
                 if (wordCount < 8) {
-                    threshold = 1.2;
+                    threshold = 1.0; // Lowered for better quick question matching
+                }
+                // Standard questions (8-15 words)
+                else if (wordCount <= 15) {
+                    threshold = 1.3;
                 }
                 // Long questions (> 15 words) - higher threshold, likely needs Gemini
-                else if (wordCount > 15) {
-                    threshold = 3.0;
+                else {
+                    threshold = 2.5; // Slightly lowered from 3.0 for better matching
                 }
                 
-                console.log('� Word count:', wordCount, '- Threshold:', threshold);
+                console.log('⚖️  Word Count:', wordCount, '| Threshold:', threshold);
                 
                 if (faqs[0].score >= threshold) {
                     const faq = faqs[0];
+                    console.log('✅ FAQ Text Match Succeeded');
                     await FAQ.updateOne({ _id: faq._id }, { $inc: { clickCount: 1 } });
                     return faq;
+                } else {
+                    console.log('❌ FAQ Text Match Failed - Score too low');
                 }
             }
         }
 
         return null;
     } catch (error) {
-        console.error('Error checking FAQs:', error);
+        console.error('❌ Error checking FAQs:', error);
         return null;
     }
 }

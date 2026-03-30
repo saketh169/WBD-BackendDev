@@ -10,8 +10,8 @@ function MessageList({messages, onRetry}) {
 
     <div className= "flex flex-col space-y-2 " role = "log" aria-live = "polite">
       {messages.map((msg, index) => (
-        <div key = {index}>
-          <MessageBubble key={index} message={msg} />
+        <div key = {msg._id || msg.id || `msg-${index}`}>
+          <MessageBubble message={msg} />
           {/* Show retry button for error messages */}
           {msg.isError && msg.failedMessage && (
             <div className="flex justify-start mt-2">

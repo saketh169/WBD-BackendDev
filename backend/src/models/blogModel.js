@@ -13,7 +13,7 @@ const CommentSchema = new Schema({
     },
     userRole: {
         type: String,
-        enum: ['user', 'dietitian', 'admin', 'organization'],
+        enum: ['user', 'dietitian', 'admin', 'organization', 'employee'],
         required: true
     },
     content: {

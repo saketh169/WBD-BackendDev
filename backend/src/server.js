@@ -1,9 +1,11 @@
-// Load environment variables FIRST (before any other imports that may use process.env)
+// Load environment variables first (before any other imports that may use process.env)
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 
 const express = require('express');
 const cors = require('cors');
-const connectDB = require('./utils/db'); 
+const swaggerUi = require('swagger-ui-express');
+const swaggerJsdoc = require('swagger-jsdoc');
+const connectDB = require('./utils/db');
 const authRoutes = require('./routes/authRoutes');
 const profileRoutes = require('./routes/profileRoutes');
 const chatbotRoutes = require('./routes/chatbotRoutes');
@@ -29,15 +31,23 @@ const activityLogRoutes = require('./routes/activityLogRoutes');
 
 // Middleware imports
 const { helmetMiddleware, rateLimiter, sanitizeInput } = require('./middlewares/securityMiddleware');
-const { requestLogger, errorLogger } = require('./middlewares/loggerMiddleware');
+const { requestLogger } = require('./middlewares/loggerMiddleware');
 const { errorHandler, notFoundHandler } = require('./middlewares/errorMiddleware');
+const compression = require('compression');
 
 const app = express();
+// Enable response compression 
+app.use(compression());
 const PORT = process.env.PORT || 5000;
+
+// Allowed frontend origins (configure via env for production)
+const ALLOWED_ORIGINS = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(',')
+  : ['http://localhost:5173', 'http://localhost:3000'];
 
 // --- Middlewares ---
 // Connect to the database
-connectDB(); 
+connectDB();
 
 // Security middlewares
 app.use(helmetMiddleware);
@@ -46,15 +56,107 @@ app.use(rateLimiter);
 // Request logger
 app.use(requestLogger);
 
-// Enable CORS
-app.use(cors());
+// Enable CORS with specific origins
+app.use(cors({
+  origin: ALLOWED_ORIGINS,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+}));
 
 // Parse incoming JSON requests with increased limits for image uploads
-app.use(express.json({ limit: '10mb' })); 
-app.use(express.urlencoded({ limit: '10mb', extended: true })); 
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 // Sanitize input for XSS protection
 app.use(sanitizeInput);
+
+// --- SWAGGER DOCUMENTATION ---
+const swaggerOptions = {
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'NutriConnect API',
+      version: '1.0.0',
+      description: 'Complete API documentation for NutriConnect - A comprehensive nutrition and diet management platform',
+      contact: {
+        name: 'NutriConnect Support',
+        email: 'support@nutriconnect.com'
+      }
+    },
+    servers: [
+      {
+        url: 'http://localhost:5000',
+        description: 'Development Server'
+      },
+      {
+        url: process.env.PRODUCTION_URL || 'https://api.nutriconnect.com',
+        description: 'Production Server'
+      }
+    ],
+    components: {
+      securitySchemes: {
+        BearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+          description: 'JWT Authorization header using the Bearer scheme'
+        }
+      }
+    },
+    tags: [
+      { name: 'Auth', description: 'Authentication and user registration' },
+      { name: 'Profile', description: 'User profile management' },
+      { name: 'Bookings', description: 'Consultation bookings' },
+      { name: 'Payments', description: 'Payment processing' },
+      { name: 'Chatbot', description: 'Chatbot interaction' },
+      { name: 'Blog', description: 'Blog management' },
+      { name: 'Meal Plans', description: 'Meal plan operations' },
+      { name: 'Health Reports', description: 'Health report management' },
+      { name: 'Lab Reports', description: 'Lab report management' },
+      { name: 'Progress', description: 'User progress tracking' },
+      { name: 'Analytics', description: 'Platform analytics' },
+      { name: 'Settings', description: 'Platform settings' },
+      { name: 'Notifications', description: 'Notification management' },
+      { name: 'Employee', description: 'Employee management' },
+      { name: 'TeamBoard', description: 'Team board operations' },
+      { name: 'ActivityLog', description: 'Activity logging' },
+      { name: 'Chat', description: 'Real-time messaging' },
+      { name: 'ContactUs', description: 'Contact us' },
+      { name: 'Status', description: 'Status checks' },
+      { name: 'Verify', description: 'Verification operations' },
+      { name: 'Crud', description: 'General CRUD operations' },
+      { name: 'Dietitian', description: 'Dietitian management' }
+    ]
+  },
+  apis: [
+    './src/routes/authRoutes.js',
+    './src/routes/profileRoutes.js',
+    './src/routes/bookingRoutes.js',
+    './src/routes/paymentRoutes.js',
+    './src/routes/chatbotRoutes.js',
+    './src/routes/blogRoutes.js',
+    './src/routes/mealPlanRoutes.js',
+    './src/routes/healthReportRoutes.js',
+    './src/routes/labReportRoutes.js',
+    './src/routes/progressRoutes.js',
+    './src/routes/analyticsRoutes.js',
+    './src/routes/settingsRoutes.js',
+    './src/routes/notificationRoutes.js',
+    './src/routes/employeeRoutes.js',
+    './src/routes/teamBoardRoutes.js',
+    './src/routes/activityLogRoutes.js',
+    './src/routes/chatRoutes.js',
+    './src/routes/contactusRoutes.js',
+    './src/routes/statusRoutes.js',
+    './src/routes/verifyRoutes.js',
+    './src/routes/crudRoutes.js',
+    './src/routes/dietitianRoutes.js'
+  ]
+};
+
+const swaggerDocs = swaggerJsdoc(swaggerOptions);
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
 // Serve static files from uploads directory
 app.use('/uploads', express.static('uploads'));
@@ -128,7 +230,7 @@ app.use('/api/teamboard', teamBoardRoutes);
 
 // Health check endpoint for frontend error handling
 app.get('/api/health', (req, res) => {
-  res.status(200).json({ 
+  res.status(200).json({
     status: 'ok',
     message: 'Server is healthy',
     timestamp: new Date().toISOString()
@@ -143,14 +245,23 @@ app.get('/', (req, res) => {
 // 404 handler (must be after all routes)
 app.use(notFoundHandler);
 
-// Error logger
-app.use(errorLogger);
+// Error handler (must be last)
+app.use(errorHandler);
 
 // Global error handler (must be last)
 app.use(errorHandler);
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
- 
+// Initialize Cron Jobs
+require('./utils/cronJobs').startCronJobs();
+
+
+
+// Start Server
+const server = app.listen(PORT, () => {
+  console.log(`Server running at http://localhost:${PORT}`);
+  console.log(`Swagger docs at http://localhost:${PORT}/api-docs`);
 });
+
+
+// Initialize Socket.io
+require('./utils/socket').init(server, ALLOWED_ORIGINS);

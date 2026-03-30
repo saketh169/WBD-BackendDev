@@ -175,10 +175,8 @@ const Signin = () => {
                 if (data.orgType) userUpdate.orgType = data.orgType;
                 if (data.name)    userUpdate.name  = data.name;
                 if (data.email)   userUpdate.email = data.email;
+                if (data.roleId) userUpdate.id = data.roleId;
                 localStorage.setItem(`authUser_${storageRole}`, JSON.stringify(userUpdate));
-                if (data.roleId) {
-                    localStorage.setItem('userId', data.roleId);
-                }
 
                 setMessage(`Sign-in successful! Redirecting...`);
 
@@ -235,10 +233,8 @@ const Signin = () => {
                 if (data.orgType) userUpdate.orgType = data.orgType;
                 if (data.name)    userUpdate.name  = data.name;
                 if (data.email)   userUpdate.email = data.email;
+                if (data.roleId) userUpdate.id = data.roleId;
                 localStorage.setItem(`authUser_${storageRole}`, JSON.stringify(userUpdate));
-                if (data.roleId) {
-                    localStorage.setItem('userId', data.roleId);
-                }
 
                 setMessage('Sign-in successful! Redirecting...');
 

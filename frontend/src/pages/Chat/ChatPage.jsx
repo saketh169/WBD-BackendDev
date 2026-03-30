@@ -2,25 +2,25 @@ import React, { useState, useEffect, useRef, useContext, useCallback } from 'rea
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import AuthContext from '../../contexts/AuthContext';
 import axios from 'axios';
+import { io } from 'socket.io-client';
 
 const ChatPage = () => {
   const { conversationId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const { user, token, role } = useContext(AuthContext);
-  
+
   // Debug log
   useEffect(() => {
-    console.log('Conversation ID from URL:', conversationId);
   }, [conversationId]);
-  
+
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [editingMessageId, setEditingMessageId] = useState(null);
   const [editContent, setEditContent] = useState('');
-  
+
   // Video link modal state
   const [showVideoModal, setShowVideoModal] = useState(false);
   const [videoLinkData, setVideoLinkData] = useState({
@@ -28,27 +28,27 @@ const ChatPage = () => {
     scheduledDate: '',
     scheduledTime: ''
   });
-  
+
   // Dropdown state for reports
   const [showReportsDropdown, setShowReportsDropdown] = useState(false);
   const reportsDropdownRef = useRef(null);
-  
+
   const pollingIntervalRef = useRef(null);
-  
+
   // Get other participant info from location state
   const otherParticipant = location.state?.otherParticipant;
   const bookingInfo = location.state?.bookingInfo;
   // Determine user type from role context or user object
   const userType = role === 'dietitian' || user?.role === 'dietitian' ? 'dietitian' : 'client';
   const otherUserType = userType === 'dietitian' ? 'client' : 'dietitian';
-  
+
   // Auto-fill video link date/time when modal opens
   useEffect(() => {
     if (showVideoModal && bookingInfo?.date && bookingInfo?.time) {
       // Convert date format if needed (e.g., "2024-11-20" format)
       const dateStr = bookingInfo.date.split('T')[0]; // Extract YYYY-MM-DD
       const timeStr = bookingInfo.time.includes(':') ? bookingInfo.time : '10:00';
-      
+
       setVideoLinkData({
         url: '',
         scheduledDate: dateStr,
@@ -90,12 +90,12 @@ const ChatPage = () => {
       console.error('Invalid conversation ID:', conversationId);
       return;
     }
-    
+
     try {
       const response = await axios.get(`/api/chat/messages/${conversationId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       if (response.data.success) {
         setMessages(response.data.data);
       }
@@ -114,7 +114,7 @@ const ChatPage = () => {
 
       try {
         await fetchMessages();
-        
+
         // If conversation info not in state, we can derive it from messages
         setTimeout(scrollToTop, 100);
         window.scrollTo(0, 0); // Scroll to top of page
@@ -127,25 +127,42 @@ const ChatPage = () => {
 
     initChat();
 
-    // Set up polling for new messages (every 3 seconds, seamless)
-    pollingIntervalRef.current = setInterval(() => {
-      fetchMessages(false);
-    }, 3000);
+    // Set up Socket.io for real-time messages instead of polling
+    const socket = io(import.meta.env.VITE_API_URL || 'http://localhost:5000', {
+      withCredentials: true,
+    });
 
-    // Cleanup polling on unmount
+    socket.on('connect', () => {
+      socket.emit('join_conversation', conversationId);
+    });
+
+    socket.on('new_message', (newMsg) => {
+      setMessages(prev => {
+        // Prevent duplicate appending if we sent it
+        if (!prev.find(m => m._id === newMsg._id)) {
+          setTimeout(() => {
+            if (messagesContainerRef.current) {
+              messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+            }
+          }, 100);
+          return [...prev, newMsg];
+        }
+        return prev;
+      });
+    });
+
+    // Cleanup on unmount
     return () => {
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-      }
+      socket.disconnect();
     };
   }, [conversationId, token, user, fetchMessages]);
 
   // Send message
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    
+
     if (!newMessage.trim() || sending || !user?.id) return;
-    
+
     if (!conversationId || conversationId.length !== 24) {
       alert('Invalid conversation. Please restart the chat.');
       return;
@@ -153,7 +170,7 @@ const ChatPage = () => {
 
     setSending(true);
     try {
-      const userId = user.id || user._id;
+      const userId = user.id;
       const response = await axios.post('/api/chat/message', {
         conversationId,
         senderId: userId,
@@ -182,7 +199,7 @@ const ChatPage = () => {
     if (!editContent.trim()) return;
 
     try {
-      const userId = user.id || user._id;
+      const userId = user.id;
       const response = await axios.put(`/api/chat/message/${messageId}`, {
         content: editContent.trim(),
         userId: userId
@@ -191,7 +208,7 @@ const ChatPage = () => {
       });
 
       if (response.data.success) {
-        setMessages(messages.map(msg => 
+        setMessages(messages.map(msg =>
           msg._id === messageId ? response.data.data : msg
         ));
         setEditingMessageId(null);
@@ -208,7 +225,7 @@ const ChatPage = () => {
     if (!confirm('Are you sure you want to delete this message?')) return;
 
     try {
-      const userId = user.id || user._id;
+      const userId = user.id;
       const response = await axios.delete(`/api/chat/message/${messageId}`, {
         data: { userId: userId },
         headers: { Authorization: `Bearer ${token}` }
@@ -229,16 +246,16 @@ const ChatPage = () => {
       alert('Please fill in all fields');
       return;
     }
-    
+
     if (!conversationId || conversationId.length !== 24) {
       alert('Invalid conversation. Please restart the chat.');
       return;
     }
 
     try {
-      const userId = user.id || user._id;
+      const userId = user.id;
       const content = `Video Consultation Link\nDate: ${videoLinkData.scheduledDate}\nTime: ${videoLinkData.scheduledTime}`;
-      
+
       const response = await axios.post('/api/chat/message', {
         conversationId,
         senderId: userId,
@@ -299,61 +316,109 @@ const ChatPage = () => {
   return (
     <div className="min-h-screen bg-linear-to-br from-slate-50 via-emerald-50/30 to-teal-50/30">
       <div className="w-full max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col mx-auto" style={{ height: '580px' }}>
-      {/* Chat Header */}
-      <div className="bg-linear-to-r from-emerald-600 via-teal-600 to-cyan-600 shadow-md">
-        <div className="px-6">
-          <div className="flex items-center justify-between h-20">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => navigate(-1)}
-                className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-              >
-                <i className="fas fa-arrow-left text-white"></i>
-              </button>
-              
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white font-bold text-lg shadow-lg">
-                  {otherParticipant?.name?.charAt(0) || '?'}
-                </div>
-                <div>
-                  <h2 className="text-lg font-semibold text-white">
-                    {otherParticipant?.name || 'Chat'}
-                  </h2>
-                  <p className="text-sm text-emerald-50">
-                    {otherUserType === 'dietitian' ? 'Dietitian' : 'Client'}
-                  </p>
+        {/* Chat Header */}
+        <div className="bg-linear-to-r from-emerald-600 via-teal-600 to-cyan-600 shadow-md">
+          <div className="px-6">
+            <div className="flex items-center justify-between h-20">
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => navigate(-1)}
+                  className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                >
+                  <i className="fas fa-arrow-left text-white"></i>
+                </button>
+
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                    {otherParticipant?.name?.charAt(0) || '?'}
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-white">
+                      {otherParticipant?.name || 'Chat'}
+                    </h2>
+                    <p className="text-sm text-emerald-50">
+                      {otherUserType === 'dietitian' ? 'Dietitian' : 'Client'}
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Action buttons */}
-            <div className="flex items-center gap-2">
-              {userType === 'dietitian' && (
-                <button
-                  onClick={() => setShowVideoModal(true)}
-                  className="px-4 py-2 bg-linear-to-r from-emerald-600 to-teal-600 text-white rounded-lg hover:from-emerald-700 hover:to-teal-700 transition-all flex items-center gap-2"
-                >
-                  <i className="fas fa-video"></i>
-                  <span className="hidden sm:inline">Video Link</span>
-                </button>
-              )}
-              
-              {userType === 'client' && (
-                <>
+              {/* Action buttons */}
+              <div className="flex items-center gap-2">
+                {userType === 'dietitian' && (
                   <button
-                    onClick={() => navigate(`/user/submit-lab-report/${otherParticipant?._id || otherParticipant?.id}`)}
+                    onClick={() => setShowVideoModal(true)}
                     className="px-4 py-2 bg-linear-to-r from-emerald-600 to-teal-600 text-white rounded-lg hover:from-emerald-700 hover:to-teal-700 transition-all flex items-center gap-2"
                   >
-                    <i className="fas fa-file-upload"></i>
-                    <span className="hidden sm:inline">Upload Report</span>
+                    <i className="fas fa-video"></i>
+                    <span className="hidden sm:inline">Video Link</span>
                   </button>
-                  <div className="relative" ref={userType === 'client' ? reportsDropdownRef : undefined}>
+                )}
+
+                {userType === 'client' && (
+                  <>
                     <button
-                      onClick={() => setShowReportsDropdown(!showReportsDropdown)}
+                      onClick={() => navigate(`/user/submit-lab-report/${otherParticipant?._id || otherParticipant?.id}`)}
                       className="px-4 py-2 bg-linear-to-r from-emerald-600 to-teal-600 text-white rounded-lg hover:from-emerald-700 hover:to-teal-700 transition-all flex items-center gap-2"
                     >
+                      <i className="fas fa-file-upload"></i>
+                      <span className="hidden sm:inline">Upload Report</span>
+                    </button>
+                    <div className="relative" ref={userType === 'client' ? reportsDropdownRef : undefined}>
+                      <button
+                        onClick={() => setShowReportsDropdown(!showReportsDropdown)}
+                        className="px-4 py-2 bg-linear-to-r from-emerald-600 to-teal-600 text-white rounded-lg hover:from-emerald-700 hover:to-teal-700 transition-all flex items-center gap-2"
+                      >
+                        <i className="fas fa-file-medical"></i>
+                        <span className="hidden sm:inline">My Reports</span>
+                        <i className={`fas fa-chevron-${showReportsDropdown ? 'up' : 'down'} text-xs ml-1`}></i>
+                      </button>
+                      {showReportsDropdown && (
+                        <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-2xl border border-emerald-200 overflow-hidden z-50">
+                          <button
+                            onClick={() => {
+                              setShowReportsDropdown(false);
+                              navigate(`/user/lab-reports/${otherParticipant?._id || otherParticipant?.id}`);
+                            }}
+                            className="w-full px-4 py-3 text-left hover:bg-emerald-50 transition flex items-center gap-3 border-b border-gray-100"
+                          >
+                            <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center">
+                              <i className="fas fa-flask text-emerald-600 text-sm"></i>
+                            </div>
+                            <div>
+                              <div className="font-semibold text-gray-800 text-sm">Lab Reports</div>
+                              <div className="text-xs text-gray-500">Your submitted lab reports</div>
+                            </div>
+                          </button>
+                          <button
+                            onClick={() => {
+                              setShowReportsDropdown(false);
+                              navigate(`/user/health-reports/${otherParticipant?._id || otherParticipant?.id}`);
+                            }}
+                            className="w-full px-4 py-3 text-left hover:bg-emerald-50 transition flex items-center gap-3"
+                          >
+                            <div className="w-8 h-8 bg-teal-100 rounded-lg flex items-center justify-center">
+                              <i className="fas fa-notes-medical text-teal-600 text-sm"></i>
+                            </div>
+                            <div>
+                              <div className="font-semibold text-gray-800 text-sm">Health Assessment</div>
+                              <div className="text-xs text-gray-500">Reports from your dietitian</div>
+                            </div>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {userType === 'dietitian' && (
+                  <div className="relative" ref={userType === 'dietitian' ? reportsDropdownRef : undefined}>
+                    <button
+                      onClick={() => setShowReportsDropdown(!showReportsDropdown)}
+                      className="px-4 py-2 bg-linear-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all flex items-center gap-2"
+                    >
                       <i className="fas fa-file-medical"></i>
-                      <span className="hidden sm:inline">My Reports</span>
+                      <span className="hidden sm:inline">Client Reports</span>
                       <i className={`fas fa-chevron-${showReportsDropdown ? 'up' : 'down'} text-xs ml-1`}></i>
                     </button>
                     {showReportsDropdown && (
@@ -361,7 +426,7 @@ const ChatPage = () => {
                         <button
                           onClick={() => {
                             setShowReportsDropdown(false);
-                            navigate(`/user/lab-reports/${otherParticipant?._id || otherParticipant?.id}`);
+                            navigate(`/dietitian/lab-reports/${otherParticipant?._id || otherParticipant?.id}`, { state: { clientInfo: otherParticipant } });
                           }}
                           className="w-full px-4 py-3 text-left hover:bg-emerald-50 transition flex items-center gap-3 border-b border-gray-100"
                         >
@@ -370,13 +435,13 @@ const ChatPage = () => {
                           </div>
                           <div>
                             <div className="font-semibold text-gray-800 text-sm">Lab Reports</div>
-                            <div className="text-xs text-gray-500">Your submitted lab reports</div>
+                            <div className="text-xs text-gray-500">View client's lab reports</div>
                           </div>
                         </button>
                         <button
                           onClick={() => {
                             setShowReportsDropdown(false);
-                            navigate(`/user/health-reports/${otherParticipant?._id || otherParticipant?.id}`);
+                            navigate(`/dietitian/health-reports/${otherParticipant?._id || otherParticipant?.id}`, { state: { clientInfo: otherParticipant } });
                           }}
                           className="w-full px-4 py-3 text-left hover:bg-emerald-50 transition flex items-center gap-3"
                         >
@@ -385,98 +450,49 @@ const ChatPage = () => {
                           </div>
                           <div>
                             <div className="font-semibold text-gray-800 text-sm">Health Assessment</div>
-                            <div className="text-xs text-gray-500">Reports from your dietitian</div>
+                            <div className="text-xs text-gray-500">Send health report to client</div>
                           </div>
                         </button>
                       </div>
                     )}
                   </div>
-                </>
-              )}
-              
-              {userType === 'dietitian' && (
-                <div className="relative" ref={userType === 'dietitian' ? reportsDropdownRef : undefined}>
-                  <button
-                    onClick={() => setShowReportsDropdown(!showReportsDropdown)}
-                    className="px-4 py-2 bg-linear-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all flex items-center gap-2"
-                  >
-                    <i className="fas fa-file-medical"></i>
-                    <span className="hidden sm:inline">Client Reports</span>
-                    <i className={`fas fa-chevron-${showReportsDropdown ? 'up' : 'down'} text-xs ml-1`}></i>
-                  </button>
-                  {showReportsDropdown && (
-                    <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-2xl border border-emerald-200 overflow-hidden z-50">
-                      <button
-                        onClick={() => {
-                          setShowReportsDropdown(false);
-                          navigate(`/dietitian/lab-reports/${otherParticipant?._id || otherParticipant?.id}`, { state: { clientInfo: otherParticipant } });
-                        }}
-                        className="w-full px-4 py-3 text-left hover:bg-emerald-50 transition flex items-center gap-3 border-b border-gray-100"
-                      >
-                        <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center">
-                          <i className="fas fa-flask text-emerald-600 text-sm"></i>
-                        </div>
-                        <div>
-                          <div className="font-semibold text-gray-800 text-sm">Lab Reports</div>
-                          <div className="text-xs text-gray-500">View client's lab reports</div>
-                        </div>
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowReportsDropdown(false);
-                          navigate(`/dietitian/health-reports/${otherParticipant?._id || otherParticipant?.id}`, { state: { clientInfo: otherParticipant } });
-                        }}
-                        className="w-full px-4 py-3 text-left hover:bg-emerald-50 transition flex items-center gap-3"
-                      >
-                        <div className="w-8 h-8 bg-teal-100 rounded-lg flex items-center justify-center">
-                          <i className="fas fa-notes-medical text-teal-600 text-sm"></i>
-                        </div>
-                        <div>
-                          <div className="font-semibold text-gray-800 text-sm">Health Assessment</div>
-                          <div className="text-xs text-gray-500">Send health report to client</div>
-                        </div>
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Messages List */}
-          <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50">
-            {messages.length === 0 ? (
-              <div className="text-center py-12">
-                <i className="fas fa-comments text-6xl text-gray-300 mb-4"></i>
-                <p className="text-gray-500">No messages yet. Start the conversation!</p>
-              </div>
-            ) : (
-              messages.map((message, index) => {
-                const userId = user.id || user._id;
-                const isOwnMessage = message.senderId === userId || message.senderId.toString() === userId?.toString();
-                const showDate = index === 0 || formatDate(messages[index - 1].createdAt) !== formatDate(message.createdAt);
-                
-                return (
-                  <React.Fragment key={message._id}>
-                    {showDate && (
-                      <div className="text-center my-4">
-                        <span className="px-4 py-1 bg-gray-200 text-gray-600 text-sm rounded-full">
-                          {formatDate(message.createdAt)}
-                        </span>
-                      </div>
-                    )}
-                    
-                    <div className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`flex items-start gap-2 group ${isOwnMessage ? 'flex-row-reverse' : 'flex-row'}`}>
+        {/* Messages List */}
+        <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50">
+          {messages.length === 0 ? (
+            <div className="text-center py-12">
+              <i className="fas fa-comments text-6xl text-gray-300 mb-4"></i>
+              <p className="text-gray-500">No messages yet. Start the conversation!</p>
+            </div>
+          ) : (
+            messages.map((message, index) => {
+              const userId = user.id;
+              const isOwnMessage = message.senderId === userId || message.senderId.toString() === userId?.toString();
+              const showDate = index === 0 || formatDate(messages[index - 1].createdAt) !== formatDate(message.createdAt);
+
+              return (
+                <React.Fragment key={message._id}>
+                  {showDate && (
+                    <div className="text-center my-4">
+                      <span className="px-4 py-1 bg-gray-200 text-gray-600 text-sm rounded-full">
+                        {formatDate(message.createdAt)}
+                      </span>
+                    </div>
+                  )}
+
+                  <div className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`flex items-start gap-2 group ${isOwnMessage ? 'flex-row-reverse' : 'flex-row'}`}>
                       <div className={`max-w-md lg:max-w-lg`}>
                         {message.messageType === 'video-link' ? (
-                          <div className={`p-4 rounded-2xl shadow-md ${
-                            isOwnMessage 
-                              ? 'bg-linear-to-r from-emerald-500 to-teal-500 text-white' 
-                              : 'bg-emerald-50 border border-emerald-200'
-                          }`}>
+                          <div className={`p-4 rounded-2xl shadow-md ${isOwnMessage
+                            ? 'bg-linear-to-r from-emerald-500 to-teal-500 text-white'
+                            : 'bg-emerald-50 border border-emerald-200'
+                            }`}>
                             <div className="flex items-center gap-2 mb-2">
                               <i className="fas fa-video"></i>
                               <span className="font-semibold">Video Consultation</span>
@@ -491,21 +507,19 @@ const ChatPage = () => {
                               href={message.videoLink?.url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className={`inline-block px-4 py-2 rounded-lg font-medium ${
-                                isOwnMessage 
-                                  ? 'bg-white text-emerald-600 hover:bg-gray-100' 
-                                  : 'bg-emerald-600 text-white hover:bg-emerald-700'
-                              }`}
+                              className={`inline-block px-4 py-2 rounded-lg font-medium ${isOwnMessage
+                                ? 'bg-white text-emerald-600 hover:bg-gray-100'
+                                : 'bg-emerald-600 text-white hover:bg-emerald-700'
+                                }`}
                             >
                               Join Meeting
                             </a>
                           </div>
                         ) : (
-                          <div className={`relative group ${
-                            isOwnMessage 
-                              ? 'bg-linear-to-r from-emerald-500 to-teal-500 text-white' 
-                              : 'bg-gray-100 text-gray-900'
-                          } px-4 py-3 rounded-2xl shadow-sm`}>
+                          <div className={`relative group ${isOwnMessage
+                            ? 'bg-linear-to-r from-emerald-500 to-teal-500 text-white'
+                            : 'bg-gray-100 text-gray-900'
+                            } px-4 py-3 rounded-2xl shadow-sm`}>
                             {editingMessageId === message._id ? (
                               <div className="space-y-2">
                                 <input
@@ -539,7 +553,7 @@ const ChatPage = () => {
                                 {message.isEdited && (
                                   <span className="text-xs opacity-75 italic ml-2">(edited)</span>
                                 )}
-                                
+
                                 {isOwnMessage && (
                                   <div className="opacity-0 group-hover:opacity-100 transition-opacity ml-2 flex gap-1">
                                     <button
@@ -565,40 +579,40 @@ const ChatPage = () => {
                             )}
                           </div>
                         )}
-                        
+
                         <div className={`text-xs text-gray-500 mt-1 ${isOwnMessage ? 'text-right' : 'text-left'}`}>
                           {formatTime(message.createdAt)}
                         </div>
                       </div>
-                      </div>
                     </div>
-                  </React.Fragment>
-                );
-              })
-            )}
-          </div>
+                  </div>
+                </React.Fragment>
+              );
+            })
+          )}
+        </div>
 
-          {/* Message Input */}
-          <div className="border-t border-gray-200 p-4 bg-white">
-            <form onSubmit={handleSendMessage} className="flex gap-3">
-              <input
-                type="text"
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                placeholder="Type your message..."
-                className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                disabled={sending}
-              />
-              <button
-                type="submit"
-                disabled={!newMessage.trim() || sending}
-                className="px-6 py-3 bg-linear-to-r from-emerald-600 to-teal-600 text-white rounded-xl hover:from-emerald-700 hover:to-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 font-semibold"
-              >
-                <i className="fas fa-paper-plane"></i>
-                <span className="hidden sm:inline">Send</span>
-              </button>
-            </form>
-          </div>
+        {/* Message Input */}
+        <div className="border-t border-gray-200 p-4 bg-white">
+          <form onSubmit={handleSendMessage} className="flex gap-3">
+            <input
+              type="text"
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              placeholder="Type your message..."
+              className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              disabled={sending}
+            />
+            <button
+              type="submit"
+              disabled={!newMessage.trim() || sending}
+              className="px-6 py-3 bg-linear-to-r from-emerald-600 to-teal-600 text-white rounded-xl hover:from-emerald-700 hover:to-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 font-semibold"
+            >
+              <i className="fas fa-paper-plane"></i>
+              <span className="hidden sm:inline">Send</span>
+            </button>
+          </form>
+        </div>
       </div>
 
       {/* Video Link Modal */}
@@ -614,7 +628,7 @@ const ChatPage = () => {
                 <i className="fas fa-times"></i>
               </button>
             </div>
-            
+
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -628,7 +642,7 @@ const ChatPage = () => {
                   className="w-full px-4 py-3 bg-gray-50/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 focus:bg-white transition-all"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Scheduled Date
@@ -640,7 +654,7 @@ const ChatPage = () => {
                   className="w-full px-4 py-3 bg-gray-50/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 focus:bg-white transition-all"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Scheduled Time
@@ -652,7 +666,7 @@ const ChatPage = () => {
                   className="w-full px-4 py-3 bg-gray-50/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 focus:bg-white transition-all"
                 />
               </div>
-              
+
               <div className="flex gap-3 pt-4">
                 <button
                   onClick={() => setShowVideoModal(false)}

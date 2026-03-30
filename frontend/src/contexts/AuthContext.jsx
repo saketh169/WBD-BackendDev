@@ -1,5 +1,6 @@
-import React, { createContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import { isTokenExpired } from '../utils/jwtUtils';
 
 // Create Auth Context
 const AuthContext = createContext();
@@ -19,46 +20,42 @@ export const AuthProvider = ({ children, currentRole }) => {
 
       if (currentRole) {
         // If currentRole is provided, use it specifically
-        let token = localStorage.getItem(`authToken_${currentRole}`);
-
-        // Backward-compat migration: old employee sessions stored under authToken_organization
-        if (!token && currentRole === 'employee') {
-          const orgUser = JSON.parse(localStorage.getItem('authUser_organization') || '{}');
-          if (orgUser.orgType === 'employee') {
-            const oldToken = localStorage.getItem('authToken_organization');
-            if (oldToken) {
-              // Migrate to dedicated employee keys
-              localStorage.setItem('authToken_employee', oldToken);
-              localStorage.setItem('authUser_employee', JSON.stringify(orgUser));
-              localStorage.removeItem('authToken_organization');
-              localStorage.removeItem('authUser_organization');
-              token = oldToken;
-            }
-          }
-        }
+        const token = localStorage.getItem(`authToken_${currentRole}`);
         const user = localStorage.getItem(`authUser_${currentRole}`);
 
         if (token) {
+          // Check if token is expired before using
+          if (isTokenExpired(token)) {
+            localStorage.removeItem(`authToken_${currentRole}`);
+            localStorage.removeItem(`authUser_${currentRole}`);
+            setToken(null);
+            setRole(null);
+            setUser(null);
+            setIsAuthenticated(false);
+            setLoading(false);
+            return;
+          }
+
           setToken(token);
           setRole(currentRole);
           setIsAuthenticated(true);
-          // Set axios default header
-          axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
-          // Fetch fresh user details if token exists
-          if (!user) {
-            await fetchUserDetails(token, currentRole);
-          } else {
-            // Profile image is not stored in localStorage, so fetch fresh data
-            await fetchUserDetails(token, currentRole);
+          // Use cached data from localStorage immediately
+          if (user) {
+            try {
+              const cachedUser = JSON.parse(user);
+              setUser(cachedUser);
+            } catch { /* ignore parse errors */ }
           }
+
+          // Fetch fresh data in background (for profileImage, etc.)
+          fetchUserDetails(token, currentRole);
         } else {
           // No token for this role, clear state
           setToken(null);
           setRole(null);
           setUser(null);
           setIsAuthenticated(false);
-          delete axios.defaults.headers.common['Authorization'];
         }
       } else {
         // Fallback: check all roles if no currentRole provided
@@ -69,7 +66,7 @@ export const AuthProvider = ({ children, currentRole }) => {
 
         for (const r of roles) {
           const token = localStorage.getItem(`authToken_${r}`);
-          if (token) {
+          if (token && !isTokenExpired(token)) {
             foundToken = token;
             foundRole = r;
             break;
@@ -80,8 +77,6 @@ export const AuthProvider = ({ children, currentRole }) => {
           setToken(foundToken);
           setRole(foundRole);
           setIsAuthenticated(true);
-          // Set axios default header
-          axios.defaults.headers.common['Authorization'] = `Bearer ${foundToken}`;
 
           // Fetch fresh user details if token exists (since profileImage isn't stored locally)
           await fetchUserDetails(foundToken, foundRole);
@@ -90,7 +85,6 @@ export const AuthProvider = ({ children, currentRole }) => {
           setRole(null);
           setUser(null);
           setIsAuthenticated(false);
-          delete axios.defaults.headers.common['Authorization'];
         }
       }
       setLoading(false);
@@ -184,9 +178,6 @@ export const AuthProvider = ({ children, currentRole }) => {
         localStorage.removeItem(`authUser_${loginRole}`);
         localStorage.removeItem(`profileImage_${loginRole}`);
 
-        // Clear axios header for any previous session
-        delete axios.defaults.headers.common['Authorization'];
-
         // Clear current context state to ensure clean slate
         setToken(null);
         setRole(null);
@@ -201,9 +192,6 @@ export const AuthProvider = ({ children, currentRole }) => {
         // Store in localStorage for persistence with role-specific keys
         localStorage.setItem(`authToken_${loginRole}`, data.token);
 
-        // Set axios default header
-        axios.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
-
         // Fetch user details after successful login
         await fetchUserDetails(data.token, loginRole);
 
@@ -217,24 +205,28 @@ export const AuthProvider = ({ children, currentRole }) => {
 
   // Logout function
   const logout = () => {
-    setToken(null);
-    setRole(null);
-    setUser(null);
-    setIsAuthenticated(false);
+    let logoutRole = role;
+    if (!logoutRole) {
+      const path = window.location.pathname;
+      if (path.startsWith('/admin')) logoutRole = 'admin';
+      else if (path.startsWith('/dietitian')) logoutRole = 'dietitian';
+      else if (path.startsWith('/organization')) logoutRole = 'organization';
+      else if (path.startsWith('/employee')) logoutRole = 'employee';
+      else logoutRole = 'user';
+    }
 
-    // Clear all role-specific localStorage
-    const roles = ['user', 'admin', 'organization', 'employee', 'dietitian'];
-    roles.forEach(r => {
-      localStorage.removeItem(`authToken_${r}`);
-      localStorage.removeItem(`authUser_${r}`);
-      localStorage.removeItem(`profileImage_${r}`); // Clear any existing profile images
-    });
+    if (logoutRole) {
+      localStorage.removeItem(`authToken_${logoutRole}`);
+      localStorage.removeItem(`authUser_${logoutRole}`);
+      localStorage.removeItem(`profileImage_${logoutRole}`);
+    }
 
-    // Clear standalone userId key (used by some components)
-    localStorage.removeItem('userId');
-
-    // Clear axios header
-    delete axios.defaults.headers.common['Authorization'];
+    if (role === logoutRole || !role) {
+      setToken(null);
+      setRole(null);
+      setUser(null);
+      setIsAuthenticated(false);
+    }
   };
 
   // Update user data

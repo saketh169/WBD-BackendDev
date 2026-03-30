@@ -226,23 +226,6 @@ const LabReportUploader = () => {
     };
   }, []);
 
-  // Display user information in console
-  useEffect(() => {
-    console.log('=== Lab Report Uploader ===');
-    console.log('Client Name:', user?.name || 'Not available');
-    console.log('Client ID:', user?.id || user?._id || 'Not available');
-    console.log('Dietitian ID:', dietitianId || 'Not available');
-    console.log('Client Details:', {
-      name: user?.name,
-      id: user?.id || user?._id,
-      email: user?.email,
-      role: user?.role
-    });
-    console.log('Dietitian Details:', {
-      dietitianId: dietitianId
-    });
-  }, [user, dietitianId]);
-
   const categories = useMemo(() => [
     { id: 'Hormonal_Issues', label: 'Hormonal Issues', icon: TrendingUp, description: 'Enter specific metrics for endocrine and reproductive health.' },
     { id: 'Fitness_Metrics', label: 'Fitness & Body Metrics', icon: Scale, description: 'Key body composition and lifestyle data for weight goals.' },
@@ -359,24 +342,16 @@ const LabReportUploader = () => {
       // Add user ID from AuthContext
       // NOTE: Both userId and dietitianId are stored in the schema
       // Schema fields: userId (references User), dietitianId (references Dietitian)
-      if (user?.id || user?._id) {
-        formData.append('clientId', user.id || user._id); // Keep clientId for backward compatibility in request
-        console.log('Using authenticated user ID:', user.id || user._id);
-      } else {
-        console.warn('No user ID available from AuthContext');
+      if (user?.id) {
+        formData.append('clientId', user.id);
       }
 
       // Add dietitian ID from URL params
       if (dietitianId) {
         formData.append('dietitianId', dietitianId);
-        console.log('Using dietitian ID from URL:', dietitianId);
       }
-
-      console.log('Basic client info added to FormData');
-
       // Add category-specific data
       activeFormsOrder.forEach(category => {
-        console.log(`Processing category: ${category}`);
         switch (category) {
           case 'Hormonal_Issues':
             if (data.testosteroneTotal) formData.append('testosteroneTotal', data.testosteroneTotal);
@@ -415,9 +390,6 @@ const LabReportUploader = () => {
             break;
         }
       });
-
-      console.log('Category-specific data added to FormData');
-
       // Add files
       const fileFields = [
         'hormonalProfileReport', 'endocrineReport', 'generalHealthReport',
@@ -427,42 +399,23 @@ const LabReportUploader = () => {
 
       fileFields.forEach(fieldName => {
         if (data[fieldName] && data[fieldName][0]) {
-          console.log(`Adding file: ${fieldName}`, data[fieldName][0]);
           formData.append(fieldName, data[fieldName][0]);
         }
       });
-
-      console.log('Files added to FormData');
-
       // Log FormData contents (for debugging)
-      console.log('FormData contents:');
       for (let [key, value] of formData.entries()) {
         if (value instanceof File) {
-          console.log(`${key}: File(${value.name}, ${value.size} bytes, ${value.type})`);
         } else {
-          console.log(`${key}: ${value}`);
         }
       }
 
       // Submit to backend
-      console.log('Submitting to backend...');
-
-      // Get auth token from localStorage
-      const role = user?.role || 'user'; // Default to 'user' if role not available
-      const token = localStorage.getItem(`authToken_${role}`);
-
       const response = await axios.post('/api/lab-reports/lab/submit', formData, {
         headers: {
-          'Content-Type': 'multipart/form-data',
-          'Authorization': token ? `Bearer ${token}` : undefined
+          'Content-Type': 'multipart/form-data'
         }
       });
-
-      console.log('Backend response:', response.data);
-
       if (response.data.success) {
-        console.log('Lab report submitted successfully');
-
         // Show success notification
         setNotification({
           type: 'success',

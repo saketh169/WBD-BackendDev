@@ -51,20 +51,24 @@ exports.initializePayment = async (req, res) => {
     // IMPORTANT: Use roleId (User profile ID) to match how bookings store userId
     // req.user.userId = AuthUser table ID
     // req.user.roleId = User/Dietitian/etc profile ID (this is what bookings use)
-    const userId = req.user.roleId || req.user.userId; // Fallback to userId if roleId not in token
+    const userId = req.user.roleId || req.user.employeeId || req.user.userId;
     const userRole = req.user.role;
-
-    console.log('🔍 Payment initialization - User details from JWT:', {
-      userId: req.user.userId,
-      roleId: req.user.roleId,
-      role: req.user.role,
-      usingUserId: userId
-    });
 
     if (!userId) {
       return res.status(400).json({
         success: false,
         message: 'User ID not found in token'
+      });
+    }
+
+    // Prevent duplicate active subscriptions
+    const existingSubscription = await Payment.findActiveSubscription(userId);
+    if (existingSubscription) {
+      return res.status(409).json({
+        success: false,
+        message: 'You already have an active subscription. Please wait for it to expire or cancel it before purchasing a new plan.',
+        existingPlan: existingSubscription.planType,
+        expiresAt: existingSubscription.subscriptionEndDate
       });
     }
 
@@ -139,8 +143,7 @@ exports.initializePayment = async (req, res) => {
     console.error('Error in initializePayment:', error);
     return res.status(500).json({
       success: false,
-      message: 'Internal server error',
-      error: error.message
+      message: 'Internal server error'
     });
   }
 };
@@ -170,7 +173,7 @@ exports.processPayment = async (req, res) => {
       });
     }
 
-    const userIdToCheck = req.user.roleId || req.user.userId;
+    const userIdToCheck = req.user.roleId || req.user.employeeId || req.user.userId;
 
     if (payment.userId.toString() !== userIdToCheck) {
       return res.status(403).json({
@@ -205,8 +208,7 @@ exports.processPayment = async (req, res) => {
     console.error('Error in processPayment:', error);
     return res.status(500).json({
       success: false,
-      message: 'Internal server error',
-      error: error.message
+      message: 'Internal server error'
     });
   }
 };
@@ -237,15 +239,7 @@ exports.verifyPayment = async (req, res) => {
 
     // Verify that the payment belongs to the authenticated user
     // Check both roleId and userId for backwards compatibility
-    const userIdToCheck = req.user.roleId || req.user.userId;
-
-    console.log('🔍 Verify payment - Authorization check:', {
-      paymentUserId: result.payment.userId.toString(),
-      jwtRoleId: req.user.roleId,
-      jwtUserId: req.user.userId,
-      usingId: userIdToCheck,
-      match: result.payment.userId.toString() === userIdToCheck
-    });
+    const userIdToCheck = req.user.roleId || req.user.employeeId || req.user.userId;
 
     if (result.payment.userId.toString() !== userIdToCheck) {
       return res.status(403).json({
@@ -273,8 +267,7 @@ exports.verifyPayment = async (req, res) => {
     console.error('Error in verifyPayment:', error);
     return res.status(500).json({
       success: false,
-      message: 'Internal server error',
-      error: error.message
+      message: 'Internal server error'
     });
   }
 };
@@ -285,7 +278,7 @@ exports.verifyPayment = async (req, res) => {
  */
 exports.getActiveSubscription = async (req, res) => {
   try {
-    const userId = req.user.roleId; // Use roleId to match bookings
+    const userId = req.user.roleId || req.user.employeeId || req.user.userId;
 
     const result = await paymentService.getActiveSubscription(userId);
 
@@ -315,8 +308,7 @@ exports.getActiveSubscription = async (req, res) => {
     console.error('Error in getActiveSubscription:', error);
     return res.status(500).json({
       success: false,
-      message: 'Internal server error',
-      error: error.message
+      message: 'Internal server error'
     });
   }
 };
@@ -327,7 +319,7 @@ exports.getActiveSubscription = async (req, res) => {
  */
 exports.getPaymentHistory = async (req, res) => {
   try {
-    const userId = req.user.roleId; // Use roleId to match bookings
+    const userId = req.user.roleId || req.user.employeeId || req.user.userId;
     const limit = parseInt(req.query.limit) || 10;
 
     const result = await paymentService.getPaymentHistory(userId, limit);
@@ -363,8 +355,7 @@ exports.getPaymentHistory = async (req, res) => {
     console.error('Error in getPaymentHistory:', error);
     return res.status(500).json({
       success: false,
-      message: 'Internal server error',
-      error: error.message
+      message: 'Internal server error'
     });
   }
 };
@@ -375,7 +366,7 @@ exports.getPaymentHistory = async (req, res) => {
  */
 exports.cancelSubscription = async (req, res) => {
   try {
-    const userId = req.user.roleId; // Use roleId to match bookings
+    const userId = req.user.roleId || req.user.employeeId || req.user.userId;
 
     const result = await paymentService.cancelSubscription(userId);
 
@@ -398,8 +389,7 @@ exports.cancelSubscription = async (req, res) => {
     console.error('Error in cancelSubscription:', error);
     return res.status(500).json({
       success: false,
-      message: 'Internal server error',
-      error: error.message
+      message: 'Internal server error'
     });
   }
 };
@@ -411,7 +401,7 @@ exports.cancelSubscription = async (req, res) => {
 exports.getPaymentAnalytics = async (req, res) => {
   try {
     // Use roleId (profile ID) to match how payments are stored, fallback to userId
-    const userId = req.user.roleId || req.user.userId;
+    const userId = req.user.roleId || req.user.employeeId || req.user.userId;
 
     const result = await paymentService.getPaymentAnalytics(userId);
 
@@ -431,8 +421,7 @@ exports.getPaymentAnalytics = async (req, res) => {
     console.error('Error in getPaymentAnalytics:', error);
     return res.status(500).json({
       success: false,
-      message: 'Internal server error',
-      error: error.message
+      message: 'Internal server error'
     });
   }
 };

@@ -14,9 +14,9 @@ const FilterSidebar = ({
     
     return (
       <span className="flex items-center gap-0.5">
-        {'★'.repeat(fullStars)}
-        {hasHalfStar && '☆'}
-        {'☆'.repeat(emptyStars)}
+        {[...Array(fullStars)].map((_, i) => <i key={`full-${i}`} className="fas fa-star text-emerald-600 text-sm"></i>)}
+        {hasHalfStar && <i key="half" className="fas fa-star-half text-emerald-600 text-sm"></i>}
+        {[...Array(emptyStars)].map((_, i) => <i key={`empty-${i}`} className="far fa-star text-gray-300 text-sm"></i>)}
       </span>
     );
   };

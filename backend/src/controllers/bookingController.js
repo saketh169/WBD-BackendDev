@@ -5,12 +5,12 @@ const {
   sendBookingConfirmationToUser,
   sendBookingNotificationToDietitian,
 } = require("../services/bookingService");
+const { notifyDietitianNewBooking, notifyBookingUpdate, notifyUserUpdate } = require("../utils/socket");
 
 // Create a new booking
 exports.createBooking = async (req, res) => {
   try {
     const {
-      userId,
       username,
       email,
       userPhone,
@@ -27,6 +27,9 @@ exports.createBooking = async (req, res) => {
       paymentMethod,
       paymentId,
     } = req.body;
+
+    // Use authenticated user ID from JWT — never trust userId from body
+    const userId = req.user.roleId || req.user.employeeId || req.user.userId;
 
     // Validate required fields
     if (
@@ -57,9 +60,6 @@ exports.createBooking = async (req, res) => {
       if (!amount) missingFields.push("amount");
       if (!paymentMethod) missingFields.push("paymentMethod");
       if (!paymentId) missingFields.push("paymentId");
-
-      console.error("Missing required fields:", missingFields);
-      console.error("Received data:", req.body);
 
       return res.status(400).json({
         success: false,
@@ -164,6 +164,13 @@ exports.createBooking = async (req, res) => {
     // Save to database
     const savedBooking = await booking.save();
 
+    // Trigger real-time WebSocket update for the dietitian
+    try {
+      notifyDietitianNewBooking(dietitianId, savedBooking);
+    } catch (socketErr) {
+      console.error("Socket error (non-fatal):", socketErr);
+    }
+
     // Send confirmation emails asynchronously (don't wait for them)
     // Booking is saved first, then emails are sent in background (non-blocking)
     // This ensures response time < 2 mins
@@ -186,10 +193,10 @@ exports.createBooking = async (req, res) => {
 
       // Fire and forget - send emails in background without waiting
       // This is a non-blocking async operation
-      sendBookingConfirmationToUser(emailData).catch(err => 
+      sendBookingConfirmationToUser(emailData).catch(err =>
         console.error("Error sending confirmation to user:", err)
       );
-      sendBookingNotificationToDietitian(emailData).catch(err => 
+      sendBookingNotificationToDietitian(emailData).catch(err =>
         console.error("Error sending notification to dietitian:", err)
       );
 
@@ -208,7 +215,7 @@ exports.createBooking = async (req, res) => {
     console.error("Error creating booking:", error);
     res.status(500).json({
       success: false,
-      message: error.message || "Failed to create booking",
+      message: "`Failed to create booking",
     });
   }
 };
@@ -248,7 +255,7 @@ exports.getUserBookings = async (req, res) => {
     console.error("Error fetching user bookings:", error);
     res.status(500).json({
       success: false,
-      message: error.message || "Failed to fetch bookings",
+      message: "`Failed to fetch bookings",
     });
   }
 };
@@ -288,7 +295,7 @@ exports.getDietitianBookings = async (req, res) => {
     console.error("Error fetching dietitian bookings:", error);
     res.status(500).json({
       success: false,
-      message: error.message || "Failed to fetch bookings",
+      message: "`Failed to fetch bookings",
     });
   }
 };
@@ -326,7 +333,7 @@ exports.getBookingById = async (req, res) => {
     console.error("Error fetching booking:", error);
     res.status(500).json({
       success: false,
-      message: error.message || "Failed to fetch booking",
+      message: "`Failed to fetch booking",
     });
   }
 };
@@ -375,11 +382,19 @@ exports.updateBookingStatus = async (req, res) => {
       message: "Booking status updated successfully",
       data: booking,
     });
+
+    // Trigger real-time updates
+    try {
+      notifyBookingUpdate(booking.dietitianId, booking);
+      notifyUserUpdate(booking.userId, booking);
+    } catch (err) {
+      console.error("Socket notification error:", err);
+    }
   } catch (error) {
     console.error("Error updating booking status:", error);
     res.status(500).json({
       success: false,
-      message: error.message || "Failed to update booking",
+      message: "`Failed to update booking",
     });
   }
 };
@@ -427,11 +442,19 @@ exports.cancelBooking = async (req, res) => {
       message: "Booking cancelled successfully",
       data: booking,
     });
+
+    // Trigger real-time updates
+    try {
+      notifyBookingUpdate(booking.dietitianId, booking);
+      notifyUserUpdate(booking.userId, booking);
+    } catch (err) {
+      console.error("Socket notification error:", err);
+    }
   } catch (error) {
     console.error("Error cancelling booking:", error);
     res.status(500).json({
       success: false,
-      message: error.message || "Failed to cancel booking",
+      message: "`Failed to cancel booking",
     });
   }
 };
@@ -444,7 +467,7 @@ exports.getBookedSlots = async (req, res) => {
   try {
     const { dietitianId } = req.params;
     const { date, userId } = req.query; // Add userId to query params
-    
+
     // Handle null or "null" string userId
     const validUserId = userId && userId !== 'null' && userId !== 'undefined' ? userId : null;
 
@@ -512,8 +535,6 @@ exports.getBookedSlots = async (req, res) => {
     // Return all booked slots for this dietitian (including user's own)
     const allBookedSlots = [...bookedSlots, ...userBookingsWithThisDietitian];
 
-    console.log("Fetched dietitian booked slots for user", validUserId, "and dietitian", dietitianId, "on date", queryDate.toISOString().split('T')[0], ":", allBookedSlots);
-
     res.status(200).json({
       success: true,
       bookedSlots: allBookedSlots, // All slots booked with this dietitian
@@ -527,7 +548,7 @@ exports.getBookedSlots = async (req, res) => {
     console.error("Error fetching booked slots:", error);
     res.status(500).json({
       success: false,
-      message: error.message || "Failed to fetch booked slots",
+      message: "`Failed to fetch booked slots",
     });
   }
 };
@@ -568,8 +589,6 @@ exports.getUserBookedSlots = async (req, res) => {
       dietitianName: booking.dietitianName,
     }));
 
-    console.log(`User ${userId} booked slots on ${date}:`, bookedSlots);
-
     res.status(200).json({
       success: true,
       bookedSlots,
@@ -579,7 +598,7 @@ exports.getUserBookedSlots = async (req, res) => {
     console.error("Error fetching user booked slots:", error);
     res.status(500).json({
       success: false,
-      message: error.message || "Failed to fetch booked slots",
+      message: "`Failed to fetch booked slots",
     });
   }
 };
@@ -591,9 +610,11 @@ exports.getUserBookedSlots = async (req, res) => {
 exports.rescheduleBooking = async (req, res) => {
   try {
     const { bookingId } = req.params;
-    const { date, time } = req.body;
+    const { date, time, newDate, newTime } = req.body;
+    const targetDate = date || newDate;
+    const targetTime = time || newTime;
 
-    if (!date || !time) {
+    if (!targetDate || !targetTime) {
       return res.status(400).json({
         success: false,
         message: "Date and time are required",
@@ -609,11 +630,15 @@ exports.rescheduleBooking = async (req, res) => {
       });
     }
 
+    const [year, month, day] = targetDate.split('-').map(Number);
+    const normalizedTargetDate = new Date(Date.UTC(year, month - 1, day));
+    const normalizedTargetDateString = normalizedTargetDate.toISOString().split('T')[0];
+
     // Check if the new slot is available
     const existingBooking = await Booking.findOne({
       dietitianId: booking.dietitianId,
-      date: new Date(date),
-      time: time,
+      date: normalizedTargetDate,
+      time: targetTime,
       status: { $in: ["confirmed", "pending"] },
       _id: { $ne: bookingId }, // Exclude current booking
     });
@@ -628,8 +653,8 @@ exports.rescheduleBooking = async (req, res) => {
     // Check for blocked slots
     const blockedSlot = await BlockedSlot.findOne({
       dietitianId: booking.dietitianId,
-      date: new Date(date),
-      time: time,
+      date: normalizedTargetDateString,
+      time: targetTime,
     });
 
     if (blockedSlot) {
@@ -640,8 +665,8 @@ exports.rescheduleBooking = async (req, res) => {
     }
 
     // Update the booking
-    booking.date = new Date(date);
-    booking.time = time;
+    booking.date = normalizedTargetDate;
+    booking.time = targetTime;
     await booking.save();
 
     res.status(200).json({
@@ -653,11 +678,19 @@ exports.rescheduleBooking = async (req, res) => {
         time: booking.time,
       },
     });
+
+    // Trigger real-time updates
+    try {
+      notifyBookingUpdate(booking.dietitianId, booking);
+      notifyUserUpdate(booking.userId, booking);
+    } catch (err) {
+      console.error("Socket notification error:", err);
+    }
   } catch (error) {
     console.error("Error rescheduling booking:", error);
     res.status(500).json({
       success: false,
-      message: error.message || "Failed to reschedule booking",
+      message: "`Failed to reschedule booking",
     });
   }
 };

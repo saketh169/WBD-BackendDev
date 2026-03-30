@@ -59,8 +59,7 @@ exports.logActivityFromFrontend = async (req, res) => {
         console.error('Error logging activity:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to log activity',
-            error: error.message
+            message: 'Failed to log activity'
         });
     }
 };
@@ -160,8 +159,7 @@ exports.getEmployeeWorkSummary = async (req, res) => {
         console.error('Error fetching employee work summary:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to fetch employee work summary',
-            error: error.message
+            message: 'Failed to fetch employee work summary'
         });
     }
 };
@@ -192,8 +190,7 @@ exports.getEmployeeActivities = async (req, res) => {
         console.error('Error fetching employee activities:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to fetch employee activities',
-            error: error.message
+            message: 'Failed to fetch employee activities'
         });
     }
 };

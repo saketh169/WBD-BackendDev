@@ -17,17 +17,9 @@ const DietitianSetup = () => {
     const fetchUserProfile = async () => {
       try {
         const token = localStorage.getItem('authToken_dietitian');
-        
-        if (!token) {
-          return;
-        }
+        const userId = user?.id;
 
-        // Decode JWT to get roleId (the actual dietitian document ID)
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        const userId = payload.roleId; // Use roleId instead of userId
-        
-        if (!userId) {
-          console.error('No roleId found in token');
+        if (!token || !userId) {
           return;
         }
 
@@ -138,25 +130,21 @@ const DietitianSetup = () => {
   const onSubmit = async (data) => {
     if (currentStep === 1) {
       setCurrentStep(2);
-      console.log('Step 1 Data:', data);
     } else {
       setIsLoading(true);
       setError('');
 
       try {
-        // Get user ID from JWT token (roleId)
+        // Get user ID from AuthContext and token from localStorage
         const token = localStorage.getItem('authToken_dietitian');
         if (!token) {
           setError('Authentication token not found. Please sign in.');
           return;
         }
 
-        // Decode JWT to get roleId
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        const userId = payload.roleId;
-
+        const userId = user?.id;
         if (!userId) {
-          setError('User ID not found in token. Please sign in again.');
+          setError('User ID not found. Please sign in again.');
           return;
         }
 
@@ -201,9 +189,6 @@ const DietitianSetup = () => {
             twitter: data.twitter?.trim()
           }
         };
-
-        console.log('Submitting dietitian profile data:', processedData);
-
         // Send POST request to setup profile
         const response = await axios.post(`/api/dietitian-profile-setup/${userId}`, processedData, {
           headers: {
@@ -213,7 +198,7 @@ const DietitianSetup = () => {
 
         if (response.data.success) {
           // Success - redirect to dietitian dashboard instead of document upload
-          alert('✅ Profile setup completed successfully! Welcome to your dashboard.');
+          alert('Profile setup completed successfully! Welcome to your dashboard.');
           // Redirect to dietitian profile/dashboard
           navigate('/dietitian/profile');
         } else {

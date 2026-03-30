@@ -112,7 +112,10 @@ const OrganizationTable = ({ onViewAll }) => {
 
   useEffect(() => {
     axios.get('/api/verify/organizations', { withCredentials: true })
-      .then(res => setOrganizations(res.data.slice(0, 5)))
+      .then(res => {
+        const orgData = res.data.data ? res.data.data : res.data;
+        setOrganizations(Array.isArray(orgData) ? orgData.slice(0, 5) : []);
+      })
       .catch(err => console.error('Failed to fetch organizations:', err))
       .finally(() => setIsLoading(false));
   }, []);
@@ -333,6 +336,46 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleRemoveProfilePhoto = async () => {
+    if (!window.confirm('Are you sure you want to remove your profile photo?')) {
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      let authToken = token;
+      if (!authToken) {
+        authToken = localStorage.getItem('authToken_admin');
+      }
+
+      if (!authToken) {
+        alert('Session expired. Please login again.');
+        navigate('/signin?role=admin');
+        return;
+      }
+
+      const response = await axios.delete('/api/deleteadmin', {
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        }
+      });
+
+      if (response.data.success) {
+        setProfileImage(mockAdmin.profileImage);
+        setShowImageModal(false);
+        alert('Profile photo removed successfully!');
+        window.location.reload();
+      } else {
+        alert(`Removal failed: ${response.data.message || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Remove error:', error);
+      alert(`Remove error: ${error.response?.data?.message || error.message}`);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
@@ -362,7 +405,7 @@ const AdminDashboard = () => {
                 alt="Admin Profile"
                 className="w-32 h-32 rounded-full object-cover border-4 border-green-600 cursor-pointer hover:opacity-80 transition"
                 onClick={() => setShowImageModal(true)}
-                onError={(e) => e.currentTarget.src = '/images/dummy_user.png'}
+                onError={() => setProfileImage(mockAdmin.profileImage)}
               />
               <label
                 htmlFor="profileUpload"
@@ -490,7 +533,7 @@ const AdminDashboard = () => {
                   src={profileImage}
                   alt="Admin Profile Full Size"
                   className="w-full h-full rounded-lg object-contain"
-                  onError={(e) => e.currentTarget.src = '/images/dummy_user.png'}
+                  onError={() => setProfileImage(mockAdmin.profileImage)}
                 />
               </div>
 
@@ -506,6 +549,12 @@ const AdminDashboard = () => {
                     className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-full font-medium hover:bg-green-700 transition"
                   >
                     <i className="fas fa-camera"></i> Change Photo
+                  </button>
+                  <button
+                    onClick={handleRemoveProfilePhoto}
+                    className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-full font-medium hover:bg-red-700 transition"
+                  >
+                    <i className="fas fa-trash"></i> Remove Photo
                   </button>
                   <button
                     onClick={() => setShowImageModal(false)}

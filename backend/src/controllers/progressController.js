@@ -1,28 +1,15 @@
 const Progress = require('../models/progressModel');
-const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-for-development';
-
-// Extract roleId (user profile ID) from JWT token
-const getUserIdFromToken = (req) => {
-  try {
-    const authHeader = req.headers['authorization'];
-    if (!authHeader) return null;
-    const token = authHeader.split(' ')[1];
-    if (!token) return null;
-    const decoded = jwt.verify(token, JWT_SECRET);
-    // Use roleId (profile ID) instead of userId (auth ID) for consistency
-    return decoded.roleId || decoded.userId;
-  } catch (error) {
-    console.error('Error decoding token:', error);
-    return null;
-  }
+// Extract roleId (user profile ID) from authenticated request
+const getUserId = (req) => {
+  if (!req.user) return null;
+  return req.user.roleId || req.user.employeeId || req.user.userId;
 };
 
 // GET all progress entries for a user
 exports.getProgressController = async (req, res) => {
   try {
-    const userId = getUserIdFromToken(req);
+    const userId = getUserId(req);
     if (!userId) {
       return res.status(401).json({ message: 'Unauthorized' });
     }
@@ -38,7 +25,7 @@ exports.getProgressController = async (req, res) => {
 // GET progress by plan filter
 exports.getProgressByPlanController = async (req, res) => {
   try {
-    const userId = getUserIdFromToken(req);
+    const userId = getUserId(req);
     if (!userId) {
       return res.status(401).json({ message: 'Unauthorized' });
     }
@@ -58,7 +45,7 @@ exports.getProgressByPlanController = async (req, res) => {
 // POST create new progress entry
 exports.createProgressController = async (req, res) => {
   try {
-    const userId = getUserIdFromToken(req);
+    const userId = getUserId(req);
     if (!userId) {
       return res.status(401).json({ success: false, message: 'Unauthorized' });
     }
@@ -150,7 +137,7 @@ exports.createProgressController = async (req, res) => {
 // DELETE progress entry
 exports.deleteProgressController = async (req, res) => {
   try {
-    const userId = getUserIdFromToken(req);
+    const userId = getUserId(req);
     if (!userId) {
       return res.status(401).json({ message: 'Unauthorized' });
     }
@@ -172,7 +159,7 @@ exports.deleteProgressController = async (req, res) => {
 // GET stats for a specific plan
 exports.getPlanStatsController = async (req, res) => {
   try {
-    const userId = getUserIdFromToken(req);
+    const userId = getUserId(req);
     if (!userId) {
       return res.status(401).json({ message: 'Unauthorized' });
     }

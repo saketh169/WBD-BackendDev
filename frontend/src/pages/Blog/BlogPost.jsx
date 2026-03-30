@@ -6,6 +6,7 @@ import {
     FaHeart, FaRegHeart, FaComment, FaEye, FaEdit, FaTrash,
     FaArrowLeft, FaFlag, FaShare, FaPaperPlane
 } from 'react-icons/fa';
+import { useAuthContext } from '../../hooks/useAuthContext';
 
 // Redux imports
 import {
@@ -30,6 +31,7 @@ const BlogPost = () => {
     const location = useLocation();
     const dispatch = useDispatch();
     const { id } = useParams();
+    const { user, token: authToken, role: authRole, isAuthenticated: contextAuth } = useAuthContext();
 
     // Redux state
     const blog = useSelector(selectCurrentBlog);
@@ -59,6 +61,7 @@ const BlogPost = () => {
         if (path.startsWith('/dietitian')) return 'dietitian';
         if (path.startsWith('/organization')) return 'organization';
         if (path.startsWith('/admin')) return 'admin';
+        if (path.startsWith('/employee')) return 'employee';
         return null;
     }, [location.pathname]);
 
@@ -67,29 +70,15 @@ const BlogPost = () => {
         window.scrollTo(0, 0);
 
         const roleFromUrl = getRoleFromPath();
-        const token = roleFromUrl ? localStorage.getItem(`authToken_${roleFromUrl}`) : null;
 
-        let actualUserId = null;
-
-        if (token) {
+        if (contextAuth && authToken && user?.id) {
             setIsAuthenticated(true);
-            setUserRole(roleFromUrl);
-
-            // Decode JWT to get roleId (actual user ID)
-            try {
-                const parts = token.split('.');
-                if (parts.length === 3) {
-                    const payload = JSON.parse(atob(parts[1]));
-                    actualUserId = payload.roleId;
-                }
-            } catch (e) {
-                console.error('Error decoding token:', e);
-            }
-
-            setUserId(actualUserId);
+            setUserRole(authRole || roleFromUrl);
+            setUserId(user.id);
         } else {
             setIsAuthenticated(false);
             setUserRole(roleFromUrl);
+            setUserId(null);
         }
 
         // Fetch blog using Redux
@@ -221,7 +210,9 @@ const BlogPost = () => {
                 ? '/dietitian/blogs'
                 : userRole === 'organization'
                     ? '/organization/blogs'
-                    : '/user/blogs';
+                    : userRole === 'employee'
+                        ? '/employee/blogs'
+                        : '/user/blogs';
             navigate(blogsPath);
         }
 
@@ -252,6 +243,7 @@ const BlogPost = () => {
             'dietitian': 'Dietitian',
             'admin': 'Admin',
             'organization': 'Organization',
+            'employee': 'Employee',
         };
         return roleLabels[role] || 'Unknown';
     };
@@ -282,7 +274,9 @@ const BlogPost = () => {
                                 ? '/dietitian/blogs'
                                 : userRole === 'organization'
                                     ? '/organization/blogs'
-                                    : '/user/blogs';
+                                    : userRole === 'employee'
+                                        ? '/employee/blogs'
+                                        : '/user/blogs';
                             navigate(blogsPath);
                         }}
                         className="bg-[#1E6F5C] text-white px-6 py-2 rounded-lg hover:bg-green-700"
@@ -336,7 +330,9 @@ const BlogPost = () => {
                             ? '/dietitian/blogs'
                             : userRole === 'organization'
                                 ? '/organization/blogs'
-                                : '/user/blogs';
+                                : userRole === 'employee'
+                                    ? '/employee/blogs'
+                                    : '/user/blogs';
                         navigate(blogsPath);
                     }}
                     className="flex items-center gap-2 text-[#1E6F5C] hover:text-green-700 font-medium"
@@ -404,8 +400,8 @@ const BlogPost = () => {
                         <button
                             onClick={handleLike}
                             className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${isLiked
-                                    ? 'bg-red-100 text-red-600 hover:bg-red-200'
-                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                ? 'bg-red-100 text-red-600 hover:bg-red-200'
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                 }`}
                         >
                             {isLiked ? <FaHeart /> : <FaRegHeart />}

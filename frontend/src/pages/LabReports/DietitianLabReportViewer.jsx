@@ -29,15 +29,6 @@ const DietitianLabReportViewer = () => {
 
   // Display dietitian and client information in console
   useEffect(() => {
-    console.log('=== Dietitian Lab Report Viewer ===');
-    console.log('Dietitian Name:', user?.name || 'Not available');
-    console.log('Client ID:', clientId || 'Not available');
-    console.log('Client Name:', clientInfo?.name || 'Not available');
-    console.log('Consultation Details:', {
-      dietitian: user?.name,
-      client: clientInfo?.name,
-      clientId: clientId
-    });
   }, [user, clientId, clientInfo]);
 
   // Fetch lab reports for the specific client
@@ -48,7 +39,7 @@ const DietitianLabReportViewer = () => {
         return;
       }
 
-      if (!user?.id && !user?._id) {
+      if (!user?.id) {
         setError('Dietitian not authenticated');
         setLoading(false);
         return;
@@ -58,19 +49,10 @@ const DietitianLabReportViewer = () => {
         setLoading(true);
         setError(null);
 
-        const dietitianId = user.id || user._id;
-        
-        // Get auth token
-        const role = user?.role || 'dietitian';
-        const token = localStorage.getItem(`authToken_${role}`);
+        const dietitianId = user.id;
         
         const response = await axios.get(
-          `/api/lab-reports/client/${clientId}/dietitian/${dietitianId}`,
-          {
-            headers: {
-              'Authorization': token ? `Bearer ${token}` : undefined
-            }
-          }
+          `/api/lab-reports/client/${clientId}/dietitian/${dietitianId}`
         );
 
         if (response.data.success) {

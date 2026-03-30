@@ -36,6 +36,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange, theme }) => {
                 onClick={() => onPageChange(currentPage - 1)}
                 disabled={currentPage === 1}
                 className="px-3 py-1 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-label="Previous page"
                 style={{
                     backgroundColor: currentPage === 1 ? '#E0E0E0' : theme.primary,
                     color: currentPage === 1 ? '#999' : 'white',
@@ -89,6 +90,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange, theme }) => {
                 onClick={() => onPageChange(currentPage + 1)}
                 disabled={currentPage === totalPages}
                 className="px-3 py-1 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-label="Next page"
                 style={{
                     backgroundColor: currentPage === totalPages ? '#E0E0E0' : theme.primary,
                     color: currentPage === totalPages ? '#999' : 'white',
@@ -141,6 +143,33 @@ const Analytics = () => {
         dispatch(setExpandedSubscriptionId(expandedSubscriptionId === id ? null : id));
     };
 
+    const exportToCSV = (data, filename) => {
+        if (!data || data.length === 0) return;
+        const keys = Object.keys(data[0]).filter(k => typeof data[0][k] !== 'object' && !k.startsWith('_'));
+        const csvContent = [
+            keys.join(','),
+            ...data.map(item => keys.map(k => {
+                let val = item[k] || '';
+                if (typeof val === 'string') {
+                    val = val.replace(/"/g, '""');
+                    val = val.replace(/\n/g, ' ');
+                }
+                return `"${val}"`;
+            }).join(','))
+        ].join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        if (link.download !== undefined) {
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', filename);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    };
+
     useEffect(() => {
         // Dispatch all analytics data fetching actions
         dispatch(fetchUserStats());
@@ -191,8 +220,6 @@ const Analytics = () => {
                 acc[monthKey] += sub.revenue;
                 return acc;
             }, {});
-            console.log('Month-wise Subscription Revenue:', monthWiseRevenue);
-            console.log('Complete Subscription Details (Payments Membership with Date):', subscriptions);
 
             // Calculate and show filtered subscriptions
             const filtered = getFilteredSubscriptions(subscriptions);
@@ -256,9 +283,6 @@ const Analytics = () => {
                 revenue: (yearWiseLast4Years[year] || []).reduce((sum, sub) => sum + sub.revenue, 0)
             }));
 
-            console.log('Last 7 Days Subscriptions Date-wise (with 0 for no amount):', dateWiseWithZeros);
-            console.log('Last 6 Months Subscriptions Month-wise (with 0 for no amount):', monthWiseWithZeros);
-            console.log('Last 4 Years Subscriptions Year-wise (with 0 for no amount):', yearWiseSorted);
 
             // Prepare data for tables
             setCalculatedData({
@@ -275,12 +299,6 @@ const Analytics = () => {
     // Log revenue data date-wise, month-wise, year-wise once when data is loaded
     useEffect(() => {
         if (consultationRevenue.dailyPeriods && membershipRevenue.dailyPeriods) {
-            console.log('Consultation Revenue - Date wise:', consultationRevenue.dailyPeriods);
-            console.log('Consultation Revenue - Month wise:', consultationRevenue.monthlyPeriods);
-            console.log('Consultation Revenue - Year wise:', consultationRevenue.yearlyPeriods);
-            console.log('Membership Revenue - Date wise:', membershipRevenue.dailyPeriods);
-            console.log('Membership Revenue - Month wise:', membershipRevenue.monthlyPeriods);
-            console.log('Membership Revenue - Year wise:', membershipRevenue.yearlyPeriods);
         }
     }, [consultationRevenue, membershipRevenue]);
 
@@ -292,13 +310,8 @@ const Analytics = () => {
     const dailyMembershipTotal = membershipRevenue.dailyPeriods ? membershipRevenue.dailyPeriods.reduce((sum, p) => sum + p.revenue, 0) : 0;
     const monthlyMembershipTotal = membershipRevenue.monthlyPeriods ? membershipRevenue.monthlyPeriods.reduce((sum, p) => sum + p.revenue, 0) : 0;
     const yearlyMembershipTotal = membershipRevenue.yearlyPeriods ? membershipRevenue.yearlyPeriods.reduce((sum, p) => sum + p.revenue, 0) : 0;
-
-    console.log('Membership Revenue Totals:', { daily: dailyMembershipTotal, monthly: monthlyMembershipTotal, yearly: yearlyMembershipTotal });
-
     // Calculate total subscription amount
     const totalSubscriptionAmount = subscriptions.reduce((sum, sub) => sum + sub.revenue, 0);
-    console.log('Total Subscription Amount:', totalSubscriptionAmount);
-
     // Parse commission rates for calculations
     const consultationCommissionRate = parseFloat(revenueAnalytics.summary?.commissionRates?.consultationCommission?.replace('%', '') || 0) / 100;
     const platformShareRate = parseFloat(revenueAnalytics.summary?.commissionRates?.platformShare?.replace('%', '') || 0) / 100;
@@ -412,7 +425,7 @@ const Analytics = () => {
 
                 {/* Error Message */}
                 {errorMessage && (
-                    <div className="bg-red-100 text-red-700 p-3 rounded-lg text-center mb-6">{errorMessage}</div>
+                    <div className="bg-red-100 text-red-700 p-3 rounded-lg text-center mb-6">Failed to load analytics data. Please try again.</div>
                 )}
 
                 {/* --- Card 1: User Statistics --- */}
@@ -560,7 +573,15 @@ const Analytics = () => {
 
                     {/* Monthly Breakdown */}
                     <div className="mb-6">
-                        <h3 className="text-lg font-semibold text-gray-800 mb-4">Monthly Revenue Breakdown (Last 12 Months)</h3>
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-lg font-semibold text-gray-800">Monthly Revenue Breakdown (Last 12 Months)</h3>
+                            <button
+                                onClick={() => exportToCSV(revenueAnalytics.monthlyBreakdown?.slice().reverse() || [], 'monthly_revenue_breakdown.csv')}
+                                className="px-3 py-1.5 bg-emerald-600 text-white rounded hover:bg-emerald-700 transition-colors flex items-center gap-2 text-sm shadow-sm"
+                            >
+                                <i className="fas fa-file-csv"></i> Export CSV
+                            </button>
+                        </div>
                         <div className="overflow-x-auto">
                             <table className="min-w-full divide-y divide-gray-200 shadow-md rounded-lg overflow-hidden border-collapse">
                                 <thead style={{ backgroundColor: THEME.primary }} className="text-white">
@@ -701,7 +722,15 @@ const Analytics = () => {
 
                                     {/* Dietitian Table with Pagination */}
                                     <div className="mt-6">
-                                        <h4 className="font-semibold text-sm text-gray-700 mb-3">All Dietitians by Revenue:</h4>
+                                        <div className="flex justify-between items-center mb-3">
+                                            <h4 className="font-semibold text-sm text-gray-700">All Dietitians by Revenue:</h4>
+                                            <button
+                                                onClick={() => exportToCSV(dietitianRevenue.data || [], 'dietitian_revenue.csv')}
+                                                className="px-3 py-1.5 bg-emerald-600 text-white rounded hover:bg-emerald-700 transition-colors flex items-center gap-2 text-xs shadow-sm"
+                                            >
+                                                <i className="fas fa-file-csv"></i> Export CSV
+                                            </button>
+                                        </div>
                                         <div className="overflow-x-auto">
                                             <table className="min-w-full divide-y divide-gray-200 shadow-md rounded-lg overflow-hidden border-collapse">
                                                 <thead style={{ backgroundColor: THEME.primary }} className="text-white">
@@ -718,7 +747,7 @@ const Analytics = () => {
                                                         .map((dietitian, index) => {
                                                             const globalRank = (dietitianPage - 1) * itemsPerPage + index + 1;
                                                             return (
-                                                                <tr key={index} className="hover:bg-green-50 transition-colors">
+                                                                <tr key={dietitian.dietitianName || `dietitian-${index}`} className="hover:bg-green-50 transition-colors">
                                                                     <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
                                                                         {globalRank}
                                                                     </td>
@@ -824,7 +853,15 @@ const Analytics = () => {
 
                                     {/* User Table with Pagination */}
                                     <div className="mt-6">
-                                        <h4 className="font-semibold text-sm text-gray-700 mb-3">All Users by Revenue:</h4>
+                                        <div className="flex justify-between items-center mb-3">
+                                            <h4 className="font-semibold text-sm text-gray-700">All Users by Revenue:</h4>
+                                            <button
+                                                onClick={() => exportToCSV(userRevenue.data || [], 'user_revenue.csv')}
+                                                className="px-3 py-1.5 bg-emerald-600 text-white rounded hover:bg-emerald-700 transition-colors flex items-center gap-2 text-xs shadow-sm"
+                                            >
+                                                <i className="fas fa-file-csv"></i> Export CSV
+                                            </button>
+                                        </div>
                                         <div className="overflow-x-auto">
                                             <table className="min-w-full divide-y divide-gray-200 shadow-md rounded-lg overflow-hidden border-collapse">
                                                 <thead style={{ backgroundColor: THEME.info }} className="text-white">
@@ -841,7 +878,7 @@ const Analytics = () => {
                                                         .map((user, index) => {
                                                             const globalRank = (userPage - 1) * itemsPerPage + index + 1;
                                                             return (
-                                                                <tr key={index} className="hover:bg-blue-50 transition-colors">
+                                                                <tr key={user.userName || `user-${index}`} className="hover:bg-blue-50 transition-colors">
                                                                     <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
                                                                         {globalRank}
                                                                     </td>

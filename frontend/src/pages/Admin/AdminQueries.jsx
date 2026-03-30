@@ -70,28 +70,16 @@ const AdminQueries = () => {
       setLoading(true);
       setError(null);
 
-      const token = localStorage.getItem('authToken_admin');
-      if (!token) {
-        setError('Authentication required. Please login as admin.');
-        setLoading(false);
-        return;
-      }
-
-      const response = await axios.get('/api/contact/queries-list', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await axios.get('/api/contact/queries-list');
 
       if (response.data.success) {
         setQueries(response.data.data);
       } else {
-        setError(response.data.message || 'Failed to fetch queries');
+        setError('Failed to fetch queries');
         // Fallback to mock data if API fails
         setQueries(mockQueries);
       }
-    } catch (err) {
-      console.error('Error fetching queries:', err);
+    } catch {
       setError('Failed to load queries. Showing sample data.');
       // Fallback to mock data
       setQueries(mockQueries);
@@ -154,18 +142,11 @@ const AdminQueries = () => {
     setIsSending(true);
 
     try {
-      const token = localStorage.getItem('authToken_admin');
-      if (!token) {
-        alert('Authentication expired. Please login again.');
-        return;
-      }
-
       const response = await axios.post(
         '/api/contact/reply',
         { queryId, replyMessage: replyText },
         {
           headers: {
-            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           }
         }
@@ -199,11 +180,10 @@ const AdminQueries = () => {
           }
         }, 100);
       } else {
-        alert(`Failed to submit reply: ${response.data.message}`);
+        alert('Failed to submit reply. Please try again.');
       }
-    } catch (error) {
-      console.error('Error sending reply:', error);
-      alert(`Failed to submit reply: ${error.response?.data?.message || error.message}`);
+    } catch {
+      alert('Failed to submit reply. Please try again.');
     } finally {
       setIsSending(false);
     }
@@ -262,7 +242,7 @@ const AdminQueries = () => {
             <div className="bg-white rounded-xl shadow-lg p-8 text-center border-l-4 border-red-500">
               <i className="fas fa-exclamation-triangle text-6xl text-red-500 mb-4"></i>
               <h3 className="text-xl font-semibold text-gray-700 mb-2">Error Loading Queries</h3>
-              <p className="text-red-600 mb-4">{error}</p>
+              <p className="text-red-600 mb-4">Something went wrong. Please try again.</p>
               <button
                 onClick={fetchQueries}
                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"

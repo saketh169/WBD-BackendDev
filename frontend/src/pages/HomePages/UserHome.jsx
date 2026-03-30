@@ -251,7 +251,7 @@ const UserHome = () => {
       <section id="blog" className="py-16 px-4 sm:px-6 md:px-8 bg-gray-100 text-center min-h-[137.5] overflow-auto animate-fade-in-up animate-delay-[700ms]">
         <div className="max-w-6xl mx-auto flex flex-col justify-center">
           <h2 className="text-4xl sm:text-5xl font-bold text-[#1A4A40] mb-12">
-            View Latest Blog Posts from Other Users 💡
+            <i className="fas fa-lightbulb mr-2"></i>View Latest Blog Posts from Other Users
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {blogPosts.map((post, index) => (
@@ -298,7 +298,7 @@ const UserHome = () => {
             <img src="https://videoigniter.com/wp-content/uploads/2024/02/How-Much-Does-Animation-Cost.jpg" alt="Pricing Plans" className="rounded-xl shadow-lg w-72 md:w-full max-w-sm" />
           </div>
           <div>
-            <h2 className="text-4xl sm:text-5xl font-bold text-[#1A4A40] mb-4">NutriConnect Membership Plans 💰</h2>
+            <h2 className="text-4xl sm:text-5xl font-bold text-[#1A4A40] mb-4"><i className="fas fa-credit-card mr-2"></i>NutriConnect Membership Plans</h2>
             <p className="text-gray-700 mb-6 text-lg">
               Unlock premium features like advanced tracking, priority support, and exclusive content with our flexible subscription models. Choose from Basic, Premium, or Ultimate.
             </p>

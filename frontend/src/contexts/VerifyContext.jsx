@@ -1,6 +1,7 @@
 import React, { createContext, useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import axios from 'axios';
+import { useAuthContext } from '../hooks/useAuthContext';
 
 // Create Verify Context
 const VerifyContext = createContext();
@@ -21,52 +22,25 @@ export const VerifyProvider = ({
   requiredRole,
   redirectTo = '/doc-status'
 }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
   const [verificationStatus, setVerificationStatus] = useState('pending');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [token, setToken] = useState(null);
   const location = useLocation();
+  const { token: authToken, isAuthenticated: authIsAuthenticated, loading: authLoading } = useAuthContext();
 
   useEffect(() => {
-    // Check authentication and verification on mount and when role/route changes
-    const checkAuthAndVerification = async () => {
+    // Wait for AuthContext to finish loading
+    if (authLoading) return;
+
+    const checkVerification = async () => {
       setLoading(true);
       setError(null);
 
-      // Check authentication first
-      let storedToken = localStorage.getItem(`authToken_${requiredRole}`);
-      const storedUser = JSON.parse(localStorage.getItem(`authUser_${requiredRole}`) || 'null');
-
-      // Backward-compat migration: old employee sessions stored under authToken_organization
-      if (!storedToken && requiredRole === 'employee') {
-        const orgAuthUser = JSON.parse(localStorage.getItem('authUser_organization') || 'null');
-        const orgAuthToken = localStorage.getItem('authToken_organization');
-
-        // Only migrate if an org token exists and the user data confirms it's an employee
-        if (orgAuthToken && orgAuthUser?.orgType === 'employee') {
-          console.log('[VerifyContext] Migrating legacy employee session from organization keys.');
-          localStorage.setItem('authToken_employee', orgAuthToken);
-          localStorage.setItem('authUser_employee', JSON.stringify(orgAuthUser));
-          
-          // Clean up old keys
-          localStorage.removeItem('authToken_organization');
-          localStorage.removeItem('authUser_organization');
-          
-          storedToken = orgAuthToken;
-        }
-      }
-
-      if (!storedToken) {
-        setToken(null);
-        setIsAuthenticated(false);
+      if (!authIsAuthenticated || !authToken) {
         setLoading(false);
         return;
       }
-
-      setToken(storedToken);
-      setIsAuthenticated(true);
 
       // Check verification status
       try {
@@ -77,7 +51,7 @@ export const VerifyProvider = ({
         
         const response = await axios.get(statusEndpoint, {
           headers: {
-            'Authorization': `Bearer ${storedToken}`,
+            'Authorization': `Bearer ${authToken}`,
             'Content-Type': 'application/json'
           }
         });
@@ -94,38 +68,21 @@ export const VerifyProvider = ({
       }
     };
 
-    checkAuthAndVerification();
-
-    // Listen for storage changes (logout in another tab)
-    const handleStorageChange = (e) => {
-      if (e.key === `authToken_${requiredRole}`) {
-        checkAuthAndVerification();
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-    };
-  }, [requiredRole, location.pathname]);
+    checkVerification();
+  }, [requiredRole, location.pathname, authToken, authIsAuthenticated, authLoading]);
 
   const value = {
-    isAuthenticated,
+    isAuthenticated: authIsAuthenticated,
     isVerified,
     verificationStatus,
-    token,
+    token: authToken,
     loading,
     error,
     requiredRole,
     redirectTo,
     // Helper to manually recheck verification (e.g., after status update)
     recheckVerification: () => {
-      const storedToken = localStorage.getItem(`authToken_${requiredRole}`);
-      if (storedToken) {
-        setToken(storedToken);
-        setIsAuthenticated(true);
-
+      if (authToken && authIsAuthenticated) {
         // Re-fetch verification status (employees check their org's status)
         const statusEndpoint = requiredRole === 'employee' 
           ? '/api/status/employee-org-status' 
@@ -133,7 +90,7 @@ export const VerifyProvider = ({
         
         axios.get(statusEndpoint, {
           headers: {
-            'Authorization': `Bearer ${storedToken}`,
+            'Authorization': `Bearer ${authToken}`,
             'Content-Type': 'application/json'
           }
         })
@@ -147,10 +104,6 @@ export const VerifyProvider = ({
             console.error('Verification recheck error:', err);
             setError('Failed to recheck verification');
           });
-      } else {
-        setToken(null);
-        setIsAuthenticated(false);
-        setIsVerified(false);
       }
     }
   };
@@ -179,7 +132,7 @@ export const VerifyProvider = ({
   }
 
   // Not Authenticated UI
-  if (!isAuthenticated) {
+  if (!authIsAuthenticated) {
     console.warn(`[VerifyProvider] User not authenticated for role: ${requiredRole}`);
 
     // Employees sign in through the organization form with orgType=employee

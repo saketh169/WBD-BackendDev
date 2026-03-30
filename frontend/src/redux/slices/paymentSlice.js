@@ -19,7 +19,7 @@ export const fetchPricingPlans = createAsyncThunk(
   'payment/fetchPricingPlans',
   async ({ billing = 'monthly' }, { rejectWithValue }) => {
     try {
-      const response = await axios.get(SETTINGS_API_URL);
+      const response = await axios.get(SETTINGS_API_URL, getAuthConfig());
       const settings = response.data;
       const tiers = billing === 'monthly' ? settings.monthlyTiers : settings.yearlyTiers;
       
@@ -34,13 +34,13 @@ export const fetchPricingPlans = createAsyncThunk(
             name: "Basic", 
             price: 299, 
             desc1: "Perfect starter plan for your wellness journey", 
-            desc2: "2 consultations/month • 3 days advance booking • 7 wellness plans • 20 daily chatbot queries • 2 blog posts/month",
+            desc2: "3 consultations/month • 5 days advance booking • 5 progress plans • 25 daily chatbot queries • No blog posting",
             features: [
-              "2 Consultations per month",
-              "Book up to 3 days in advance",
-              "7 Wellness Progress Plans",
-              "20 AI Chatbot queries per day",
-              "Create 2 Blog posts per month",
+              "3 Consultations per month",
+              "Book up to 5 days in advance",
+              "5 Personalized Progress Plans",
+              "25 AI Chatbot queries per day",
+              "No Blog posting",
               "Unlimited Chat & Video Calls",
               "Blog Reading Access",
               "Email Support"
@@ -50,13 +50,13 @@ export const fetchPricingPlans = createAsyncThunk(
             name: "Premium", 
             price: 599, 
             desc1: "Most popular for serious health goals", 
-            desc2: "8 consultations/month • 7 days advance booking • 12 wellness plans • 50 daily chatbot queries • 8 blog posts/month",
+            desc2: "5 consultations/month • 7 days advance booking • 10 progress plans • 40 daily chatbot queries • 3 blog posts/month",
             features: [
-              "8 Consultations per month",
+              "5 Consultations per month",
               "Book up to 7 days in advance",
-              "12 Wellness Progress Plans",
-              "50 AI Chatbot queries per day",
-              "Create 8 Blog posts per month",
+              "10 Personalized Progress Plans",
+              "40 AI Chatbot queries per day",
+              "Create 3 Blog posts per month",
               "Unlimited Chat & Video Calls",
               "Full Blog Access",
               "Priority Email Support",
@@ -68,13 +68,13 @@ export const fetchPricingPlans = createAsyncThunk(
             name: "Ultimate", 
             price: 899, 
             desc1: "Complete wellness package with all features", 
-            desc2: "20 consultations/month • 21 days advance booking • All 15 wellness plans • Unlimited chatbot • Unlimited blogs",
+            desc2: "12 consultations/month • 14 days advance booking • 20 progress plans • 75 daily chatbot queries • 10 blog posts/month",
             features: [
-              "20 Consultations per month",
-              "Book up to 21 days in advance",
-              "All 15 Wellness Progress Plans",
-              "Unlimited AI Chatbot queries",
-              "Unlimited Blog posts",
+              "12 Consultations per month",
+              "Book up to 14 days in advance",
+              "20 Personalized Progress Plans",
+              "75 AI Chatbot queries per day",
+              "Create 10 Blog posts per month",
               "Unlimited Chat & Video Calls",
               "Full Blog Access & Priority",
               "24/7 Priority Support",
@@ -89,22 +89,22 @@ export const fetchPricingPlans = createAsyncThunk(
             name: "Basic", 
             price: 999, 
             desc1: "Save 72% with yearly subscription!", 
-            desc2: "2 consultations/month • 3 days advance booking • 7 wellness plans • 20 daily chatbot queries • 2 blog posts/month",
-            features: ["2 Consultations per month", "Book up to 3 days in advance", "7 Wellness Progress Plans", "20 AI Chatbot queries per day", "Create 2 Blog posts per month", "Unlimited Chat & Video Calls", "Blog Reading Access", "Email Support"]
+            desc2: "3 consultations/month • 5 days advance booking • 5 progress plans • 25 daily chatbot queries • No blog posting",
+            features: ["3 Consultations per month", "Book up to 5 days in advance", "5 Personalized Progress Plans", "25 AI Chatbot queries per day", "No Blog posting", "Unlimited Chat & Video Calls", "Blog Reading Access", "Email Support"]
           },
           { 
             name: "Premium", 
             price: 1999, 
             desc1: "Save 72% compared to monthly billing!", 
-            desc2: "8 consultations/month • 7 days advance booking • 12 wellness plans • 50 daily chatbot queries • 8 blog posts/month",
-            features: ["8 Consultations per month", "Book up to 7 days in advance", "12 Wellness Progress Plans", "50 AI Chatbot queries per day", "Create 8 Blog posts per month", "Unlimited Chat & Video Calls", "Full Blog Access", "Priority Email Support", "Advanced Progress Analytics", "Lab Report Analysis"]
+            desc2: "5 consultations/month • 7 days advance booking • 10 progress plans • 40 daily chatbot queries • 3 blog posts/month",
+            features: ["5 Consultations per month", "Book up to 7 days in advance", "10 Personalized Progress Plans", "40 AI Chatbot queries per day", "Create 3 Blog posts per month", "Unlimited Chat & Video Calls", "Full Blog Access", "Priority Email Support", "Advanced Progress Analytics", "Lab Report Analysis"]
           },
           { 
             name: "Ultimate", 
             price: 2999, 
             desc1: "Best Value! Save 72% on yearly plan", 
-            desc2: "20 consultations/month • 21 days advance booking • All 15 wellness plans • Unlimited chatbot • Unlimited blogs",
-            features: ["20 Consultations per month", "Book up to 21 days in advance", "All 15 Wellness Progress Plans", "Unlimited AI Chatbot queries", "Unlimited Blog posts", "Unlimited Chat & Video Calls", "Full Blog Access & Priority", "24/7 Priority Support", "Premium Analytics Dashboard", "AI-Powered Health Insights", "Exclusive Health Resources", "Priority Dietitian Matching"]
+            desc2: "12 consultations/month • 14 days advance booking • 20 progress plans • 75 daily chatbot queries • 10 blog posts/month",
+            features: ["12 Consultations per month", "Book up to 14 days in advance", "20 Personalized Progress Plans", "75 AI Chatbot queries per day", "Create 10 Blog posts per month", "Unlimited Chat & Video Calls", "Full Blog Access & Priority", "24/7 Priority Support", "Premium Analytics Dashboard", "AI-Powered Health Insights", "Exclusive Health Resources", "Priority Dietitian Matching"]
           }
         ],
         billing

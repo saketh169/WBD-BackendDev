@@ -24,7 +24,7 @@ const UserSchema = new Schema({
     dob: { type: Date, required: true },
     gender: { type: String, enum: ['male', 'female', 'other'], required: true },
     address: { type: String, required: true, maxlength: 200 },
-    profileImage: { type: Buffer },
+    profileImage: { type: Schema.Types.Mixed },
 }, { timestamps: true });
 
 // 2b. Admin Profile (adminKey REMOVED)
@@ -35,7 +35,7 @@ const AdminSchema = new Schema({
     dob: { type: Date, required: true },
     gender: { type: String, enum: ['male', 'female', 'other'], required: true },
     address: { type: String, required: true, maxlength: 200 },
-    profileImage: { type: Buffer },
+    profileImage: { type: Schema.Types.Mixed },
 }, { timestamps: true });
 
 // 2c. Dietitian Profile
@@ -51,15 +51,15 @@ const DietitianSchema = new Schema({
     idProofType: { type: String },
     specializationDomain: { type: String },
     files: {
-        resume: { type: Buffer },
-        degreeCertificate: { type: Buffer },
-        licenseDocument: { type: Buffer },
-        idProof: { type: Buffer },
-        experienceCertificates: { type: Buffer },
-        specializationCertifications: { type: Buffer },
-        internshipCertificate: { type: Buffer },
-        researchPapers: { type: Buffer },
-        finalReport: { type: Buffer }
+        resume: { type: String },
+        degreeCertificate: { type: String },
+        licenseDocument: { type: String },
+        idProof: { type: String },
+        experienceCertificates: { type: String },
+        specializationCertifications: { type: String },
+        internshipCertificate: { type: String },
+        researchPapers: { type: String },
+        finalReport: { type: String }
     },
     verificationStatus: {
         resume: { type: String, enum: ['Not Uploaded', 'Pending', 'Verified', 'Rejected'], default: 'Not Uploaded' },
@@ -75,7 +75,7 @@ const DietitianSchema = new Schema({
     documents: { type: Schema.Types.Mixed, default: {} }, // Store document metadata
     documentUploadStatus: { type: String, enum: ['pending', 'verified', 'rejected'], default: 'pending' },
     lastDocumentUpdate: { type: Date, default: null },
-    profileImage: { type: Buffer },
+    profileImage: { type: Schema.Types.Mixed },
     specialization: [{ type: String }],
     specialties: [{ type: String }],
     experience: { type: Number },
@@ -154,15 +154,15 @@ const OrganizationSchema = new Schema({
     addressProofType: { type: String },
     bankDocumentType: { type: String },
     files: {
-        orgLogo: { type: Buffer },
-        orgBrochure: { type: Buffer },
-        legalDocument: { type: Buffer },
-        taxDocument: { type: Buffer },
-        addressProof: { type: Buffer },
-        businessLicense: { type: Buffer },
-        authorizedRepId: { type: Buffer },
-        bankDocument: { type: Buffer },
-        finalReport: { type: Buffer }
+        orgLogo: { type: String },
+        orgBrochure: { type: String },
+        legalDocument: { type: String },
+        taxDocument: { type: String },
+        addressProof: { type: String },
+        businessLicense: { type: String },
+        authorizedRepId: { type: String },
+        bankDocument: { type: String },
+        finalReport: { type: String }
     },
     verificationStatus: {
         orgLogo: { type: String, enum: ['Not Uploaded', 'Pending', 'Verified', 'Rejected'], default: 'Not Uploaded' },
@@ -178,7 +178,7 @@ const OrganizationSchema = new Schema({
     documents: { type: Schema.Types.Mixed, default: {} }, // Store document metadata
     documentUploadStatus: { type: String, enum: ['pending', 'verified', 'rejected'], default: 'pending' },
     lastDocumentUpdate: { type: Date, default: null },
-    profileImage: { type: Buffer },
+    profileImage: { type: Schema.Types.Mixed },
 }, { timestamps: true });
 
 // 2e. Employee Profile (Organization Employee)
@@ -205,6 +205,13 @@ const EmployeeSchema = new Schema({
 
 // Index for faster queries
 EmployeeSchema.index({ organizationId: 1, email: 1 }, { unique: true, sparse: true });
+
+UserSchema.index({ createdAt: 1 });
+DietitianSchema.index({ 'verificationStatus.finalReport': 1, isDeleted: 1 });
+DietitianSchema.index({ createdAt: 1 });
+OrganizationSchema.index({ documentUploadStatus: 1 });
+OrganizationSchema.index({ createdAt: 1 });
+UserAuthSchema.index({ role: 1 });
 
 module.exports = {
     UserAuth: mongoose.model('UserAuth', UserAuthSchema),

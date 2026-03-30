@@ -4,23 +4,45 @@ const morgan = require('morgan');
 const rfs = require('rotating-file-stream');
 
 const logsFolder = path.join(__dirname, '..', '..', 'logs');
+const requestLogsFolder = path.join(logsFolder, 'request');
+const errorLogsFolder = path.join(logsFolder, 'error');
 
 if (!fs.existsSync(logsFolder)) {
   fs.mkdirSync(logsFolder, { recursive: true });
 }
 
+if (!fs.existsSync(requestLogsFolder)) {
+  fs.mkdirSync(requestLogsFolder, { recursive: true });
+}
+
+if (!fs.existsSync(errorLogsFolder)) {
+  fs.mkdirSync(errorLogsFolder, { recursive: true });
+}
+
+const formatDate = (time) => {
+  const date = time ? new Date(time) : new Date();
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}-${month}-${year}`;
+};
+
+const buildLogFileName = (prefix, time) => `${prefix}-${formatDate(time)}.txt`;
+
 // Create a rotating write stream for access logs
-const accessLogStream = rfs.createStream('request.txt', {
+const accessLogStream = rfs.createStream((time) => buildLogFileName('request', time), {
   interval: '1d', // Rotate daily
   maxFiles: 30, // Keep logs for up to 30 days
-  path: logsFolder
+  immutable: true,
+  path: requestLogsFolder
 });
 
 // Create a rotating write stream for error logs
-const errorLogStream = rfs.createStream('error.txt', {
+const errorLogStream = rfs.createStream((time) => buildLogFileName('error', time), {
   interval: '1d', // Rotate daily
-  maxFiles: 30, 
-  path: logsFolder
+  maxFiles: 30,
+  immutable: true,
+  path: errorLogsFolder
 });
 
 // Morgan middleware for HTTP request logging

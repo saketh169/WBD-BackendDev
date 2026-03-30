@@ -433,6 +433,7 @@ const PaymentNotificationModal = ({
                   src={bank.logo}
                   alt={bank.name}
                   className="h-8 w-auto object-contain"
+                  onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = 'https://via.placeholder.com/80x24?text=Bank'; }}
                 />
                 <span
                   className="text-sm font-medium"
@@ -568,8 +569,9 @@ const PaymentNotificationModal = ({
                   )}
                 </button>
                 <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
-                  <p className="text-xs text-blue-800">
-                    🔒 Your credentials are encrypted and secure. We never store your banking password.
+                  <p className="text-xs text-blue-800 flex items-center gap-2">
+                    <i className="fas fa-lock text-blue-600"></i>
+                    Your credentials are encrypted and secure. We never store your banking password.
                   </p>
                 </div>
               </div>
@@ -590,27 +592,29 @@ const PaymentNotificationModal = ({
             </div>
             <div className="grid grid-cols-2 gap-3">
               {[
-                {
-                  name: "Google Pay",
-                  logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Google_Pay_Logo.svg/512px-Google_Pay_Logo.svg.png",
-                  brandColor: "#4285F4"
-                },
-                {
-                  name: "PhonePe",
-                  textColor: "#5F259F",
-                  brandColor: "#5F259F"
-                },
-                {
-                  name: "Paytm",
-                  logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/24/Paytm_Logo_%28standalone%29.svg/512px-Paytm_Logo_%28standalone%29.svg.png",
-                  brandColor: "#00BAF2"
-                },
-                {
-                  name: "BHIM",
-                  textColor: "#ED1C24",
-                  brandColor: "#ED1C24"
-                }
-              ].map((app) => (
+  {
+    name: "Google Pay",
+    logo: "/images/Gpay.jpg",
+    brandColor: "#4285F4"
+  },
+  {
+    name: "PhonePe",
+    logo: "/images/PhonePay.png",
+    textColor: "#5F259F",
+    brandColor: "#5F259F"
+  },
+  {
+    name: "Paytm",
+    logo: "/images/Paytm.jpg",
+    brandColor: "#00BAF2"
+  },
+  {
+    name: "BHIM",
+    logo: "/images/Bhimpay.jpg",
+    textColor: "#ED1C24",
+    brandColor: "#ED1C24"
+  }
+].map((app) => (
                 <button
                   key={app.name}
                   type="button"
@@ -637,17 +641,9 @@ const PaymentNotificationModal = ({
                         src={app.logo}
                         alt={app.name}
                         className="max-h-12 max-w-full object-contain"
+                        onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = 'https://via.placeholder.com/96x32?text=UPI'; }}
                       />
-                    ) : (
-                      <div className="text-center">
-                        <p className="text-lg font-bold" style={{ color: app.textColor }}>
-                          {app.name}
-                        </p>
-                        {app.name === "BHIM" && (
-                          <p className="text-xs mt-1" style={{ color: app.textColor }}>UPI</p>
-                        )}
-                      </div>
-                    )}
+                    ) : null}
                   </div>
                 </button>
               ))}
@@ -834,7 +830,7 @@ const PaymentNotificationModal = ({
           {/* Security Notice */}
           <div className="mb-6 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
             <p className="text-xs text-emerald-700 flex items-center gap-2">
-              <span className="text-emerald-600">🔒</span>
+              <i className="fas fa-lock text-emerald-600"></i>
               Your payment information is secure and encrypted
             </p>
           </div>
@@ -860,7 +856,7 @@ const PaymentNotificationModal = ({
             >
               {isProcessing ? (
                 <>
-                  <span className="animate-spin">⏳</span>
+                  <i className="fas fa-spinner animate-spin mr-2"></i>
                   Processing...
                 </>
               ) : (

@@ -8,34 +8,202 @@ const {
     getUserDetails,
     permanentDeleteAccount
 } = require('../controllers/crudController');
+const { authenticateJWT, ensureAdminAuthenticated } = require('../middlewares/authMiddleware');
 
-// Middleware to check admin authentication
-const requireAdmin = (req, res, next) => {
-    // For development, allow all requests without authentication
-    next();
-};
+const adminAuth = [authenticateJWT, ensureAdminAuthenticated];
 
-// Apply admin middleware to all routes
-router.use(requireAdmin);
-
+/**
+ * @swagger
+ * /api/crud/{role}-list:
+ *   get:
+ *     tags: ['Crud']
+ *     summary: Get all users by role
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: role
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: ['user', 'admin', 'dietitian', 'organization', 'employee']
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Users list retrieved
+ *       403:
+ *         description: Admin access required
+ */
 // Get all users by role (with optional search)
-router.get('/crud/:role-list', getUsersByRole);
-router.get('/crud/:role-list/search', getUsersByRole); // Alternative search endpoint
+router.get('/crud/:role-list', ...adminAuth, getUsersByRole);
 
+/**
+ * @swagger
+ * /api/crud/{role}-list/search:
+ *   get:
+ *     tags: ['Crud']
+ *     summary: Search users by role
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: role
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: q
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Search results retrieved
+ *       403:
+ *         description: Admin access required
+ */
+router.get('/crud/:role-list/search', ...adminAuth, getUsersByRole);
+
+/**
+ * @swagger
+ * /api/crud/{role}-list/{id}:
+ *   get:
+ *     tags: ['Crud']
+ *     summary: Get user details by role and ID
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: role
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User details retrieved
+ *       404:
+ *         description: User not found
+ */
 // Get user details
-router.get('/crud/:role-list/:id', getUserDetails);
+router.get('/crud/:role-list/:id', ...adminAuth, getUserDetails);
 
+/**
+ * @swagger
+ * /api/crud/{role}-list/{id}:
+ *   delete:
+ *     tags: ['Crud']
+ *     summary: Soft delete user
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: role
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User deleted
+ *       403:
+ *         description: Admin access required
+ */
 // Remove a user
-router.delete('/crud/:role-list/:id', removeUser);
+router.delete('/crud/:role-list/:id', ...adminAuth, removeUser);
 
+/**
+ * @swagger
+ * /api/crud/removed-accounts:
+ *   get:
+ *     tags: ['Crud']
+ *     summary: Get removed user accounts
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Removed accounts retrieved
+ *       403:
+ *         description: Admin access required
+ */
 // Get removed accounts
-router.get('/crud/removed-accounts', getRemovedAccounts);
-router.get('/crud/removed-accounts/search', getRemovedAccounts); // Alternative search endpoint
+router.get('/crud/removed-accounts', ...adminAuth, getRemovedAccounts);
 
+/**
+ * @swagger
+ * /api/crud/removed-accounts/search:
+ *   get:
+ *     tags: ['Crud']
+ *     summary: Search removed accounts
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Search results retrieved
+ *       403:
+ *         description: Admin access required
+ */
+router.get('/crud/removed-accounts/search', ...adminAuth, getRemovedAccounts);
+
+/**
+ * @swagger
+ * /api/crud/removed-accounts/{id}/restore:
+ *   post:
+ *     tags: ['Crud']
+ *     summary: Restore removed account
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Account restored
+ *       403:
+ *         description: Admin access required
+ */
 // Restore a removed account
-router.post('/crud/removed-accounts/:id/restore', restoreAccount);
+router.post('/crud/removed-accounts/:id/restore', ...adminAuth, restoreAccount);
 
+/**
+ * @swagger
+ * /api/crud/removed-accounts/{id}:
+ *   delete:
+ *     tags: ['Crud']
+ *     summary: Permanently delete removed account
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Account permanently deleted
+ *       403:
+ *         description: Admin access required
+ */
 // Permanently delete a removed account
-router.delete('/crud/removed-accounts/:id', permanentDeleteAccount);
+router.delete('/crud/removed-accounts/:id', ...adminAuth, permanentDeleteAccount);
 
 module.exports = router;

@@ -74,8 +74,6 @@ const Footer = () => {
 
   return (
     <footer className="bg-[#1E6F5C] text-white pt-16 font-poppins">
-      {/* Font Awesome CDN (Can be moved to index.html for better practice) */}
-      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
 
       <div className={`max-w-6xl mx-auto grid grid-cols-1 ${isUserPage ? 'md:grid-cols-4' : 'md:grid-cols-3'} gap-10 px-5 border-b border-white/20 pb-12 place-items-start`}>
 
@@ -88,7 +86,9 @@ const Footer = () => {
             <li className="mb-3 flex items-center">
               <i className="fas fa-envelope mr-3 text-[#28B463]"></i>
               <a
-                href="mailto:nutriconnect6@gmail.com"
+                href="https://mail.google.com/mail/?view=cm&fs=1&to=nutriconnect6%40gmail.com"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="no-underline hover:text-[#FFD700] transition-all duration-300"
                 aria-label="Email NutriConnect"
               >

@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
+import AuthContext from '../../contexts/AuthContext';
 
 const EmployeeHome = () => {
   const navigate = useNavigate();
+  const { user } = useContext(AuthContext);
 
-  const authUser = JSON.parse(localStorage.getItem('authUser_employee') || '{}');
-  const employeeName = authUser.name || 'Employee';
+  const employeeName = user?.name || 'Employee';
 
   const taskCards = [
     {

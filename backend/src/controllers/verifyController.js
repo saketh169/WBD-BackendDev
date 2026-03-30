@@ -1,12 +1,13 @@
-﻿const mongoose = require('mongoose');
+const mongoose = require('mongoose');
 const { Dietitian, Organization } = require('../models/userModel');
 
 // Handle dietitian file uploads and mark as Pending
+const { uploadStreamToCloudinary } = require('../utils/cloudinary');
 async function uploadDietitianFiles(req, res) {
     try {
-        const dietitian = req.session.dietitian;
-        if (!dietitian) {
-            return res.status(403).json({ success: false, message: 'Unauthorized: Dietitian session not found' });
+        const dietitianId = req.user?.roleId;
+        if (!dietitianId) {
+            return res.status(403).json({ success: false, message: 'Unauthorized: Dietitian not authenticated' });
         }
 
         let fileDetails = 'Uploaded Files:\n';
@@ -25,7 +26,7 @@ async function uploadDietitianFiles(req, res) {
         };
 
         for (const field in req.files) {
-            req.files[field].forEach(file => {
+            for (const file of req.files[field]) {
                 fileDetails += `Field: ${field}\n`;
                 fileDetails += `Original Name: ${file.originalname}\n`;
                 fileDetails += `MIME Type: ${file.mimetype}\n`;
@@ -34,23 +35,26 @@ async function uploadDietitianFiles(req, res) {
 
                 const schemaField = fieldMap[field];
                 if (schemaField) {
-                    filesUpdate[`files.${schemaField}`] = file.buffer;
-                    verificationStatusUpdate[`verificationStatus.${schemaField}`] = 'Pending';
+                    try {
+                        const result = await uploadStreamToCloudinary(file.buffer, `dietitian_docs/${dietitianId}`);
+                        filesUpdate[`files.${schemaField}`] = result.secure_url;
+                        verificationStatusUpdate[`verificationStatus.${schemaField}`] = 'Pending';
+                    } catch (uploadErr) {
+                        console.error(`Failed to upload ${field} to Cloudinary:`, uploadErr);
+                        return res.status(500).json({ success: false, message: `Cloud upload failed for ${field}` });
+                    }
                 }
-            });
+            }
         }
 
-        console.log(fileDetails);
-
         const unsetFields = {};
-        const existingDietitian = await Dietitian.findById(dietitian.id);
+        const existingDietitian = await Dietitian.findById(dietitianId);
         if (existingDietitian.files && existingDietitian.files.finalReport) {
             unsetFields['files.finalReport'] = '';
-            console.log(`Removing existing final report for dietitian: ${dietitian.name}`);
         }
 
         const updatedDietitian = await Dietitian.findByIdAndUpdate(
-            dietitian.id,
+            dietitianId,
             {
                 $set: {
                     ...filesUpdate,
@@ -66,13 +70,6 @@ async function uploadDietitianFiles(req, res) {
             return res.status(404).json({ success: false, message: 'Dietitian not found' });
         }
 
-        req.session.dietitian = {
-            id: updatedDietitian._id,
-            role: 'dietitian',
-            email: updatedDietitian.email,
-            name: updatedDietitian.name
-        };
-
         res.status(200).json({
             success: true,
             message: 'Files uploaded and marked as Pending successfully!',
@@ -86,7 +83,7 @@ async function uploadDietitianFiles(req, res) {
         });
     } catch (err) {
         console.error('Error uploading files:', err.message);
-        res.status(500).json({ success: false, message: 'Server error', error: err.message });
+        res.status(500).json({ success: false, message: 'Server error' });
     }
 }
 
@@ -94,11 +91,6 @@ async function uploadDietitianFiles(req, res) {
 async function getDietitians(req, res) {
     try {
         const dietitians = await Dietitian.find({}).select('name email files verificationStatus documentUploadStatus');
-
-        console.log('All Dietitians:');
-        dietitians.forEach((dietitian) => {
-            console.log(`- ${dietitian.name}: ${dietitian.documentUploadStatus || 'No status'}`);
-        });
 
         res.status(200).json(dietitians);
     } catch (error) {
@@ -126,12 +118,11 @@ async function getDietitianFile(req, res) {
         }
 
         const files = dietitian.files || {};
-        const fileBuffer = files[field];
-        if (!fileBuffer || fileBuffer.length === 0) {
+        const fileUrl = files[field];
+        if (!fileUrl) {
             return res.status(404).json({ success: false, message: 'File not found' });
         }
 
-        const base64Data = fileBuffer.toString('base64');
         const fieldMap = {
             resume: { name: 'Resume', ext: 'pdf', mime: 'application/pdf' },
             degreeCertificate: { name: 'Degree Certificate', ext: 'pdf', mime: 'application/pdf' },
@@ -150,7 +141,7 @@ async function getDietitianFile(req, res) {
                 name: fieldMap[field].name,
                 ext: fieldMap[field].ext,
                 mime: fieldMap[field].mime,
-                base64: base64Data
+                url: fileUrl
             }
         });
     } catch (error) {
@@ -306,9 +297,9 @@ async function uploadDietitianFinalReport(req, res) {
 // Fetch current dietitian's details
 async function getCurrentDietitian(req, res) {
     try {
-        const dietitianId = req.session.dietitian.id;
-        if (!mongoose.Types.ObjectId.isValid(dietitianId)) {
-            return res.status(400).json({ success: false, message: 'Invalid dietitian ID in session' });
+        const dietitianId = req.user?.roleId;
+        if (!dietitianId || !mongoose.Types.ObjectId.isValid(dietitianId)) {
+            return res.status(400).json({ success: false, message: 'Invalid dietitian ID' });
         }
 
         const dietitian = await Dietitian.findById(dietitianId).select('name email verificationStatus files');
@@ -342,7 +333,6 @@ async function getCurrentDietitian(req, res) {
 
         documentFields.forEach(field => {
             const status = dietitian.verificationStatus[field] || (field === 'finalReport' ? 'Not Received' : 'Not Uploaded');
-            console.log(`${fieldMap[field]}: ${status}`);
         });
 
         res.status(200).json({
@@ -369,7 +359,11 @@ async function getCurrentDietitian(req, res) {
 // Check dietitian final report status
 async function checkDietitianStatus(req, res) {
     try {
-        const dietitian = await Dietitian.findById(req.session.dietitian.id).select('verificationStatus');
+        const dietitianId = req.user?.roleId;
+        if (!dietitianId) {
+            return res.status(400).json({ success: false, message: 'Dietitian ID required' });
+        }
+        const dietitian = await Dietitian.findById(dietitianId).select('verificationStatus');
         if (!dietitian) {
             return res.status(404).json({ success: false, message: 'Dietitian not found' });
         }
@@ -382,16 +376,16 @@ async function checkDietitianStatus(req, res) {
         });
     } catch (err) {
         console.error('Error checking final report status:', err.message);
-        res.status(500).json({ success: false, message: 'Server error', error: err.message });
+        res.status(500).json({ success: false, message: 'Server error' });
     }
 }
 
 // Handle organization file uploads and mark as Pending
 async function uploadOrganizationFiles(req, res) {
     try {
-        const organization = req.session.organization;
-        if (!organization) {
-            return res.status(403).json({ success: false, message: 'Unauthorized: Organization session not found' });
+        const organizationId = req.user?.roleId;
+        if (!organizationId) {
+            return res.status(403).json({ success: false, message: 'Unauthorized: Organization not authenticated' });
         }
 
         let fileDetails = 'Uploaded Files:\n';
@@ -410,7 +404,7 @@ async function uploadOrganizationFiles(req, res) {
         };
 
         for (const field in req.files) {
-            req.files[field].forEach(file => {
+            for (const file of req.files[field]) {
                 fileDetails += `Field: ${field}\n`;
                 fileDetails += `Original Name: ${file.originalname}\n`;
                 fileDetails += `MIME Type: ${file.mimetype}\n`;
@@ -419,23 +413,26 @@ async function uploadOrganizationFiles(req, res) {
 
                 const schemaField = fieldMap[field];
                 if (schemaField) {
-                    filesUpdate[`files.${schemaField}`] = file.buffer;
-                    verificationStatusUpdate[`verificationStatus.${schemaField}`] = 'Pending';
+                    try {
+                        const result = await uploadStreamToCloudinary(file.buffer, `org_docs/${organizationId}`);
+                        filesUpdate[`files.${schemaField}`] = result.secure_url;
+                        verificationStatusUpdate[`verificationStatus.${schemaField}`] = 'Pending';
+                    } catch (uploadErr) {
+                        console.error(`Failed to upload ${field} to Cloudinary:`, uploadErr);
+                        return res.status(500).json({ success: false, message: `Cloud upload failed for ${field}` });
+                    }
                 }
-            });
+            }
         }
 
-        console.log(fileDetails);
-
         const unsetFields = {};
-        const existingOrganization = await Organization.findById(organization.id);
+        const existingOrganization = await Organization.findById(organizationId);
         if (existingOrganization.files && existingOrganization.files.finalReport) {
             unsetFields['files.finalReport'] = '';
-            console.log(`Removing existing final report for organization: ${organization.name}`);
         }
 
         const updatedOrganization = await Organization.findByIdAndUpdate(
-            organization.id,
+            organizationId,
             {
                 $set: {
                     ...filesUpdate,
@@ -451,13 +448,6 @@ async function uploadOrganizationFiles(req, res) {
             return res.status(404).json({ success: false, message: 'Organization not found' });
         }
 
-        req.session.organization = {
-            id: updatedOrganization._id,
-            role: 'organization',
-            email: updatedOrganization.email,
-            name: updatedOrganization.name
-        };
-
         res.status(200).json({
             success: true,
             message: 'Files uploaded and marked as Pending successfully!',
@@ -471,21 +461,35 @@ async function uploadOrganizationFiles(req, res) {
         });
     } catch (err) {
         console.error('Error uploading files:', err.message);
-        res.status(500).json({ success: false, message: 'Server error', error: err.message });
+        res.status(500).json({ success: false, message: 'Server error' });
     }
 }
 
 // Fetch all organizations and log file statuses
 async function getOrganizations(req, res) {
     try {
-        const organizations = await Organization.find({}).select('name email files verificationStatus documentUploadStatus');
+        const { page = 1, limit = 10 } = req.query;
+        const pageNumber = parseInt(page, 10) || 1;
+        const pageSize = parseInt(limit, 10) || 10;
+        const skip = (pageNumber - 1) * pageSize;
 
-        console.log('All Organizations:');
-        organizations.forEach((organization) => {
-            console.log(`- ${organization.name}: ${organization.documentUploadStatus || 'pending'}`);
+        const [organizations, total] = await Promise.all([
+            Organization.find({})
+                .select('name email files verificationStatus documentUploadStatus')
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(pageSize),
+            Organization.countDocuments({})
+        ]);
+
+        res.status(200).json({
+            success: true,
+            data: organizations,
+            total,
+            page: pageNumber,
+            limit: pageSize,
+            pages: Math.ceil(total / pageSize)
         });
-
-        res.status(200).json(organizations);
     } catch (error) {
         console.error('Error fetching organizations:', error);
         res.status(500).json({ success: false, message: 'Failed to fetch organizations' });
@@ -693,9 +697,9 @@ async function uploadOrganizationFinalReport(req, res) {
 // Fetch current organization's details
 async function getCurrentOrganization(req, res) {
     try {
-        const organizationId = req.session.organization.id;
-        if (!mongoose.Types.ObjectId.isValid(organizationId)) {
-            return res.status(400).json({ success: false, message: 'Invalid organization ID in session' });
+        const organizationId = req.user?.roleId;
+        if (!organizationId || !mongoose.Types.ObjectId.isValid(organizationId)) {
+            return res.status(400).json({ success: false, message: 'Invalid organization ID' });
         }
 
         const organization = await Organization.findById(organizationId).select('name email verificationStatus files');
@@ -728,7 +732,6 @@ async function getCurrentOrganization(req, res) {
 
         documentFields.forEach(field => {
             const status = organization.verificationStatus[field] || (field === 'finalReport' ? 'Not Received' : 'Not Uploaded');
-            console.log(`${fieldMap[field]}: ${status}`);
         });
 
         res.status(200).json({
@@ -755,7 +758,11 @@ async function getCurrentOrganization(req, res) {
 // Check organization final report status
 async function checkOrganizationStatus(req, res) {
     try {
-        const organization = await Organization.findById(req.session.organization.id).select('verificationStatus');
+        const organizationId = req.user?.roleId;
+        if (!organizationId) {
+            return res.status(400).json({ success: false, message: 'Organization ID required' });
+        }
+        const organization = await Organization.findById(organizationId).select('verificationStatus');
         if (!organization) {
             return res.status(404).json({ success: false, message: 'Organization not found' });
         }
@@ -768,7 +775,7 @@ async function checkOrganizationStatus(req, res) {
         });
     } catch (err) {
         console.error('Error checking final report status:', err.message);
-        res.status(500).json({ success: false, message: 'Server error', error: err.message });
+        res.status(500).json({ success: false, message: 'Server error' });
     }
 }
 

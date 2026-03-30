@@ -7,6 +7,16 @@ const { BlockedSlot } = require('../models/bookingModel');
 const { authenticateJWT } = require('../middlewares/authMiddleware');
 
 // Get all verified dietitians
+/**
+ * @swagger
+ * /api/dietitians:
+ *   get:
+ *     tags: ['Dietitian']
+ *     summary: Get all verified dietitians
+ *     responses:
+ *       200:
+ *         description: List of verified dietitians
+ */
 router.get('/dietitians', async (req, res) => {
   try {
     const dietitians = await Dietitian.find({
@@ -14,15 +24,21 @@ router.get('/dietitians', async (req, res) => {
       isDeleted: false
     }).select('-password -files -documents -verificationStatus'); // Exclude sensitive data
 
-    // Convert profileImage buffers to base64 data URLs
+    // Convert profileImage to suitable format (Buffer base64 or Cloudinary URL)
     const dietitiansWithImages = dietitians.map(dietitian => {
       const dietitianObj = dietitian.toObject();
       if (dietitianObj.profileImage) {
-        dietitianObj.photo = `data:image/jpeg;base64,${dietitianObj.profileImage.toString('base64')}`;
+        if (typeof dietitianObj.profileImage === 'string' && dietitianObj.profileImage.startsWith('http')) {
+          dietitianObj.photo = dietitianObj.profileImage;
+        } else if (Buffer.isBuffer(dietitianObj.profileImage)) {
+          dietitianObj.photo = `data:image/jpeg;base64,${dietitianObj.profileImage.toString('base64')}`;
+        } else {
+          dietitianObj.photo = dietitianObj.profileImage;
+        }
       } else {
         dietitianObj.photo = null;
       }
-      delete dietitianObj.profileImage; // Remove the buffer field
+      // Keep profileImage but also provide photo for frontend compatibility
       return dietitianObj;
     });
 
@@ -41,8 +57,34 @@ router.get('/dietitians', async (req, res) => {
 });
 
 // Get dietitian by ID
+/**
+ * @swagger
+ * /api/dietitians/{id}:
+ *   get:
+ *     tags: ['Dietitian']
+ *     summary: Get dietitian by ID
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Dietitian details
+ *       404:
+ *         description: Dietitian not found
+ */
 router.get('/dietitians/:id', async (req, res) => {
   try {
+    // Validate MongoDB ObjectId
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid dietitian ID format'
+      });
+    }
+
     const dietitian = await Dietitian.findOne({
       _id: req.params.id,
       'verificationStatus.finalReport': 'Verified',
@@ -56,14 +98,20 @@ router.get('/dietitians/:id', async (req, res) => {
       });
     }
 
-    // Convert profileImage buffer to base64 data URL
+    // Convert profileImage buffer or string to photo URL
     const dietitianObj = dietitian.toObject();
     if (dietitianObj.profileImage) {
-      dietitianObj.photo = `data:image/jpeg;base64,${dietitianObj.profileImage.toString('base64')}`;
+      if (typeof dietitianObj.profileImage === 'string' && dietitianObj.profileImage.startsWith('http')) {
+        dietitianObj.photo = dietitianObj.profileImage;
+      } else if (Buffer.isBuffer(dietitianObj.profileImage)) {
+        dietitianObj.photo = `data:image/jpeg;base64,${dietitianObj.profileImage.toString('base64')}`;
+      } else {
+        dietitianObj.photo = dietitianObj.profileImage;
+      }
     } else {
       dietitianObj.photo = null;
     }
-    delete dietitianObj.profileImage; // Remove the buffer field
+    // Keep profileImage but also provide photo for frontend compatibility
 
     res.json({
       success: true,
@@ -78,8 +126,28 @@ router.get('/dietitians/:id', async (req, res) => {
   }
 });
 
-// Get dietitian profile by ID (for editing - includes all fields)
-router.get('/dietitians/profile/:id', async (req, res) => {
+// Get dietitian profile by ID (for editing - includes all fields, requires auth)
+/**
+ * @swagger
+ * /api/dietitians/profile/{id}:
+ *   get:
+ *     tags: ['Dietitian']
+ *     summary: Get dietitian profile for editing
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Dietitian profile
+ *       404:
+ *         description: Dietitian not found
+ */
+router.get('/dietitians/profile/:id', authenticateJWT, async (req, res) => {
   try {
     const dietitian = await Dietitian.findOne({
       _id: req.params.id,
@@ -93,14 +161,20 @@ router.get('/dietitians/profile/:id', async (req, res) => {
       });
     }
 
-    // Convert profileImage buffer to base64 data URL
+    // Convert profileImage buffer or string to photo URL
     const dietitianObj = dietitian.toObject();
     if (dietitianObj.profileImage) {
-      dietitianObj.photo = `data:image/jpeg;base64,${dietitianObj.profileImage.toString('base64')}`;
+      if (typeof dietitianObj.profileImage === 'string' && dietitianObj.profileImage.startsWith('http')) {
+        dietitianObj.photo = dietitianObj.profileImage;
+      } else if (Buffer.isBuffer(dietitianObj.profileImage)) {
+        dietitianObj.photo = `data:image/jpeg;base64,${dietitianObj.profileImage.toString('base64')}`;
+      } else {
+        dietitianObj.photo = dietitianObj.profileImage;
+      }
     } else {
       dietitianObj.photo = null;
     }
-    delete dietitianObj.profileImage; // Remove the buffer field
+    // Keep profileImage but also provide photo for frontend compatibility
 
     res.json({
       success: true,
@@ -115,8 +189,26 @@ router.get('/dietitians/profile/:id', async (req, res) => {
   }
 });
 
-// Get clients for a dietitian
-router.get('/dietitians/:id/clients', async (req, res) => {
+// Get clients for a dietitian (requires auth)
+/**
+ * @swagger
+ * /api/dietitians/{id}/clients:
+ *   get:
+ *     tags: ['Dietitian']
+ *     summary: Get clients for a dietitian
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of clients
+ */
+router.get('/dietitians/:id/clients', authenticateJWT, async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -125,10 +217,26 @@ router.get('/dietitians/:id/clients', async (req, res) => {
 
     // Group by userId to get unique clients with aggregated data
     const clientMap = new Map();
+    const userIds = [...new Set(bookings.map(b => b.userId))];
+
+    // Fetch actual user profiles to get real profile images
+    const { User } = require('../models/userModel');
+    const users = await User.find({ _id: { $in: userIds } }).select('name email phone address profileImage');
+    const userProfileMap = new Map();
+    users.forEach(u => {
+      userProfileMap.set(u._id.toString(), {
+        name: u.name,
+        email: u.email,
+        phone: u.phone,
+        address: u.address,
+        profileImage: u.profileImage
+      });
+    });
 
     bookings.forEach(booking => {
       const clientId = booking.userId.toString();
-      const bookingDateTime = new Date(`${booking.date}T${booking.time}`);
+      const dateStr = new Date(booking.date).toISOString().split('T')[0];
+      const bookingDateTime = new Date(`${dateStr}T${booking.time}`);
       const now = new Date();
       const hoursSinceAppointment = (now - bookingDateTime) / (1000 * 60 * 60);
 
@@ -143,12 +251,12 @@ router.get('/dietitians/:id/clients', async (req, res) => {
 
         // Update next appointment if this booking is in the future and earlier
         if (bookingDateTime > now && (!existing.nextAppointment || bookingDateTime < new Date(existing.nextAppointment))) {
-          existing.nextAppointment = `${booking.date} ${booking.time}`;
+          existing.nextAppointment = `${dateStr} ${booking.time}`;
         }
 
         // Update last consultation if this is more recent
         if (new Date(booking.date) > new Date(existing.lastConsultation)) {
-          existing.lastConsultation = booking.date;
+          existing.lastConsultation = dateStr;
         }
       } else {
         const isUpcoming = bookingDateTime > now;
@@ -164,18 +272,20 @@ router.get('/dietitians/:id/clients', async (req, res) => {
           clientStatus = 'Completed';
         }
 
+        const userProfile = userProfileMap.get(clientId) || {};
+
         clientMap.set(clientId, {
           id: clientId,
-          name: booking.username,
-          email: booking.email,
-          phone: booking.userPhone || 'N/A',
+          name: userProfile.name || booking.username,
+          email: userProfile.email || booking.email,
+          phone: userProfile.phone || booking.userPhone || 'N/A',
           age: 'N/A', // Not available in booking
-          location: booking.userAddress || 'N/A',
+          location: userProfile.address || booking.userAddress || 'N/A',
           consultationType: booking.consultationType || 'General Consultation',
-          nextAppointment: isUpcoming ? `${booking.date} ${booking.time}` : null,
+          nextAppointment: isUpcoming ? `${dateStr} ${booking.time}` : null,
           status: clientStatus,
-          profileImage: `https://ui-avatars.com/api/?name=${encodeURIComponent(booking.username)}&background=28B463&color=fff&size=128`,
-          lastConsultation: booking.date,
+          profileImage: userProfile.profileImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile.name || booking.username)}&background=28B463&color=fff&size=128`,
+          lastConsultation: dateStr,
           totalSessions: 1,
           goals: [booking.dietitianSpecialization || 'General Health'],
           isPast: isPast
@@ -227,8 +337,41 @@ router.post('/dietitians/:id', async (req, res) => {
   }
 }); */
 
-// Dietitian profile setup route
-router.post('/dietitian-profile-setup/:id', async (req, res) => {
+// Dietitian profile setup route (requires auth)
+/**
+ * @swagger
+ * /api/dietitian-profile-setup/{id}:
+ *   post:
+ *     tags: ['Dietitian']
+ *     summary: Setup dietitian profile
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               specialization:
+ *                 type: string
+ *               experience:
+ *                 type: number
+ *               fees:
+ *                 type: number
+ *     responses:
+ *       200:
+ *         description: Profile setup completed
+ */
+router.post('/dietitian-profile-setup/:id', authenticateJWT, async (req, res) => {
   try {
     const { id } = req.params;
     const setupData = req.body;
@@ -268,6 +411,34 @@ router.post('/dietitian-profile-setup/:id', async (req, res) => {
 });
 
 // Get available slots for a dietitian on a specific date
+/**
+ * @swagger
+ * /api/dietitians/{id}/slots:
+ *   get:
+ *     tags: ['Dietitian']
+ *     summary: Get available booking slots for a dietitian
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: date
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: userId
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Available slots
+ */
 router.get('/dietitians/:id/slots', authenticateJWT, async (req, res) => {
   try {
     const { id } = req.params;
@@ -404,13 +575,40 @@ router.get('/dietitians/:id/slots', authenticateJWT, async (req, res) => {
 // ==================== TESTIMONIAL ROUTES ====================
 
 // Add a testimonial to a dietitian (only if user has consulted this dietitian)
+/**
+ * @swagger
+ * /api/dietitians/{id}/testimonials:
+ *   post:
+ *     tags: ['Dietitian']
+ *     summary: Add testimonial/review for a dietitian
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               text:
+ *                 type: string
+ *               rating:
+ *                 type: number
+ *     responses:
+ *       201:
+ *         description: Testimonial added
+ */
 router.post('/dietitians/:id/testimonials', authenticateJWT, async (req, res) => {
   try {
     const { id } = req.params;
     const { text, rating } = req.body;
-    const userId = req.user.roleId || req.user.userId;
-
-    console.log('Adding testimonial - userId:', userId, 'dietitianId:', id);
+    const userId = req.user.roleId || req.user.employeeId || req.user.userId;
 
     // Validate required fields
     if (!text || text.trim().length === 0) {
@@ -495,10 +693,33 @@ router.post('/dietitians/:id/testimonials', authenticateJWT, async (req, res) =>
 });
 
 // Delete a testimonial (only by the author)
+/**
+ * @swagger
+ * /api/dietitians/{id}/testimonials/{testimonialIndex}:
+ *   delete:
+ *     tags: ['Dietitian']
+ *     summary: Delete a testimonial/review
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: testimonialIndex
+ *         required: true
+ *         schema:
+ *           type: number
+ *     responses:
+ *       200:
+ *         description: Testimonial deleted
+ */
 router.delete('/dietitians/:id/testimonials/:testimonialIndex', authenticateJWT, async (req, res) => {
   try {
     const { id, testimonialIndex } = req.params;
-    const userId = req.user.roleId || req.user.userId;
+    const userId = req.user.roleId || req.user.employeeId || req.user.userId;
 
     const dietitian = await Dietitian.findById(id);
     if (!dietitian) {
@@ -555,6 +776,22 @@ router.delete('/dietitians/:id/testimonials/:testimonialIndex', authenticateJWT,
 });
 
 // Get dietitian stats (rating, consultation count)
+/**
+ * @swagger
+ * /api/dietitians/{id}/stats:
+ *   get:
+ *     tags: ['Dietitian']
+ *     summary: Get dietitian statistics
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Dietitian statistics
+ */
 router.get('/dietitians/:id/stats', async (req, res) => {
   try {
     const { id } = req.params;
@@ -591,10 +828,28 @@ router.get('/dietitians/:id/stats', async (req, res) => {
 });
 
 // Check if user can add a review (has consulted and hasn't already reviewed)
+/**
+ * @swagger
+ * /api/dietitians/{id}/can-review:
+ *   get:
+ *     tags: ['Dietitian']
+ *     summary: Check if user can add review
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Review eligibility status
+ */
 router.get('/dietitians/:id/can-review', authenticateJWT, async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user.roleId || req.user.userId;
+    const userId = req.user.roleId || req.user.employeeId || req.user.userId;
 
     // Check if user has consulted this dietitian
     const hasConsulted = await Booking.findOne({
@@ -625,6 +880,36 @@ router.get('/dietitians/:id/can-review', authenticateJWT, async (req, res) => {
 });
 
 // Block a slot for a dietitian
+/**
+ * @swagger
+ * /api/dietitians/{id}/block-slot:
+ *   post:
+ *     tags: ['Dietitian']
+ *     summary: Block a time slot for a dietitian
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               date:
+ *                 type: string
+ *                 format: date
+ *               time:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Slot blocked
+ */
 router.post('/dietitians/:id/block-slot', authenticateJWT, async (req, res) => {
   try {
     const { id } = req.params;
@@ -703,6 +988,36 @@ router.post('/dietitians/:id/block-slot', authenticateJWT, async (req, res) => {
 });
 
 // Unblock a slot for a dietitian
+/**
+ * @swagger
+ * /api/dietitians/{id}/unblock-slot:
+ *   post:
+ *     tags: ['Dietitian']
+ *     summary: Unblock a time slot for a dietitian
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               date:
+ *                 type: string
+ *                 format: date
+ *               time:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Slot unblocked
+ */
 router.post('/dietitians/:id/unblock-slot', authenticateJWT, async (req, res) => {
   try {
     const { id } = req.params;
@@ -752,6 +1067,34 @@ router.post('/dietitians/:id/unblock-slot', authenticateJWT, async (req, res) =>
 });
 
 // Block entire day for a dietitian
+/**
+ * @swagger
+ * /api/dietitians/{id}/block-day:
+ *   post:
+ *     tags: ['Dietitian']
+ *     summary: Block entire day for a dietitian
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               date:
+ *                 type: string
+ *                 format: date
+ *     responses:
+ *       200:
+ *         description: Day blocked
+ */
 router.post('/dietitians/:id/block-day', authenticateJWT, async (req, res) => {
   try {
     const { id } = req.params;
@@ -834,6 +1177,34 @@ router.post('/dietitians/:id/block-day', authenticateJWT, async (req, res) => {
 });
 
 // Unblock entire day for a dietitian
+/**
+ * @swagger
+ * /api/dietitians/{id}/unblock-day:
+ *   post:
+ *     tags: ['Dietitian']
+ *     summary: Unblock entire day for a dietitian
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               date:
+ *                 type: string
+ *                 format: date
+ *     responses:
+ *       200:
+ *         description: Day unblocked
+ */
 router.post('/dietitians/:id/unblock-day', authenticateJWT, async (req, res) => {
   try {
     const { id } = req.params;
@@ -876,6 +1247,38 @@ router.post('/dietitians/:id/unblock-day', authenticateJWT, async (req, res) => 
 });
 
 // Notify admin about dietitian leave with a reason
+/**
+ * @swagger
+ * /api/dietitians/{id}/notify-leave:
+ *   post:
+ *     tags: ['Dietitian']
+ *     summary: Notify admin about leave
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               dates:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: date
+ *               reason:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Leave notification sent
+ */
 router.post('/dietitians/:id/notify-leave', authenticateJWT, async (req, res) => {
   try {
     const { id } = req.params;

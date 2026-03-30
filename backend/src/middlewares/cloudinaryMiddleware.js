@@ -57,8 +57,7 @@ const uploadToCloudinary = async (req, res, next) => {
                     console.error('Cloudinary upload error:', error);
                     return res.status(500).json({
                         success: false,
-                        message: 'Failed to upload image',
-                        error: error.message
+                        message: 'Failed to upload image'
                     });
                 }
 
@@ -76,8 +75,7 @@ const uploadToCloudinary = async (req, res, next) => {
         console.error('Upload middleware error:', error);
         return res.status(500).json({
             success: false,
-            message: 'Failed to process image upload',
-            error: error.message
+            message: 'Failed to process image upload'
         });
     }
 };

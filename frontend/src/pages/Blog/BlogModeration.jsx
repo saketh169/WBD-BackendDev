@@ -10,6 +10,7 @@ import {
     fetchReportedBlogs,
     deleteBlog,
     dismissReports,
+    hydrateReportedBlogs,
     selectReportedBlogs,
     selectIsLoading,
     selectError,
@@ -55,7 +56,25 @@ const BlogModeration = () => {
         window.scrollTo(0, 0);
 
         const roleFromUrl = getRoleFromPath();
-        dispatch(fetchReportedBlogs({ page: pagination.page, role: roleFromUrl }));
+
+        // Hydrate from cache immediately to avoid blank list after returning
+        try {
+          const cached = sessionStorage.getItem('reportedBlogsCache');
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            dispatch(hydrateReportedBlogs(parsed));
+          }
+        } catch (_) { /* ignore */ }
+
+        dispatch(fetchReportedBlogs({ page: pagination.page, role: roleFromUrl, limit: 100 }));
+
+        const handleVisibility = () => {
+            if (document.visibilityState === 'visible') {
+                dispatch(fetchReportedBlogs({ page: 1, role: roleFromUrl, limit: 100 }));
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibility);
+        return () => document.removeEventListener('visibilitychange', handleVisibility);
     }, [pagination.page, dispatch, getRoleFromPath]);
 
     // Handle Redux success/error messages
@@ -104,7 +123,7 @@ const BlogModeration = () => {
             // Log activity for blog moderation (employees only)
             const blog = reportedBlogs.find(b => b._id === blogToDelete);
             const empToken = localStorage.getItem('authToken_employee');
-            
+
             if (blog && empToken) {
                 axios.post('/api/organization/log-activity', {
                     activityType: 'blog_rejected',
@@ -118,7 +137,7 @@ const BlogModeration = () => {
                     withCredentials: true
                 }).catch(err => console.warn('Activity log failed:', err));
             }
-            
+
             setShowDetailsModal(false);
             setSelectedBlog(null);
         }
@@ -142,7 +161,7 @@ const BlogModeration = () => {
             // Log activity for blog moderation (employees only)
             const blog = reportedBlogs.find(b => b._id === blogToDismiss);
             const empToken = localStorage.getItem('authToken_employee');
-            
+
             if (blog && empToken) {
                 axios.post('/api/organization/log-activity', {
                     activityType: 'blog_approved',
@@ -156,7 +175,7 @@ const BlogModeration = () => {
                     withCredentials: true
                 }).catch(err => console.warn('Activity log failed:', err));
             }
-            
+
             setShowDetailsModal(false);
             setSelectedBlog(null);
         }
@@ -189,6 +208,7 @@ const BlogModeration = () => {
             'dietitian': 'Dietitian',
             'admin': 'Admin',
             'organization': 'Organization',
+            'employee': 'Employee',
         };
         return roleLabels[role] || 'Unknown';
     };
@@ -337,8 +357,8 @@ const BlogModeration = () => {
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <span className={`text-xs px-3 py-1 rounded-full font-semibold ${blog.status === 'flagged'
-                                                            ? 'bg-orange-100 text-orange-800'
-                                                            : 'bg-green-100 text-green-800'
+                                                        ? 'bg-orange-100 text-orange-800'
+                                                        : 'bg-green-100 text-green-800'
                                                         }`}>
                                                         {blog.status.toUpperCase()}
                                                     </span>
@@ -431,7 +451,10 @@ const BlogModeration = () => {
                                 {selectedBlog.excerpt || stripHtmlTags(selectedBlog.content).substring(0, 200)}...
                             </p>
                             <button
-                                onClick={() => navigate(`/organization/blog/${selectedBlog._id}`)}
+                                onClick={() => {
+                                    const role = getRoleFromPath();
+                                    navigate(`/${role}/blog/${selectedBlog._id}`);
+                                }}
                                 className="mt-3 text-[#1E6F5C] hover:text-green-700 text-sm font-medium"
                             >
                                 View Full Blog Post →

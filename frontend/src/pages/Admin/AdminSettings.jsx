@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-
+import DOMPurify from 'dompurify';
 // Theme colors matching NutriConnect design
 const THEME = {
   primary: '#1E6F5C',      // Dark Green (primary)
@@ -51,13 +51,8 @@ const AdminSettings = () => {
       try {
         const response = await axios.get('/api/settings');
         setSettings(prev => ({ ...prev, ...response.data }));
-      } catch (error) {
-        console.error('Error loading settings:', error);
-        // Fallback to localStorage
-        const savedSettings = localStorage.getItem('adminSettings');
-        if (savedSettings) {
-          setSettings(s => ({ ...s, ...JSON.parse(savedSettings) }));
-        }
+      } catch {
+        // Settings will use defaults if API fails
       }
     };
 
@@ -113,11 +108,10 @@ const AdminSettings = () => {
 
       await axios.put('/api/settings', updateData);
 
-      setSaveStatus('✅ Settings saved successfully! Changes are now live.');
+      setSaveStatus('Settings saved successfully! Changes are now live.');
       setTimeout(() => setSaveStatus(''), 5000);
-    } catch (error) {
-      console.error('Error saving settings:', error);
-      setSaveStatus('❌ Error saving settings. Please try again.');
+    } catch {
+      setSaveStatus('Error saving settings. Please try again.');
       setTimeout(() => setSaveStatus(''), 5000);
     } finally {
       setLoading(false);
@@ -171,8 +165,7 @@ const AdminSettings = () => {
       });
 
       alert(`Policy change email sent successfully to ${response.data.count} recipients!`);
-    } catch (error) {
-      console.error('Error sending email:', error);
+    } catch {
       alert('Error sending email. Please try again.');
     } finally {
       setLoading(false);
@@ -333,7 +326,7 @@ const AdminSettings = () => {
 
                 <div className="space-y-4">
                   {(billingType === 'monthly' ? settings.monthlyTiers : settings.yearlyTiers).map((tier, index) => (
-                    <div key={index} className="bg-white p-6 rounded-lg border-2" style={{ borderColor: THEME.light, backgroundColor: THEME.light }}>
+                    <div key={tier.name || `tier-${index}`} className="bg-white p-6 rounded-lg border-2" style={{ borderColor: THEME.light, backgroundColor: THEME.light }}>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                           <label className="block text-sm font-medium mb-2" style={{ color: THEME.primary }}>
@@ -468,14 +461,14 @@ const AdminSettings = () => {
                         <div className="bg-gray-50 p-4 rounded-md max-h-64 overflow-y-auto text-sm">
                           {settings.termsOfService ? (
                             <div dangerouslySetInnerHTML={{
-                              __html: settings.termsOfService
+                              __html: DOMPurify.sanitize(settings.termsOfService
                                 .replace(/^### (.*$)/gim, '<h3 class="text-sm font-semibold mb-1 text-green-700">$1</h3>')
                                 .replace(/^## (.*$)/gim, '<h2 class="text-base font-bold mb-2 text-green-700">$1</h2>')
                                 .replace(/^# (.*$)/gim, '<h1 class="text-lg font-bold mb-3 text-green-800">$1</h1>')
                                 .replace(/\*\*(.*)\*\*/gim, '<strong>$1</strong>')
                                 .replace(/\*(.*)\*/gim, '<em>$1</em>')
                                 .replace(/\n\n/g, '</p><p class="mb-2">')
-                                .replace(/\n/g, '<br/>')
+                                .replace(/\n/g, '<br/>'))
                             }} />
                           ) : (
                             <p className="text-gray-500 italic">No content to preview</p>
@@ -489,14 +482,14 @@ const AdminSettings = () => {
                         <div className="bg-gray-50 p-4 rounded-md max-h-64 overflow-y-auto text-sm">
                           {settings.privacyPolicy ? (
                             <div dangerouslySetInnerHTML={{
-                              __html: settings.privacyPolicy
+                              __html: DOMPurify.sanitize(settings.privacyPolicy
                                 .replace(/^### (.*$)/gim, '<h3 class="text-sm font-semibold mb-1 text-green-700">$1</h3>')
                                 .replace(/^## (.*$)/gim, '<h2 class="text-base font-bold mb-2 text-green-700">$1</h2>')
                                 .replace(/^# (.*$)/gim, '<h1 class="text-lg font-bold mb-3 text-green-800">$1</h1>')
                                 .replace(/\*\*(.*)\*\*/gim, '<strong>$1</strong>')
                                 .replace(/\*(.*)\*/gim, '<em>$1</em>')
                                 .replace(/\n\n/g, '</p><p class="mb-2">')
-                                .replace(/\n/g, '<br/>')
+                                .replace(/\n/g, '<br/>'))
                             }} />
                           ) : (
                             <p className="text-gray-500 italic">No content to preview</p>

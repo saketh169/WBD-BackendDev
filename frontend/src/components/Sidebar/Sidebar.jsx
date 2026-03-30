@@ -130,7 +130,7 @@ const Sidebar = () => {
         {/* Contact Section */}
         <div className="mt-8 p-4 border border-gray-300 rounded-xl bg-gray-50 shadow-inner">
           <h3 className="text-lg font-semibold mb-3" style={{ color: darkGreen }}>Support</h3>
-          <p className="text-sm text-gray-700">Email: <a href="mailto:support@nutriconnect.com" className="text-blue-600 hover:text-blue-800">support@nutriconnect.com</a></p>
+          <p className="text-sm text-gray-700">Email: <a href="https://mail.google.com/mail/?view=cm&fs=1&to=support%40nutriconnect.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800">support@nutriconnect.com</a></p>
           <p className="text-sm text-gray-700">Phone: <a href="tel:+917075783143" className="text-blue-600 hover:text-blue-800">+91 70757 83143</a></p>
 
           <h3 className="text-lg font-semibold mt-4 mb-3" style={{ color: darkGreen }}>Follow Us</h3>

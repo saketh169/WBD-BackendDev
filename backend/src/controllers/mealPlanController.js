@@ -18,7 +18,7 @@ exports.createMealPlan = async (req, res) => {
     } = req.body;
 
     // Get dietitian ID from authenticated user (roleId is the profile document ID in the JWT)
-    const dietitianId = req.user?.roleId || req.body.dietitianId;
+    const dietitianId = req.user?.roleId;
 
     // Validate required fields
     if (!planName || !dietType || !calories || !dietitianId || !userId) {
@@ -59,7 +59,7 @@ exports.createMealPlan = async (req, res) => {
     console.error('Error creating meal plan:', error);
     res.status(500).json({
       success: false,
-      message: error.message || 'Failed to create meal plan'
+      message: 'Failed to create meal plan'
     });
   }
 };
@@ -106,7 +106,7 @@ exports.getUserMealPlans = async (req, res) => {
     console.error('Error fetching user meal plans:', error);
     res.status(500).json({
       success: false,
-      message: error.message || 'Failed to fetch meal plans'
+      message: 'Failed to fetch meal plans'
     });
   }
 };
@@ -142,7 +142,7 @@ exports.getDietitianMealPlanTemplates = async (req, res) => {
     console.error('Error fetching dietitian meal plan templates:', error);
     res.status(500).json({
       success: false,
-      message: error.message || 'Failed to fetch meal plan templates'
+      message: 'Failed to fetch meal plan templates'
     });
   }
 };
@@ -184,7 +184,7 @@ exports.getDietitianClientMealPlans = async (req, res) => {
     console.error('Error fetching dietitian client meal plans:', error);
     res.status(500).json({
       success: false,
-      message: error.message || 'Failed to fetch meal plans'
+      message: 'Failed to fetch meal plans'
     });
   }
 };
@@ -224,7 +224,7 @@ exports.getMealPlanById = async (req, res) => {
     console.error('Error fetching meal plan:', error);
     res.status(500).json({
       success: false,
-      message: error.message || 'Failed to fetch meal plan'
+      message: 'Failed to fetch meal plan'
     });
   }
 };
@@ -270,7 +270,7 @@ exports.updateMealPlan = async (req, res) => {
     console.error('Error updating meal plan:', error);
     res.status(500).json({
       success: false,
-      message: error.message || 'Failed to update meal plan'
+      message: 'Failed to update meal plan'
     });
   }
 };
@@ -322,7 +322,7 @@ exports.assignMealPlanToDates = async (req, res) => {
     console.error('Error assigning meal plan to dates:', error);
     res.status(500).json({
       success: false,
-      message: error.message || 'Failed to assign meal plan'
+      message: 'Failed to assign meal plan'
     });
   }
 };
@@ -372,7 +372,7 @@ exports.removeMealPlanFromDates = async (req, res) => {
     console.error('Error removing meal plan from dates:', error);
     res.status(500).json({
       success: false,
-      message: error.message || 'Failed to remove meal plan from dates'
+      message: 'Failed to remove meal plan from dates'
     });
   }
 };
@@ -419,7 +419,7 @@ exports.deleteMealPlan = async (req, res) => {
     console.error('Error deleting meal plan:', error);
     res.status(500).json({
       success: false,
-      message: error.message || 'Failed to delete meal plan'
+      message: 'Failed to delete meal plan'
     });
   }
 };
