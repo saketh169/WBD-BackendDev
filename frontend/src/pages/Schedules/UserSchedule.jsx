@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useAuthContext } from '../../hooks/useAuthContext';
-import axios from 'axios';
+import { getUserBookings, getMeetingLink, getBookingIcs } from '../../services/booking/bookingService';
 
 // Helper function to decode HTML entities
 const decodeHtmlEntities = (text) => {
@@ -67,6 +67,7 @@ const UserSchedule = () => {
     
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [meetingLinks, setMeetingLinks] = useState({});
     
     const weekDates = useMemo(() => generateWeekDates(), []);
     const sortedDays = useMemo(() => Object.entries(weekDates).sort((a, b) => a[1].dateObj - b[1].dateObj), [weekDates]);
@@ -89,17 +90,11 @@ const UserSchedule = () => {
 
             try {
                 setLoading(true);
-                const config = token ? {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                } : {};
-
-                const response = await axios.get(`/api/bookings/user/${userId}`, config);
-                if (response.data.success) {
-                    setBookings(response.data.data);
+                const response = await getUserBookings(userId);
+                if (response && !response.isError && response.success) {
+                    setBookings(response.data);
                 } else {
-                    console.error('Failed to fetch bookings:', response.data.message);
+                    console.error('Failed to fetch bookings:', response?.message);
                     setBookings([]);
                 }
             } catch (error) {
@@ -133,7 +128,9 @@ const UserSchedule = () => {
                 status: booking.status,
                 bookingId: booking._id,
                 amount: booking.amount,
-                profileImage: null // Add if you have dietitian images
+                profileImage: null, // Add if you have dietitian images
+                meetingUrl: booking.meetingUrl,
+                consultationTypeRaw: booking.consultationType
             });
         });
         return grouped;
@@ -146,6 +143,46 @@ const UserSchedule = () => {
         const dayAppointments = bookingsByDay[activeDayInfo?.fullDateKey] || [];
         return dayAppointments.sort((a, b) => convertTimeTo24Hour(a.time) - convertTimeTo24Hour(b.time));
     }, [activeDayInfo, bookingsByDay]);
+
+    const handleGenerateMeetingLink = async (bookingId, consultationType) => {
+        if (consultationType?.toLowerCase() !== 'online') {
+            alert('Meeting links are available only for online consultations.');
+            return;
+        }
+        try {
+            const resp = await getMeetingLink(bookingId);
+            if (resp && !resp.isError && resp.success && resp.meetingUrl) {
+                setMeetingLinks(prev => ({ ...prev, [bookingId]: resp.meetingUrl }));
+                window.open(resp.meetingUrl, '_blank');
+            } else {
+                alert(resp?.message || 'Unable to create meeting link');
+            }
+        } catch (error) {
+            console.error('Error creating meeting link:', error);
+            alert(error.response?.data?.message || 'Unable to create meeting link');
+        }
+    };
+
+    const handleDownloadICS = async (bookingId) => {
+        try {
+            const data = await getBookingIcs(bookingId);
+            if (data?.isError) {
+                alert(data.message || 'Failed to download ICS');
+                return;
+            }
+            const blobUrl = window.URL.createObjectURL(new Blob([data], { type: 'text/calendar' }));
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.download = `booking-${bookingId}.ics`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(blobUrl);
+        } catch (error) {
+            console.error('Error downloading calendar invite:', error);
+            alert(error.response?.data?.message || 'Unable to download calendar invite');
+        }
+    };
 
     const getDayIcon = (dayKey) => {
         switch(dayKey.toLowerCase()) {
@@ -275,20 +312,37 @@ const UserSchedule = () => {
                                     </p>
 
                                     <div className="mt-0 pt-3 border-t-2 border-gray-100 flex items-center justify-between gap-3">
-                                        {appointment.dietitianEmail ? (
-                                            <a 
-                                                href={`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(appointment.dietitianEmail)}`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="text-sm text-emerald-600 hover:text-emerald-700 underline truncate transition-colors"
-                                                title={`Email ${appointment.dietitianEmail} via Gmail`}
+                                        <div className="flex items-center gap-3">
+                                            {appointment.dietitianEmail ? (
+                                                <a 
+                                                    href={`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(appointment.dietitianEmail)}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-sm text-emerald-600 hover:text-emerald-700 underline truncate transition-colors"
+                                                    title={`Email ${appointment.dietitianEmail} via Gmail`}
+                                                >
+                                                    <i className="fas fa-envelope mr-1"></i>
+                                                    Contact
+                                                </a>
+                                            ) : (
+                                                <span className="text-sm text-gray-400">No email</span>
+                                            )}
+                                            <button
+                                                className="text-xs px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100"
+                                                onClick={() => handleDownloadICS(appointment.bookingId)}
                                             >
-                                                <i className="fas fa-envelope mr-1"></i>
-                                                Contact
-                                            </a>
-                                        ) : (
-                                            <span className="text-sm text-gray-400">No email</span>
-                                        )}
+                                                <i className="fas fa-calendar-plus mr-1"></i>Add to Calendar
+                                            </button>
+                                            {appointment.consultationType?.toLowerCase() === 'online' && (
+                                                <button
+                                                    className="text-xs px-3 py-1 rounded-full bg-teal-50 text-teal-700 border border-teal-200 hover:bg-teal-100"
+                                                    onClick={() => handleGenerateMeetingLink(appointment.bookingId, appointment.consultationType)}
+                                                    title={meetingLinks[appointment.bookingId] || appointment.meetingUrl || 'Create meeting link'}
+                                                >
+                                                    <i className="fas fa-video mr-1"></i>{meetingLinks[appointment.bookingId] || appointment.meetingUrl ? 'Open Link' : 'Get Link'}
+                                                </button>
+                                            )}
+                                        </div>
                                         {appointment.amount && (
                                             <span className="text-sm text-gray-600 flex items-center gap-2 shrink-0">
                                                 <i className="fas fa-rupee-sign text-emerald-600"></i>

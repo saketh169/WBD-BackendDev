@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const MealPlan = require('../models/mealPlanModel');
+const { cacheOrFetch, invalidateCache } = require('../utils/redisClient');
 
 /**
  * Create a new meal plan template
@@ -49,6 +50,7 @@ exports.createMealPlan = async (req, res) => {
     });
 
     const savedMealPlan = await mealPlan.save();
+    invalidateCache('mealplans:*');
 
     res.status(201).json({
       success: true,
@@ -87,20 +89,28 @@ exports.getUserMealPlans = async (req, res) => {
       query.assignedDates = date;
     }
 
-    const mealPlans = await MealPlan.find(query)
-      .populate('dietitianId', 'name specialization')
-      .exec();
+    const cacheKey = `mealplans:user:${userId}:${date || 'all'}`;
+    const { data: plansData, cacheStatus, duration } = await cacheOrFetch(cacheKey, 600, async () => {
+      const mealPlans = await MealPlan.find(query)
+        .populate('dietitianId', 'name specialization')
+        .lean()
+        .exec();
 
-    // Transform to match expected format
-    const plansData = mealPlans.map(plan => ({
-      ...plan.toObject(),
-      id: plan._id
-    }));
+      return mealPlans.map(plan => ({
+        ...plan,
+        id: plan._id
+      }));
+    });
+
+    if (cacheStatus) {
+      res.setHeader('X-Cache', cacheStatus);
+      res.setHeader('X-Cache-Duration', `${duration}ms`);
+    }
 
     res.status(200).json({
       success: true,
       data: plansData,
-      count: plansData.length
+      count: Array.isArray(plansData) ? plansData.length : 0
     });
   } catch (error) {
     console.error('Error fetching user meal plans:', error);
@@ -126,17 +136,26 @@ exports.getDietitianMealPlanTemplates = async (req, res) => {
       });
     }
 
-    const mealPlans = await MealPlan.find({
-      dietitianId,
-      isActive: true
-    })
-      .sort({ createdAt: -1 })
-      .exec();
+    const cacheKey = `mealplans:templates:${dietitianId}`;
+    const { data: mealPlans, cacheStatus, duration } = await cacheOrFetch(cacheKey, 600, async () => {
+      return await MealPlan.find({
+        dietitianId,
+        isActive: true
+      })
+        .sort({ createdAt: -1 })
+        .lean()
+        .exec();
+    });
+
+    if (cacheStatus) {
+      res.setHeader('X-Cache', cacheStatus);
+      res.setHeader('X-Cache-Duration', `${duration}ms`);
+    }
 
     res.status(200).json({
       success: true,
       data: mealPlans,
-      count: mealPlans.length
+      count: Array.isArray(mealPlans) ? mealPlans.length : 0
     });
   } catch (error) {
     console.error('Error fetching dietitian meal plan templates:', error);
@@ -162,23 +181,29 @@ exports.getDietitianClientMealPlans = async (req, res) => {
       });
     }
 
-    // Get all active meal plans for the dietitian and client
-    const mealPlans = await MealPlan.find({
-      dietitianId,
-      userId,
-      isActive: true
-    }).sort({ createdAt: -1 });
+    const cacheKey = `mealplans:dietitian:${dietitianId}:client:${userId}`;
+    const { data: plansData, cacheStatus, duration } = await cacheOrFetch(cacheKey, 600, async () => {
+      const mealPlans = await MealPlan.find({
+        dietitianId,
+        userId,
+        isActive: true
+      }).select('-__v').sort({ createdAt: -1 }).lean().exec();
 
-    // Transform to match expected format
-    const plansData = mealPlans.map(plan => ({
-      ...plan.toObject(),
-      id: plan._id
-    }));
+      return mealPlans.map(plan => ({
+        ...plan,
+        id: plan._id
+      }));
+    });
+
+    if (cacheStatus) {
+      res.setHeader('X-Cache', cacheStatus);
+      res.setHeader('X-Cache-Duration', `${duration}ms`);
+    }
 
     res.status(200).json({
       success: true,
       data: plansData,
-      count: plansData.length
+      count: Array.isArray(plansData) ? plansData.length : 0
     });
   } catch (error) {
     console.error('Error fetching dietitian client meal plans:', error);
@@ -261,6 +286,8 @@ exports.updateMealPlan = async (req, res) => {
       });
     }
 
+    invalidateCache('mealplans:*');
+
     res.status(200).json({
       success: true,
       message: 'Meal plan updated successfully',
@@ -312,6 +339,7 @@ exports.assignMealPlanToDates = async (req, res) => {
     const newDates = dates.filter(date => !existingDates.has(date));
     mealPlan.assignedDates = [...mealPlan.assignedDates, ...newDates];
     await mealPlan.save();
+    invalidateCache('mealplans:*');
 
     res.status(200).json({
       success: true,
@@ -362,6 +390,7 @@ exports.removeMealPlanFromDates = async (req, res) => {
     // Remove specified dates from assignedDates
     mealPlan.assignedDates = mealPlan.assignedDates.filter(date => !dates.includes(date));
     await mealPlan.save();
+    invalidateCache('mealplans:*');
 
     res.status(200).json({
       success: true,
@@ -410,6 +439,8 @@ exports.deleteMealPlan = async (req, res) => {
     //   { mealPlanId: planId },
     //   { isActive: false, updatedAt: Date.now() }
     // );
+
+    invalidateCache('mealplans:*');
 
     res.status(200).json({
       success: true,

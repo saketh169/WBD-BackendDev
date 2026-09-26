@@ -4,17 +4,40 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest --verbose --forceExit --detectOpenHandles",
+    "test:coverage": "jest --coverage --verbose --forceExit --detectOpenHandles",
+    "test:report": "jest --verbose --forceExit --detectOpenHandles --json --outputFile=test-report.json",
     "start": "nodemon src/server.js",
+    "start:prod": "node src/server.js",
     "seed:dietitians": "node src/scripts/seedDietitians.js",
     "seed:settings": "node src/scripts/seedSettings.js",
-    "seed:images": "node scripts/seedImages.js"
+    "seed:images": "node scripts/seedImages.js",
+    "redis:clear": "node scripts/clear_redis.js",
+    "benchmark:redis": "python scripts/benchmark_redis.py",
+    "elastic:sync": "node src/scripts/syncElastic.js"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": [
+      "**/tests/**/*.test.js"
+    ],
+    "coverageDirectory": "coverage",
+    "collectCoverageFrom": [
+      "src/controllers/**/*.js",
+      "src/services/**/*.js",
+      "src/middlewares/**/*.js",
+      "src/utils/**/*.js",
+      "!src/utils/socket.js"
+    ],
+    "testTimeout": 60000
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@elastic/elasticsearch": "^8.13.1",
     "@google/generative-ai": "^0.24.1",
     "axios": "^1.12.2",
+    "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.2",
     "cloudinary": "^2.8.0",
     "compression": "^1.8.1",
@@ -23,18 +46,26 @@
     "dotenv": "^17.2.2",
     "express": "^5.1.0",
     "express-rate-limit": "^8.3.1",
+    "google-auth-library": "^10.6.2",
     "helmet": "^8.1.0",
+    "ioredis": "^5.10.1",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.18.1",
+    "mongoose": "^9.6.2",
     "morgan": "^1.10.0",
     "multer": "^2.0.2",
     "node-cron": "^4.2.1",
     "nodemailer": "^8.0.5",
     "nodemon": "^3.1.14",
+    "razorpay": "^2.9.6",
     "rotating-file-stream": "^3.2.8",
     "socket.io": "^4.8.3",
     "streamifier": "^0.1.1",
-    "swagger-jsdoc": "^6.2.8",
+    "swagger-jsdoc": "^6.3.0",
     "swagger-ui-express": "^5.0.1"
+  },
+  "devDependencies": {
+    "jest": "^30.3.0",
+    "mongodb-memory-server": "^11.0.1",
+    "supertest": "^7.2.2"
   }
 }

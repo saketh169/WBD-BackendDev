@@ -193,6 +193,53 @@ router.post("/check-limits", async (req, res) => {
  *       403:
  *         description: Subscription limit reached
  */
+/**
+ * @swagger
+ * /api/bookings/payment/order:
+ *   post:
+ *     tags: ['Bookings']
+ *     summary: Create Razorpay payment order for consultation
+ *     description: Creates an order with Razorpay for consultation booking payment
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - amount
+ *               - dietitianId
+ *             properties:
+ *               amount:
+ *                 type: number
+ *               currency:
+ *                 type: string
+ *               dietitianId:
+ *                 type: string
+ *               date:
+ *                 type: string
+ *               time:
+ *                 type: string
+ *               consultationType:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Order created successfully
+ *       400:
+ *         description: Invalid amount
+ *       500:
+ *         description: Failed to create order
+ */
+// POST /api/bookings/payment/order
+router.post("/payment/order", bookingController.createBookingPaymentOrder);
+
+// Slot Holding & Double-Booking Prevention Routes (10-min Redis hold)
+router.post("/hold", bookingController.holdSlot);
+router.post("/release", bookingController.releaseSlot);
+router.get("/holds/:dietitianId", bookingController.getDietitianHolds);
+
 // POST /api/bookings/create (with subscription limit check)
 router.post("/create", checkBookingLimit, bookingController.createBooking);
 

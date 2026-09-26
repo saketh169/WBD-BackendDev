@@ -75,6 +75,7 @@ const mealPlanSchema = new mongoose.Schema({
 });
 
 // Indexes for better performance
+mealPlanSchema.index({ dietitianId: 1, userId: 1, isActive: 1, createdAt: -1 });
 mealPlanSchema.index({ dietitianId: 1, userId: 1, createdAt: -1 });
 
 // Middleware to update updatedAt

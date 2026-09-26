@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { getPublicSettings } from '../../services/misc/miscService';
 
-const PrivacyPolicy = () => {
+const LegalPrivacy = () => {
   const navigate = useNavigate();
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(true);
@@ -14,16 +14,14 @@ const PrivacyPolicy = () => {
 
   useEffect(() => {
     const fetchPrivacyPolicy = async () => {
-      try {
-        setLoading(true);
-        const response = await axios.get('/api/settings');
-        setContent(response.data.privacyPolicy || 'Privacy policy content not available.');
-      } catch (err) {
-        console.error('Error fetching privacy policy:', err);
+      setLoading(true);
+      const res = await getPublicSettings();
+      if (!res.isError) {
+        setContent(res.privacyPolicy || res.data?.privacyPolicy || 'Privacy policy content not available.');
+      } else {
         setError('Failed to load privacy policy. Please try again later.');
-      } finally {
-        setLoading(false);
       }
+      setLoading(false);
     };
 
     fetchPrivacyPolicy();
@@ -125,4 +123,4 @@ const PrivacyPolicy = () => {
   );
 };
 
-export default PrivacyPolicy;
+export default LegalPrivacy;

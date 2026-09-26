@@ -1,11 +1,112 @@
 const mongoose = require("mongoose");
 const Booking = require("../models/bookingModel");
 const { BlockedSlot } = require("../models/bookingModel");
+const { acquireLock, getLockHolder, releaseLock, getMatchingLocks, cacheOrFetch, invalidateCache } = require("../utils/redisClient");
 const {
   sendBookingConfirmationToUser,
   sendBookingNotificationToDietitian,
 } = require("../services/bookingService");
+const razorpayService = require("../services/razorpayService");
 const { notifyDietitianNewBooking, notifyBookingUpdate, notifyUserUpdate } = require("../utils/socket");
+const crypto = require("crypto");
+
+// Lightweight ICS generator (no external deps)
+function buildICS({ uid, start, end, title, description, location, url }) {
+  const formatDate = (d) => d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+  const dtStamp = formatDate(new Date());
+  const dtStart = formatDate(start);
+  const dtEnd = formatDate(end);
+
+  return [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//NutriConnect//Bookings//EN",
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
+    "BEGIN:VEVENT",
+    `UID:${uid}`,
+    `DTSTAMP:${dtStamp}`,
+    `DTSTART:${dtStart}`,
+    `DTEND:${dtEnd}`,
+    `SUMMARY:${title}`,
+    description ? `DESCRIPTION:${description.replace(/\n/g, "\\n")}` : "",
+    location ? `LOCATION:${location}` : "",
+    url ? `URL:${url}` : "",
+    "END:VEVENT",
+    "END:VCALENDAR"
+  ].filter(Boolean).join("\r\n");
+}
+
+// Create a Razorpay order for consultation booking payment
+exports.createBookingPaymentOrder = async (req, res) => {
+  try {
+    const {
+      amount,
+      currency = 'INR',
+      dietitianId,
+      date,
+      time,
+      consultationType
+    } = req.body;
+
+    const numericAmount = Number(amount);
+    if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid amount for booking payment'
+      });
+    }
+
+    if (!razorpayService.isConfigured()) {
+      return res.status(500).json({
+        success: false,
+        message: 'Payment gateway is not configured'
+      });
+    }
+
+    const amountInPaise = Math.round(numericAmount * 100);
+    const receipt = `BK${Date.now()}${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
+
+    const order = await razorpayService.createOrder({
+      amount: amountInPaise,
+      currency,
+      receipt,
+      notes: {
+        userId: String(req.user.roleId || req.user.employeeId || req.user.userId || ''),
+        dietitianId: String(dietitianId || ''),
+        date: String(date || ''),
+        time: String(time || ''),
+        consultationType: String(consultationType || '')
+      }
+    });
+
+    return res.status(201).json({
+      success: true,
+      data: {
+        order: {
+          id: order.id,
+          amount: order.amount,
+          currency: order.currency,
+          receipt: order.receipt
+        },
+        keyId: razorpayService.getPublicKey()
+      },
+      order: {
+        id: order.id,
+        amount: order.amount,
+        currency: order.currency,
+        receipt: order.receipt
+      },
+      keyId: razorpayService.getPublicKey()
+    });
+  } catch (error) {
+    console.error('Error creating booking payment order:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to create booking payment order'
+    });
+  }
+};
 
 // Create a new booking
 exports.createBooking = async (req, res) => {
@@ -26,7 +127,12 @@ exports.createBooking = async (req, res) => {
       amount,
       paymentMethod,
       paymentId,
+      razorpayOrderId,
+      razorpayPaymentId,
+      razorpaySignature,
     } = req.body;
+
+    const normalizedPaymentId = paymentId || razorpayPaymentId;
 
     // Use authenticated user ID from JWT — never trust userId from body
     const userId = req.user.roleId || req.user.employeeId || req.user.userId;
@@ -44,7 +150,10 @@ exports.createBooking = async (req, res) => {
       !consultationType ||
       !amount ||
       !paymentMethod ||
-      !paymentId
+      !normalizedPaymentId ||
+      !razorpayOrderId ||
+      !razorpayPaymentId ||
+      !razorpaySignature
     ) {
       // Log which fields are missing
       const missingFields = [];
@@ -59,7 +168,10 @@ exports.createBooking = async (req, res) => {
       if (!consultationType) missingFields.push("consultationType");
       if (!amount) missingFields.push("amount");
       if (!paymentMethod) missingFields.push("paymentMethod");
-      if (!paymentId) missingFields.push("paymentId");
+      if (!normalizedPaymentId) missingFields.push("paymentId");
+      if (!razorpayOrderId) missingFields.push("razorpayOrderId");
+      if (!razorpayPaymentId) missingFields.push("razorpayPaymentId");
+      if (!razorpaySignature) missingFields.push("razorpaySignature");
 
       return res.status(400).json({
         success: false,
@@ -73,6 +185,26 @@ exports.createBooking = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Invalid email format",
+      });
+    }
+
+    if (!razorpayService.isConfigured()) {
+      return res.status(500).json({
+        success: false,
+        message: "Payment gateway is not configured",
+      });
+    }
+
+    const isSignatureValid = razorpayService.verifySignature({
+      orderId: razorpayOrderId,
+      paymentId: razorpayPaymentId,
+      signature: razorpaySignature
+    });
+
+    if (!isSignatureValid) {
+      return res.status(400).json({
+        success: false,
+        message: "Payment verification failed. Invalid Razorpay signature.",
       });
     }
 
@@ -130,8 +262,19 @@ exports.createBooking = async (req, res) => {
       });
     }
 
+    // Concurrency Check (10-minute hold lock verification)
+    const lockKey = `lock:booking:${dietitianId}:${date}:${time}`;
+    const lockHolder = await getLockHolder(lockKey);
+    if (lockHolder && lockHolder !== userId.toString()) {
+      return res.status(423).json({
+        success: false,
+        message: "This slot is currently being held by another user. Please select another slot."
+      });
+    }
+    await releaseLock(lockKey, userId.toString());
+
     // Check if payment ID is unique
-    const existingPayment = await Booking.findOne({ paymentId });
+    const existingPayment = await Booking.findOne({ paymentId: normalizedPaymentId });
     if (existingPayment) {
       return res.status(400).json({
         success: false,
@@ -156,7 +299,7 @@ exports.createBooking = async (req, res) => {
       consultationType,
       amount,
       paymentMethod,
-      paymentId,
+      paymentId: normalizedPaymentId,
       paymentStatus: "completed",
       status: "confirmed",
     });
@@ -187,7 +330,7 @@ exports.createBooking = async (req, res) => {
         time,
         consultationType,
         amount,
-        paymentId,
+        paymentId: normalizedPaymentId,
         bookingId: savedBooking._id,
       };
 
@@ -206,6 +349,12 @@ exports.createBooking = async (req, res) => {
       // Don't fail the request if email queuing fails
     }
 
+    // Invalidate schedules cache for user and dietitian
+    invalidateCache(`bookings:user:${userId}:*`);
+    invalidateCache(`bookings:dietitian:${dietitianId}:*`);
+    invalidateCache(`dietitians:${dietitianId}:*`);
+    invalidateCache(`slots:${dietitianId}:*`);
+
     res.status(201).json({
       success: true,
       message: "Booking created successfully",
@@ -217,6 +366,103 @@ exports.createBooking = async (req, res) => {
       success: false,
       message: "`Failed to create booking",
     });
+  }
+};
+
+/**
+ * Hold a slot for 10 minutes (Cinema-style locking)
+ * POST /api/bookings/hold
+ */
+exports.holdSlot = async (req, res) => {
+  try {
+    const { dietitianId, date, time } = req.body;
+    const userId = req.user?.roleId || req.user?.userId;
+
+    if (!dietitianId || !date || !time) {
+      return res.status(400).json({ success: false, message: "Dietitian, date, and time are required" });
+    }
+
+    const lockKey = `lock:booking:${dietitianId}:${date}:${time}`;
+
+    // Verify slot is not already booked in DB
+    const [year, month, day] = date.split('-').map(Number);
+    const bookingDate = new Date(Date.UTC(year, month - 1, day));
+    const dayStart = new Date(bookingDate);
+    const dayEnd = new Date(bookingDate);
+    dayEnd.setDate(dayEnd.getDate() + 1);
+
+    const alreadyBooked = await Booking.findOne({
+      dietitianId,
+      date: { $gte: dayStart, $lt: dayEnd },
+      time,
+      status: { $in: ["confirmed", "completed"] },
+    });
+
+    if (alreadyBooked) {
+      return res.status(409).json({ success: false, message: "This slot is already booked." });
+    }
+
+    // Acquire lock for 10 minutes (600 seconds)
+    const acquired = await acquireLock(lockKey, userId.toString(), 600);
+
+    if (!acquired) {
+      const currentHolder = await getLockHolder(lockKey);
+      if (currentHolder === userId.toString()) {
+        return res.status(200).json({ success: true, message: "Slot is already held by you", expiresAt: Date.now() + 600000 });
+      }
+      return res.status(423).json({ success: false, message: "This slot is currently being held by another user. Try again in 10 minutes." });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Slot held successfully for 10 minutes",
+      expiresAt: Date.now() + 600000
+    });
+  } catch (error) {
+    console.error("Error holding slot:", error);
+    res.status(500).json({ success: false, message: "Error locking slot" });
+  }
+};
+
+/**
+ * Release a held slot
+ * POST /api/bookings/release
+ */
+exports.releaseSlot = async (req, res) => {
+  try {
+    const { dietitianId, date, time } = req.body;
+    const userId = req.user?.roleId || req.user?.userId;
+    const lockKey = `lock:booking:${dietitianId}:${date}:${time}`;
+
+    await releaseLock(lockKey, userId?.toString());
+    res.status(200).json({ success: true, message: "Slot hold released" });
+  } catch (error) {
+    console.error("Error releasing slot:", error);
+    res.status(500).json({ success: false, message: "Error releasing slot hold" });
+  }
+};
+
+/**
+ * Get all active held slots for a dietitian and date
+ * GET /api/bookings/holds/:dietitianId?date=YYYY-MM-DD
+ */
+exports.getDietitianHolds = async (req, res) => {
+  try {
+    const { dietitianId } = req.params;
+    const { date } = req.query;
+
+    if (!dietitianId || !date) {
+      return res.status(400).json({ success: false, message: "Dietitian ID and date are required" });
+    }
+
+    const pattern = `lock:booking:${dietitianId}:${date}:*`;
+    const keys = await getMatchingLocks(pattern);
+    const heldSlots = keys.map(k => k.split(':').pop());
+
+    res.status(200).json({ success: true, heldSlots });
+  } catch (error) {
+    console.error("Error fetching dietitian holds:", error);
+    res.status(500).json({ success: false, message: "Error fetching held slots" });
   }
 };
 
@@ -244,12 +490,20 @@ exports.getUserBookings = async (req, res) => {
       query.status = status;
     }
 
-    const bookings = await Booking.find(query).sort(sort).exec();
+    const cacheKey = `bookings:user:${userId}:${status || 'all'}:${sort}`;
+    const { data: bookings, cacheStatus, duration } = await cacheOrFetch(cacheKey, 300, async () => {
+      return await Booking.find(query).sort(sort).lean().exec();
+    });
+
+    if (cacheStatus) {
+      res.setHeader('X-Cache', cacheStatus);
+      res.setHeader('X-Cache-Duration', `${duration}ms`);
+    }
 
     res.status(200).json({
       success: true,
       data: bookings,
-      count: bookings.length,
+      count: Array.isArray(bookings) ? bookings.length : 0,
     });
   } catch (error) {
     console.error("Error fetching user bookings:", error);
@@ -284,12 +538,20 @@ exports.getDietitianBookings = async (req, res) => {
       query.status = status;
     }
 
-    const bookings = await Booking.find(query).sort(sort).exec();
+    const cacheKey = `bookings:dietitian:${dietitianId}:${status || 'all'}:${sort}`;
+    const { data: bookings, cacheStatus, duration } = await cacheOrFetch(cacheKey, 300, async () => {
+      return await Booking.find(query).sort(sort).lean().exec();
+    });
+
+    if (cacheStatus) {
+      res.setHeader('X-Cache', cacheStatus);
+      res.setHeader('X-Cache-Duration', `${duration}ms`);
+    }
 
     res.status(200).json({
       success: true,
       data: bookings,
-      count: bookings.length,
+      count: Array.isArray(bookings) ? bookings.length : 0,
     });
   } catch (error) {
     console.error("Error fetching dietitian bookings:", error);
@@ -338,6 +600,114 @@ exports.getBookingById = async (req, res) => {
   }
 };
 
+// Generate a lightweight Jitsi meeting link for an online consultation
+exports.createMeetingLink = async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    const userId = req.user?.roleId || req.user?.employeeId || req.user?.userId;
+
+    if (!mongoose.Types.ObjectId.isValid(bookingId)) {
+      return res.status(400).json({ success: false, message: "Invalid booking ID" });
+    }
+
+    const booking = await Booking.findById(bookingId);
+    if (!booking) {
+      return res.status(404).json({ success: false, message: "Booking not found" });
+    }
+
+    // Authorization: only the booked user or the dietitian can create/view the link
+    if (booking.userId.toString() !== String(userId) && booking.dietitianId.toString() !== String(userId)) {
+      return res.status(403).json({ success: false, message: "Access denied" });
+    }
+
+    if (booking.consultationType !== "Online") {
+      return res.status(400).json({ success: false, message: "Meeting links are only available for online consultations" });
+    }
+
+    // Reuse existing link if present to avoid changing user invites
+    if (booking.meetingUrl) {
+      return res.json({ success: true, meetingUrl: booking.meetingUrl, provider: booking.meetingProvider || "jitsi" });
+    }
+
+    const domain = process.env.JITSI_DOMAIN || "https://meet.jit.si";
+    const room = `NutriConnect-${booking._id}-${crypto.randomBytes(4).toString("hex")}`;
+    const meetingUrl = `${domain.replace(/\/$/, "")}/${room}`;
+
+    booking.meetingUrl = meetingUrl;
+    booking.meetingProvider = "jitsi";
+    booking.meetingCreatedAt = new Date();
+    await booking.save();
+
+    return res.json({ success: true, meetingUrl, provider: "jitsi" });
+  } catch (error) {
+    console.error("Error creating meeting link:", error);
+    return res.status(500).json({ success: false, message: "Failed to create meeting link" });
+  }
+};
+
+// Provide an .ics calendar invite for a booking
+exports.getCalendarInvite = async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    const userId = req.user?.roleId || req.user?.employeeId || req.user?.userId;
+
+    if (!mongoose.Types.ObjectId.isValid(bookingId)) {
+      return res.status(400).json({ success: false, message: "Invalid booking ID" });
+    }
+
+    const booking = await Booking.findById(bookingId);
+    if (!booking) {
+      return res.status(404).json({ success: false, message: "Booking not found" });
+    }
+
+    if (booking.userId.toString() !== String(userId) && booking.dietitianId.toString() !== String(userId)) {
+      return res.status(403).json({ success: false, message: "Access denied" });
+    }
+
+    // Build start/end Date objects using stored date (midnight UTC) + time (HH:MM)
+    // Support "HH:MM" or "HH:MM AM/PM" time formats
+    const timeParts = booking.time.trim().toUpperCase();
+    const timeMatch = timeParts.match(/^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$/);
+    if (!timeMatch) {
+      return res.status(400).json({ success: false, message: "Invalid time format on booking" });
+    }
+    let hour = parseInt(timeMatch[1], 10);
+    const minute = parseInt(timeMatch[2], 10) || 0;
+    const meridian = timeMatch[3];
+    if (meridian === "PM" && hour < 12) hour += 12;
+    if (meridian === "AM" && hour === 12) hour = 0;
+
+    const start = new Date(booking.date);
+    start.setUTCHours(hour, minute, 0, 0);
+    const end = new Date(start.getTime() + 30 * 60 * 1000); // default 30 mins
+
+    const title = `Consultation with ${booking.dietitianName}`;
+    const descriptionParts = [
+      `Consultation Type: ${booking.consultationType}`,
+      `Dietitian: ${booking.dietitianName}`,
+      `Client: ${booking.username}`,
+      booking.meetingUrl ? `Join: ${booking.meetingUrl}` : null
+    ].filter(Boolean);
+
+    const ics = buildICS({
+      uid: `booking-${booking._id}@nutriconnect`,
+      start,
+      end,
+      title,
+      description: descriptionParts.join("\n"),
+      location: booking.meetingUrl || "Online",
+      url: booking.meetingUrl || undefined
+    });
+
+    res.setHeader("Content-Type", "text/calendar; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename=booking-${booking._id}.ics`);
+    return res.send(ics);
+  } catch (error) {
+    console.error("Error generating calendar invite:", error);
+    return res.status(500).json({ success: false, message: "Failed to generate calendar invite" });
+  }
+};
+
 /**
  * Update booking status
  * PATCH /api/bookings/:bookingId/status
@@ -382,6 +752,12 @@ exports.updateBookingStatus = async (req, res) => {
       message: "Booking status updated successfully",
       data: booking,
     });
+
+    // Invalidate schedules cache
+    invalidateCache(`bookings:user:${booking.userId}:*`);
+    invalidateCache(`bookings:dietitian:${booking.dietitianId}:*`);
+    invalidateCache(`dietitians:${booking.dietitianId}:*`);
+    invalidateCache(`slots:${booking.dietitianId}:*`);
 
     // Trigger real-time updates
     try {
@@ -437,6 +813,12 @@ exports.cancelBooking = async (req, res) => {
     booking.updatedAt = Date.now();
     await booking.save();
 
+    // Invalidate schedules cache
+    invalidateCache(`bookings:user:${booking.userId}:*`);
+    invalidateCache(`bookings:dietitian:${booking.dietitianId}:*`);
+    invalidateCache(`dietitians:${booking.dietitianId}:*`);
+    invalidateCache(`slots:${booking.dietitianId}:*`);
+
     res.status(200).json({
       success: true,
       message: "Booking cancelled successfully",
@@ -478,71 +860,82 @@ exports.getBookedSlots = async (req, res) => {
       });
     }
 
-    // Parse and normalize the date as UTC
-    const [year, month, day] = date.split('-').map(Number);
-    const queryDate = new Date(Date.UTC(year, month - 1, day));
+    const cacheKey = `slots:${dietitianId}:${date}:${validUserId || 'anon'}`;
+    const { data: slotData, cacheStatus, duration } = await cacheOrFetch(cacheKey, 60, async () => {
+      // Parse and normalize the date as UTC
+      const [year, month, day] = date.split('-').map(Number);
+      const queryDate = new Date(Date.UTC(year, month - 1, day));
 
-    const nextDay = new Date(queryDate);
-    nextDay.setDate(nextDay.getDate() + 1);
+      const nextDay = new Date(queryDate);
+      nextDay.setDate(nextDay.getDate() + 1);
 
-    // Find all confirmed/completed bookings for this dietitian on this date
-    const dietitianBookings = await Booking.find({
-      dietitianId,
-      date: { $gte: queryDate, $lt: nextDay },
-      status: { $in: ["confirmed", "completed"] },
-    }).select("time userId username _id");
-
-    // Find all blocked slots for this dietitian on this date
-    const blockedSlots = await BlockedSlot.find({
-      dietitianId,
-      date: queryDate.toISOString().split('T')[0]
-    }).select("time");
-
-    // Find all confirmed/completed bookings for this user on this date (with any dietitian)
-    // Only query if we have a valid userId
-    let userBookings = [];
-    if (validUserId) {
-      userBookings = await Booking.find({
-        userId: validUserId,
+      // Find all confirmed/completed bookings for this dietitian on this date
+      const dietitianBookings = await Booking.find({
+        dietitianId,
         date: { $gte: queryDate, $lt: nextDay },
         status: { $in: ["confirmed", "completed"] },
-      }).select("time dietitianName");
-    }
+      }).select("time userId username _id");
 
-    // Separate user's bookings from others' bookings for this dietitian
-    const bookedSlots = [];
-    const userBookingsWithThisDietitian = [];
-    const bookingDetails = [];
-    const blockedSlotsList = blockedSlots.map(slot => slot.time);
+      // Find all blocked slots for this dietitian on this date
+      const blockedSlots = await BlockedSlot.find({
+        dietitianId,
+        date: queryDate.toISOString().split('T')[0]
+      }).select("time");
 
-    dietitianBookings.forEach((booking) => {
-      bookingDetails.push({
-        time: booking.time,
-        userId: booking.userId,
-        userName: booking.username,
-        bookingId: booking._id
-      });
-      if (validUserId && booking.userId.toString() === validUserId) {
-        userBookingsWithThisDietitian.push(booking.time);
-      } else {
-        bookedSlots.push(booking.time);
+      // Find all confirmed/completed bookings for this user on this date (with any dietitian)
+      let userBookings = [];
+      if (validUserId) {
+        userBookings = await Booking.find({
+          userId: validUserId,
+          date: { $gte: queryDate, $lt: nextDay },
+          status: { $in: ["confirmed", "completed"] },
+        }).select("time dietitianName");
       }
+
+      // Separate user's bookings from others' bookings for this dietitian
+      const bookedSlots = [];
+      const userBookingsWithThisDietitian = [];
+      const bookingDetails = [];
+      const blockedSlotsList = blockedSlots.map(slot => slot.time);
+
+      dietitianBookings.forEach((booking) => {
+        bookingDetails.push({
+          time: booking.time,
+          userId: booking.userId,
+          userName: booking.username,
+          bookingId: booking._id
+        });
+        if (validUserId && booking.userId.toString() === validUserId) {
+          userBookingsWithThisDietitian.push(booking.time);
+        } else {
+          bookedSlots.push(booking.time);
+        }
+      });
+
+      // Get times when user has any bookings (conflicts with booking multiple dietitians at same time)
+      const userConflictingTimes = userBookings.map(booking => booking.time);
+
+      // Return all booked slots for this dietitian (including user's own)
+      const allBookedSlots = [...bookedSlots, ...userBookingsWithThisDietitian];
+
+      return {
+        bookedSlots: allBookedSlots,
+        userBookings: userBookingsWithThisDietitian,
+        userConflictingTimes,
+        bookingDetails,
+        blockedSlots: blockedSlotsList,
+        date: queryDate,
+      };
     });
 
-    // Get times when user has any bookings (conflicts with booking multiple dietitians at same time)
-    const userConflictingTimes = userBookings.map(booking => booking.time);
-
-    // Return all booked slots for this dietitian (including user's own)
-    const allBookedSlots = [...bookedSlots, ...userBookingsWithThisDietitian];
+    if (cacheStatus) {
+      res.setHeader('X-Cache', cacheStatus);
+      res.setHeader('X-Cache-Duration', `${duration}ms`);
+    }
 
     res.status(200).json({
       success: true,
-      bookedSlots: allBookedSlots, // All slots booked with this dietitian
-      userBookings: userBookingsWithThisDietitian, // Slots booked by current user with this dietitian
-      userConflictingTimes, // All times when user has bookings with any dietitian
-      bookingDetails, // Details of all bookings with IDs
-      blockedSlots: blockedSlotsList, // Blocked slots
-      date: queryDate,
+      ...slotData
     });
   } catch (error) {
     console.error("Error fetching booked slots:", error);
@@ -678,6 +1071,12 @@ exports.rescheduleBooking = async (req, res) => {
         time: booking.time,
       },
     });
+
+    // Invalidate schedules cache
+    invalidateCache(`bookings:user:${booking.userId}:*`);
+    invalidateCache(`bookings:dietitian:${booking.dietitianId}:*`);
+    invalidateCache(`dietitians:${booking.dietitianId}:*`);
+    invalidateCache(`slots:${booking.dietitianId}:*`);
 
     // Trigger real-time updates
     try {

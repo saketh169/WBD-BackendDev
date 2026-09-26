@@ -33,6 +33,7 @@ const activityLogRoutes = require('./routes/activityLogRoutes');
 const { helmetMiddleware, rateLimiter, sanitizeInput } = require('./middlewares/securityMiddleware');
 const { requestLogger } = require('./middlewares/loggerMiddleware');
 const { errorHandler, notFoundHandler } = require('./middlewares/errorMiddleware');
+const { formatResponseMiddleware } = require('./middlewares/responseMiddleware');
 const compression = require('compression');
 
 const app = express();
@@ -70,6 +71,10 @@ app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 // Sanitize input for XSS protection
 app.use(sanitizeInput);
+
+// Enforce standard API response format: { isError, success, message, data, status, statusCode }
+app.use(formatResponseMiddleware);
+
 
 // --- SWAGGER DOCUMENTATION ---
 const swaggerOptions = {

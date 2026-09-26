@@ -1,7 +1,9 @@
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 
-// In-memory storage for OTPs (in production, use Redis or database)
+const { setStoredOTP, getStoredOTPData, removeStoredOTP } = require('../utils/redisClient');
+
+// In-memory fallback storage for OTPs
 const otpStore = new Map();
 
 // OTP configuration
@@ -30,37 +32,26 @@ const generateOTP = () => {
   return crypto.randomInt(100000, 999999).toString();
 };
 
-// Clean up expired OTPs periodically
-const cleanupExpiredOTPs = () => {
-  const now = Date.now();
-  for (const [email, data] of otpStore.entries()) {
-    if (now - data.timestamp > OTP_EXPIRY_MS) {
-      otpStore.delete(email);
-    }
-  }
-};
-
-// Run cleanup every 5 minutes
-setInterval(cleanupExpiredOTPs, 5 * 60 * 1000);
-
-// Store OTP with email, timestamp, and reset attempt counter
-const storeOTP = (email, otp) => {
-  otpStore.set(email, {
+// Store OTP in Redis with 10-minute auto-expiry and in-memory fallback
+const storeOTP = async (email, otp) => {
+  const otpData = {
     otp,
     timestamp: Date.now(),
     attempts: 0,
     lockedUntil: null,
-  });
+  };
+  otpStore.set(email.toLowerCase().trim(), otpData);
+  await setStoredOTP(email, otpData, 600);
 };
 
-// Get stored OTP for email (returns null if expired)
-const getStoredOTP = (email) => {
-  const data = otpStore.get(email);
+// Get stored OTP for email (checks Redis first, then in-memory fallback)
+const getStoredOTP = async (email) => {
+  const data = await getStoredOTPData(email) || otpStore.get(email.toLowerCase().trim());
   if (!data) return null;
 
-  // Check expiry
   if (Date.now() - data.timestamp > OTP_EXPIRY_MS) {
-    otpStore.delete(email);
+    await removeStoredOTP(email);
+    otpStore.delete(email.toLowerCase().trim());
     return null;
   }
 
@@ -68,8 +59,9 @@ const getStoredOTP = (email) => {
 };
 
 // Remove OTP after successful verification
-const removeOTP = (email) => {
-  otpStore.delete(email);
+const removeOTP = async (email) => {
+  await removeStoredOTP(email);
+  otpStore.delete(email.toLowerCase().trim());
 };
 
 // Send OTP email to user (for password reset)
@@ -176,7 +168,7 @@ const sendLoginOTPEmail = async (email, otp, roleLabel = '') => {
 const sendLoginOTP = async (email, roleLabel = '') => {
   try {
     const otp = generateOTP();
-    storeOTP(email, otp);
+    await storeOTP(email, otp);
 
     // DEV MODE: OTP logging disabled for security
     // In development, check email or database for OTP values
@@ -189,7 +181,7 @@ const sendLoginOTP = async (email, roleLabel = '') => {
     if (emailResult.success) {
       return { success: true, message: 'Login OTP sent successfully' };
     } else {
-      removeOTP(email);
+      await removeOTP(email);
       return { success: false, message: 'Failed to send login OTP email', error: emailResult.error };
     }
   } catch (error) {
@@ -205,7 +197,7 @@ const sendPasswordResetOTP = async (email) => {
     const otp = generateOTP();
 
     // Store OTP with email
-    storeOTP(email, otp);
+    await storeOTP(email, otp);
 
     // DEV MODE: OTP logging disabled for security
     if (process.env.NODE_ENV !== 'production') {
@@ -219,7 +211,7 @@ const sendPasswordResetOTP = async (email) => {
       return { success: true, message: 'OTP sent successfully' };
     } else {
       // Remove stored OTP if email failed
-      removeOTP(email);
+      await removeOTP(email);
       return { success: false, message: 'Failed to send OTP email', error: emailResult.error };
     }
   } catch (error) {
@@ -229,8 +221,9 @@ const sendPasswordResetOTP = async (email) => {
 };
 
 // Verify OTP with brute-force protection
-const verifyOTP = (email, enteredOTP) => {
-  const data = otpStore.get(email);
+const verifyOTP = async (email, enteredOTP) => {
+  const normalizedEmail = email.toLowerCase().trim();
+  const data = await getStoredOTPData(normalizedEmail) || otpStore.get(normalizedEmail);
 
   if (!data) {
     return { success: false, message: 'OTP expired or not found. Please request a new one.' };
@@ -238,7 +231,7 @@ const verifyOTP = (email, enteredOTP) => {
 
   // Check expiry
   if (Date.now() - data.timestamp > OTP_EXPIRY_MS) {
-    otpStore.delete(email);
+    await removeOTP(normalizedEmail);
     return { success: false, message: 'OTP has expired. Please request a new one.' };
   }
 
@@ -254,18 +247,24 @@ const verifyOTP = (email, enteredOTP) => {
     // Lock out after max attempts
     if (data.attempts >= MAX_OTP_ATTEMPTS) {
       data.lockedUntil = Date.now() + LOCKOUT_DURATION_MS;
+      otpStore.set(normalizedEmail, data);
+      await setStoredOTP(normalizedEmail, data, 900); // 15 min lockout
       return { success: false, message: 'Too many failed attempts. Account locked for 15 minutes. Please request a new OTP.' };
     }
 
+    otpStore.set(normalizedEmail, data);
+    await setStoredOTP(normalizedEmail, data, 600);
     const remaining = MAX_OTP_ATTEMPTS - data.attempts;
     return { success: false, message: `Invalid OTP. ${remaining} attempt(s) remaining.` };
   }
 
   // OTP is valid, remove it from storage
-  removeOTP(email);
+  await removeOTP(normalizedEmail);
 
   return { success: true, message: 'OTP verified successfully' };
 };
+
+const cleanupExpiredOTPs = () => {};
 
 module.exports = {
   sendPasswordResetOTP,

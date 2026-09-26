@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import NavHeader from '../Navbar/NavHeader';
 import { useAuth } from '../../hooks/useAuth';
-import axios from 'axios';
+import { getProfileByRole } from '../../services/profile/profileService';
 import RoleModal from '../../pages/RoleModal';
+import GlobalSearch from '../Search/GlobalSearch';
 
 // Utility function to get the base role path (e.g., '/user', '/dietitian', or '/')
 const getBasePath = (currentPath) => {
@@ -54,38 +56,28 @@ const Header = () => {
   const { token, isAuthenticated } = useAuth(currentRole);
   const [profileImage, setProfileImage] = useState(null);
   const [showRoleModal, setShowRoleModal] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
 
-  // Fetch profile data when authenticated
+  const fetchedRoleRef = useRef(null);
+
+  // Fetch profile data once when authenticated for current role
   useEffect(() => {
+    if (!isAuthenticated || !token || !currentRole) {
+      setProfileImage(null);
+      fetchedRoleRef.current = null;
+      return;
+    }
+
+    // Prevent redundant fetch if this role has already been fetched for current session
+    if (fetchedRoleRef.current === currentRole) return;
+    fetchedRoleRef.current = currentRole;
+
     const fetchProfileData = async () => {
-      if (!isAuthenticated || !token || !currentRole) {
-        setProfileImage(null);
-        return;
-      }
-
       try {
-        // Role-specific API endpoints for profile data
-        const apiEndpoints = {
-          user: '/api/getuserdetails',
-          dietitian: '/api/getdietitiandetails',
-          organization: '/api/getorganizationdetails',
-          employee: '/api/getorganizationdetails',
-          admin: '/api/getadmindetails'
-        };
-
-        const endpoint = apiEndpoints[currentRole];
-        if (!endpoint) {
-          return;
-        }
-
-        const response = await axios.get(endpoint, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        if (response.data.success && response.data.profileImage) {
-          setProfileImage(response.data.profileImage);
+        // Role-specific API endpoints for profile data (uses deduplicated profileService)
+        const res = await getProfileByRole(currentRole);
+        if (!res.isError && res.data?.profileImage) {
+          setProfileImage(res.data.profileImage);
         }
       } catch (error) {
         // Handle rate limiting
@@ -104,6 +96,7 @@ const Header = () => {
 
     fetchProfileData();
   }, [isAuthenticated, token, currentRole]);
+
 
   // Check if we're in a logged-in area first
   const isLoggedInArea =
@@ -176,6 +169,15 @@ const Header = () => {
 
         <div className="flex space-x-3 items-center -mr-20">
 
+          {/* Search Button for Logged-In Users */}
+          <button 
+            onClick={() => setShowSearch(true)}
+            className="text-[#28B463] hover:text-[#1E6F5C] p-2 transition-colors duration-300 transform hover:scale-110"
+            aria-label="Search"
+          >
+            <i className="fas fa-search text-2xl"></i>
+          </button>
+
           <button
             onClick={() => navigate(getProfilePath())}
             className={`${iconButtonBaseClass} border border-[#28B463] text-[#28B463] hover:bg-[#28B463] hover:text-white overflow-visible`}
@@ -212,6 +214,13 @@ const Header = () => {
     // If not logged in (base path), show Log In and Contact Us buttons
     return (
       <div className="flex space-x-3 items-center -mr-20">
+        <button 
+          onClick={() => setShowSearch(true)}
+          className="text-[#28B463] hover:text-[#1E6F5C] p-2 mr-2 transition-colors duration-300 transform hover:scale-110"
+          aria-label="Search"
+        >
+          <i className="fas fa-search text-2xl"></i>
+        </button>
         <button
           onClick={() => currentPath === '/' ? setShowRoleModal(true) : navigate('/role')}
           className={outlineButtonClass}
@@ -313,6 +322,11 @@ const Header = () => {
       {/* Role Selection Modal */}
       {showRoleModal && (
         <RoleModal isModal={true} onClose={() => setShowRoleModal(false)} />
+      )}
+
+      {/* Global Search Modal */}
+      {showSearch && (
+        <GlobalSearch onClose={() => setShowSearch(false)} currentRole={currentRole} />
       )}
     </>
   );

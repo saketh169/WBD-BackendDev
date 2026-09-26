@@ -25,6 +25,7 @@ const UserSchema = new Schema({
     gender: { type: String, enum: ['male', 'female', 'other'], required: true },
     address: { type: String, required: true, maxlength: 200 },
     profileImage: { type: Schema.Types.Mixed },
+    isDeleted: { type: Boolean, default: false },
 }, { timestamps: true });
 
 // 2b. Admin Profile (adminKey REMOVED)
@@ -80,6 +81,8 @@ const DietitianSchema = new Schema({
     specialties: [{ type: String }],
     experience: { type: Number },
     fees: { type: Number },
+    onlineFee: { type: Number },
+    inPersonFee: { type: Number },
     languages: [{ type: String }],
     location: { type: String },
     rating: { type: Number },
@@ -179,6 +182,7 @@ const OrganizationSchema = new Schema({
     documentUploadStatus: { type: String, enum: ['pending', 'verified', 'rejected'], default: 'pending' },
     lastDocumentUpdate: { type: Date, default: null },
     profileImage: { type: Schema.Types.Mixed },
+    isDeleted: { type: Boolean, default: false },
 }, { timestamps: true });
 
 // 2e. Employee Profile (Organization Employee)
@@ -205,12 +209,20 @@ const EmployeeSchema = new Schema({
 
 // Index for faster queries
 EmployeeSchema.index({ organizationId: 1, email: 1 }, { unique: true, sparse: true });
+EmployeeSchema.index({ isDeleted: 1, createdAt: -1 });
+EmployeeSchema.index({ name: 1, email: 1 });
 
-UserSchema.index({ createdAt: 1 });
+UserSchema.index({ isDeleted: 1, createdAt: -1 });
+UserSchema.index({ name: 1, email: 1 });
+
+DietitianSchema.index({ isDeleted: 1, createdAt: -1 });
+DietitianSchema.index({ name: 1, email: 1 });
 DietitianSchema.index({ 'verificationStatus.finalReport': 1, isDeleted: 1 });
-DietitianSchema.index({ createdAt: 1 });
+
+OrganizationSchema.index({ isDeleted: 1, createdAt: -1 });
+OrganizationSchema.index({ name: 1, email: 1 });
 OrganizationSchema.index({ documentUploadStatus: 1 });
-OrganizationSchema.index({ createdAt: 1 });
+
 UserAuthSchema.index({ role: 1 });
 
 module.exports = {

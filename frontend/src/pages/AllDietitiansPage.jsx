@@ -3,15 +3,10 @@ import BookingSidebar from "./Consultations/BookingSidebar";
 import PaymentModal from "./Consultations/PaymentModal";
 import DietitianCard from "./Consultations/DietitianCard";
 import FilterSidebar from "./Consultations/FilterSidebar";
-import axios from 'axios';
+import { getAllDietitians } from '../services/dietitian/dietitianService';
 
 // Notification Component with Green Theme
 const Notification = ({ show, message, type, onClose }) => {
-  useEffect(() => {
-    if (show) {
-    }
-  }, [show, message, type]);
-
   if (!show) return null;
 
   const bgColor = type === "success" ? "bg-green-50" : "bg-red-50";
@@ -102,77 +97,60 @@ const AllDietitiansPage = () => {
 
   const [specializations, setSpecializations] = useState([]);
 
+  const isFirstMount = React.useRef(true);
+
   // Load dietitians data from API
-  useEffect(() => {
-    const loadDietitians = async () => {
-      try {
-        setLoading(true);
-        
-        // Get auth token for user
-        const token = localStorage.getItem('authToken_user');
+  const loadDietitians = useCallback(async (search = "") => {
+    setLoading(true);
+    const res = await getAllDietitians(search ? { search } : {});
+    
+    if (!res.isError && (res.success || Array.isArray(res.data))) {
+      const list = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+      const filteredData = list.filter((d) => d.specialties && d.specialties.length > 0);
+      setAllDietitians(filteredData);
+      setFilteredDietitians(filteredData);
 
-        const config = token ? {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        } : {};
-
-        const response = await axios.get('/api/dietitians', config);
-        
-        if (response.data.success) {
-          // Filter out dietitians with empty specialization arrays
-          const filteredData = response.data.data.filter((d) => d.specialties && d.specialties.length > 0);
-          setAllDietitians(filteredData);
-          setFilteredDietitians(filteredData);
-
-          // Extract unique specializations for filter - keep only primary 6 plus Others
-          const primarySpecializations = [
-            "Weight Loss",
-            "Diabetes Management", 
-            "Women's Health",
-            "Gut Health",
-            "Skin & Hair",
-            "Cardiac Health",
-            "Others"
-          ];
-          const specOptions = primarySpecializations.map(spec => ({
-            value: spec,
-            label: spec
-          }));
-          setSpecializations(specOptions);
-        } else {
-          throw new Error(response.data.message || 'Failed to fetch dietitians');
-        }
-      } catch (error) {
-        console.error("Error loading dietitians:", error);
-        showNotification("Error loading dietitians", "error");
-        setAllDietitians([]);
-        setFilteredDietitians([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadDietitians();
+      setSpecializations(prev => {
+        if (prev.length > 0) return prev;
+        const primarySpecializations = [
+          "Weight Loss", "Diabetes Management", "Women's Health", 
+          "Gut Health", "Skin & Hair", "Cardiac Health", "Others"
+        ];
+        return primarySpecializations.map(spec => ({ value: spec, label: spec }));
+      });
+    } else {
+      showNotification(res.message || "Error loading dietitians", "error");
+    }
+    setLoading(false);
   }, []);
 
-  // Scroll to top when component mounts
+  // Single consolidated load & search effect
   useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+      loadDietitians();
+      return;
+    }
 
-  // Apply filters and search
+    const timer = setTimeout(() => {
+      loadDietitians(searchQuery.trim());
+    }, 500); // 500ms debounce
+    return () => clearTimeout(timer);
+  }, [searchQuery, loadDietitians]);
+
+  // Apply other filters locally (Search, Experience, Fees, Mode, etc.)
   useEffect(() => {
     let result = [...allDietitians];
 
-    // Search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
+    if (searchQuery && searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
       result = result.filter(
         (d) =>
-          d.name.toLowerCase().includes(query) ||
-          d.location?.toLowerCase().includes(query) ||
-          d.specialties?.some((s) => s.toLowerCase().includes(query))
+          d.name?.toLowerCase().includes(q) ||
+          d.location?.toLowerCase().includes(q) ||
+          d.specialties?.some((s) => s.toLowerCase().includes(q)) ||
+          (typeof d.specialization === 'string' && d.specialization.toLowerCase().includes(q)) ||
+          d.languages?.some((l) => l.toLowerCase().includes(q))
       );
     }
 
