@@ -37,6 +37,10 @@ const { formatResponseMiddleware } = require('./middlewares/responseMiddleware')
 const compression = require('compression');
 
 const app = express();
+
+// Trust reverse proxy (Vercel, AWS ELB, Nginx) so client IP and protocol headers are correctly handled
+app.set('trust proxy', 1);
+
 // Enable response compression 
 app.use(compression());
 const PORT = process.env.PORT || 5000;
@@ -44,7 +48,15 @@ const PORT = process.env.PORT || 5000;
 // Allowed frontend origins (configure via env for production)
 const ALLOWED_ORIGINS = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(',')
-  : ['http://localhost:5173', 'http://localhost:3000'];
+  : ['http://localhost:5173', 'http://localhost:3000', 'https://nutri-connect-wbd-frontend.vercel.app'];
+
+// Enable CORS with specific origins
+app.use(cors({
+  origin: ALLOWED_ORIGINS,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+}));
 
 // --- Middlewares ---
 // Connect to the database
@@ -56,14 +68,6 @@ app.use(rateLimiter);
 
 // Request logger
 app.use(requestLogger);
-
-// Enable CORS with specific origins
-app.use(cors({
-  origin: ALLOWED_ORIGINS,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true,
-}));
 
 // Parse incoming JSON requests with increased limits for image uploads
 app.use(express.json({ limit: '10mb' }));
@@ -251,9 +255,6 @@ app.get('/', (req, res) => {
 app.use(notFoundHandler);
 
 // Error handler (must be last)
-app.use(errorHandler);
-
-// Global error handler (must be last)
 app.use(errorHandler);
 
 // Initialize Cron Jobs
